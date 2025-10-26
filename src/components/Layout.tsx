@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import ThemeToggle from "./ThemeToggle";
 import dwLogo from "@/assets/dw-logo.png";
 
 interface LayoutProps {
@@ -72,13 +71,12 @@ export default function Layout({ children }: LayoutProps) {
                   );
                 })}
               </div>
-              <ThemeToggle />
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={signOut} 
                 title="Sair"
-                className="hover:bg-destructive/10 hover:text-destructive"
+                className="hover:bg-destructive/10 hover:text-destructive neon-glow"
               >
                 <LogOut className="h-5 w-5" />
               </Button>
