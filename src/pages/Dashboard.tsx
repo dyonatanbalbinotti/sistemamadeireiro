@@ -1,0 +1,249 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Package, Factory, TrendingUp, Weight, TreeDeciduous, DollarSign, PieChart as PieChartIcon } from "lucide-react";
+import { calcularEstoqueSerrado, calcularEstoqueToras, getVendas } from "@/lib/storage";
+import { useEffect, useState } from "react";
+import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+
+export default function Dashboard() {
+  const [estoqueSerrado, setEstoqueSerrado] = useState(0);
+  const [estoqueToras, setEstoqueToras] = useState(0);
+  const [totalItens, setTotalItens] = useState(0);
+  const [vendasData, setVendasData] = useState<any[]>([]);
+  const [estoqueData, setEstoqueData] = useState<any[]>([]);
+
+  useEffect(() => {
+    const serrado = calcularEstoqueSerrado();
+    const toras = calcularEstoqueToras();
+    const vendas = getVendas();
+    
+    const totalM3 = serrado.reduce((acc, item) => acc + item.m3Total, 0);
+    setEstoqueSerrado(totalM3);
+    setEstoqueToras(toras.toneladas);
+    setTotalItens(serrado.length);
+
+    // Dados de vendas dos últimos 7 dias
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      return date.toISOString().split('T')[0];
+    });
+
+    const vendasPorDia = last7Days.map(date => {
+      const dayVendas = vendas.filter(v => v.data.split('T')[0] === date);
+      const total = dayVendas.reduce((sum, v) => sum + v.valorTotal, 0);
+      return {
+        data: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+        valor: parseFloat(total.toFixed(2))
+      };
+    });
+    setVendasData(vendasPorDia);
+
+    // Dados de estoque por produto (top 5)
+    const estoquesPorProduto = serrado
+      .sort((a, b) => b.m3Total - a.m3Total)
+      .slice(0, 5)
+      .map(item => ({
+        nome: `${item.tipo.substring(0, 10)}... ${item.largura}x${item.espessura}`,
+        valor: parseFloat(item.m3Total.toFixed(2))
+      }));
+    setEstoqueData(estoquesPorProduto);
+  }, []);
+
+  const cards = [
+    {
+      title: "Estoque Serrado",
+      value: `${estoqueSerrado.toFixed(2)} m³`,
+      icon: Package,
+      gradient: "from-primary/10 to-primary/5",
+    },
+    {
+      title: "Estoque Toras",
+      value: `${estoqueToras.toFixed(2)} T`,
+      icon: Weight,
+      gradient: "from-secondary/10 to-secondary/5",
+    },
+    {
+      title: "Tipos de Produtos",
+      value: totalItens.toString(),
+      icon: Factory,
+      gradient: "from-accent/20 to-accent/10",
+    },
+    {
+      title: "Status",
+      value: "Operacional",
+      icon: TrendingUp,
+      gradient: "from-primary/10 to-accent/10",
+    },
+  ];
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-700">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent dark:from-primary/10 blur-3xl -z-10 animate-pulse-glow" />
+        <h1 className="text-5xl font-tech font-bold text-foreground mb-3 tracking-tight dark:text-shadow-glow">
+          Dashboard
+        </h1>
+        <p className="text-muted-foreground text-lg">Visão geral do controle de estoque em tempo real</p>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {cards.map((card, index) => {
+          const Icon = card.icon;
+          const neonColors = ['neon-glow', 'neon-glow-lime', 'neon-glow-magenta', 'neon-glow-purple'];
+          const borderColors = ['neon-border', 'dark:neon-border-lime', 'dark:neon-border-magenta', 'dark:neon-border-purple'];
+          const iconColors = [
+            'text-[hsl(var(--neon-cyan))] dark:drop-shadow-[0_0_10px_rgba(0,255,255,0.8)]',
+            'text-[hsl(var(--neon-lime))] dark:drop-shadow-[0_0_10px_rgba(173,255,47,0.8)]',
+            'text-[hsl(var(--neon-magenta))] dark:drop-shadow-[0_0_10px_rgba(255,0,255,0.8)]',
+            'text-[hsl(var(--neon-purple))] dark:drop-shadow-[0_0_10px_rgba(138,43,226,0.8)]'
+          ];
+          
+          return (
+            <Card 
+              key={card.title} 
+              className={`glass-effect ${borderColors[index]} shadow-elegant ${neonColors[index]} transition-all duration-500 hover:scale-105 hover:-translate-y-1 group overflow-hidden relative`}
+              style={{ animationDelay: `${index * 100}ms` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
+                <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
+                  {card.title}
+                </CardTitle>
+                <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 group-hover:bg-primary/20 dark:group-hover:bg-primary/30 transition-all">
+                  <Icon className={`h-5 w-5 ${iconColors[index]} group-hover:scale-110 transition-transform`} />
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="text-3xl font-tech font-bold text-foreground group-hover:text-primary transition-colors duration-300">
+                  {card.value}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="glass-effect neon-border shadow-elegant overflow-hidden relative group">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary dark:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]" />
+              Vendas - Últimos 7 dias
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={vendasData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="data" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="valor" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Total vendido: <span className="text-lg font-bold text-primary">
+                  R$ {vendasData.reduce((sum, d) => sum + d.valor, 0).toFixed(2)}
+                </span>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-effect neon-border shadow-elegant overflow-hidden relative group">
+          <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
+              <PieChartIcon className="h-5 w-5 text-primary dark:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]" />
+              Estoque por Produto (Top 5)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={estoqueData}
+                  dataKey="valor"
+                  nameKey="nome"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={100}
+                  label={(entry) => `${entry.valor} m³`}
+                >
+                  {estoqueData.map((_, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={`hsl(var(--primary) / ${1 - index * 0.15})`}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: number) => [`${value} m³`, 'Estoque']}
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="glass-effect dark:neon-border-purple shadow-elegant neon-glow-purple overflow-hidden relative group">
+        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-purple))]/10 via-transparent to-[hsl(var(--neon-magenta))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        <CardHeader className="relative z-10">
+          <CardTitle className="text-2xl font-tech text-foreground flex items-center gap-2">
+            <TreeDeciduous className="h-7 w-7 text-[hsl(var(--neon-purple))] dark:drop-shadow-[0_0_12px_rgba(138,43,226,0.8)]" />
+            Bem-vindo ao MadeiraStock
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="text-muted-foreground space-y-4 relative z-10">
+          <p className="text-base leading-relaxed">
+            Sistema completo de controle de estoque para o setor madeireiro, combinando tradição com tecnologia de ponta.
+          </p>
+          <ul className="space-y-3 ml-2">
+            {[
+              "Controle de produção com cubagem automática",
+              "Gestão de estoque de madeira serrada (unidades e m³)",
+              "Controle de toras em toneladas",
+              "Sistema de vendas integrado",
+              "Baixa automática de toras serradas"
+            ].map((item, i) => {
+              const bulletColors = [
+                'bg-[hsl(var(--neon-cyan))] dark:shadow-[0_0_6px_rgba(0,255,255,0.9)]',
+                'bg-[hsl(var(--neon-lime))] dark:shadow-[0_0_6px_rgba(173,255,47,0.9)]',
+                'bg-[hsl(var(--neon-magenta))] dark:shadow-[0_0_6px_rgba(255,0,255,0.9)]',
+                'bg-[hsl(var(--neon-purple))] dark:shadow-[0_0_6px_rgba(138,43,226,0.9)]',
+                'bg-[hsl(var(--neon-cyan))] dark:shadow-[0_0_6px_rgba(0,255,255,0.9)]'
+              ];
+              return (
+                <li key={i} className="flex items-start gap-3 group/item">
+                  <div className={`mt-1 h-2 w-2 rounded-full ${bulletColors[i]} group-hover/item:scale-150 transition-transform`} />
+                  <span className="group-hover/item:text-foreground transition-colors">{item}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

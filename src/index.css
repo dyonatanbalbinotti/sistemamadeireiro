@@ -1,0 +1,223 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    /* Modo Claro - Madeira Natural */
+    --background: 32 20% 97%;
+    --foreground: 28 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 28 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 28 25% 15%;
+
+    --primary: 28 45% 42%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 120 35% 45%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 32 15% 92%;
+    --muted-foreground: 28 10% 45%;
+
+    --accent: 32 30% 88%;
+    --accent-foreground: 28 45% 25%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 32 20% 85%;
+    --input: 32 20% 85%;
+    --ring: 28 45% 42%;
+
+    --neon: 195 100% 50%;
+    --neon-glow: 180 100% 50%;
+
+    --radius: 0.75rem;
+
+    --gradient-primary: linear-gradient(135deg, hsl(28 45% 42%), hsl(28 40% 52%));
+    --gradient-secondary: linear-gradient(135deg, hsl(120 35% 45%), hsl(120 30% 55%));
+    --gradient-wood: linear-gradient(180deg, hsl(32 20% 97%), hsl(28 25% 93%));
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.3));
+    
+    --shadow-elegant: 0 8px 32px -8px hsl(28 45% 25% / 0.15);
+    --shadow-card: 0 4px 16px -4px hsl(28 20% 20% / 0.1);
+    --shadow-glow: 0 0 20px hsl(195 100% 50% / 0);
+    
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-glow: box-shadow 0.3s ease;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Modo Escuro - Grafite Futurista com Neon Variado */
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 10%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 195 100% 50%;
+    --primary-foreground: 0 0% 10%;
+
+    --secondary: 28 35% 35%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 70%;
+
+    --accent: 195 80% 20%;
+    --accent-foreground: 195 100% 80%;
+
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 22%;
+    --input: 0 0% 18%;
+    --ring: 195 100% 50%;
+
+    /* Cores Neon Variadas */
+    --neon-cyan: 195 100% 50%;
+    --neon-lime: 90 100% 50%;
+    --neon-magenta: 330 100% 60%;
+    --neon-purple: 270 100% 65%;
+    --neon-yellow: 50 100% 55%;
+    --neon-orange: 20 100% 60%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(195 100% 50%), hsl(180 100% 60%));
+    --gradient-secondary: linear-gradient(135deg, hsl(90 100% 50%), hsl(120 100% 50%));
+    --gradient-magenta: linear-gradient(135deg, hsl(330 100% 60%), hsl(300 100% 65%));
+    --gradient-purple: linear-gradient(135deg, hsl(270 100% 65%), hsl(240 100% 70%));
+    --gradient-dark: linear-gradient(180deg, hsl(0 0% 7%), hsl(0 0% 10%));
+    --gradient-glass: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(0, 191, 255, 0.08));
+    
+    --shadow-elegant: 0 8px 32px -8px hsl(0 0% 0% / 0.6);
+    --shadow-card: 0 4px 16px -4px hsl(0 0% 0% / 0.4);
+    --shadow-glow-cyan: 0 0 25px hsl(195 100% 50% / 0.4), 0 0 50px hsl(195 100% 50% / 0.25);
+    --shadow-glow-lime: 0 0 25px hsl(90 100% 50% / 0.4), 0 0 50px hsl(90 100% 50% / 0.25);
+    --shadow-glow-magenta: 0 0 25px hsl(330 100% 60% / 0.4), 0 0 50px hsl(330 100% 60% / 0.25);
+    --shadow-glow-purple: 0 0 25px hsl(270 100% 65% / 0.4), 0 0 50px hsl(270 100% 65% / 0.25);
+    
+    --sidebar-background: 0 0% 8%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 195 100% 50%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 195 100% 80%;
+    --sidebar-border: 0 0% 18%;
+    --sidebar-ring: 195 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+  }
+
+  .font-tech {
+    font-family: 'Orbitron', monospace;
+  }
+
+  .glass-effect {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .dark .glass-effect {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.15), rgba(0, 191, 255, 0.08));
+  }
+
+  .neon-border {
+    border: 1px solid hsl(var(--neon-cyan) / 0.3);
+  }
+
+  .dark .neon-border {
+    box-shadow: 0 0 15px hsl(var(--neon-cyan) / 0.3), inset 0 0 15px hsl(var(--neon-cyan) / 0.15);
+  }
+
+  .neon-glow {
+    transition: var(--transition-glow);
+  }
+
+  .dark .neon-glow:hover {
+    box-shadow: var(--shadow-glow-cyan);
+  }
+
+  .neon-glow-lime {
+    transition: var(--transition-glow);
+  }
+
+  .dark .neon-glow-lime:hover {
+    box-shadow: var(--shadow-glow-lime);
+  }
+
+  .neon-glow-magenta {
+    transition: var(--transition-glow);
+  }
+
+  .dark .neon-glow-magenta:hover {
+    box-shadow: var(--shadow-glow-magenta);
+  }
+
+  .neon-glow-purple {
+    transition: var(--transition-glow);
+  }
+
+  .dark .neon-glow-purple:hover {
+    box-shadow: var(--shadow-glow-purple);
+  }
+
+  .dark .neon-border-lime {
+    border: 1px solid hsl(var(--neon-lime) / 0.4);
+    box-shadow: 0 0 15px hsl(var(--neon-lime) / 0.3), inset 0 0 15px hsl(var(--neon-lime) / 0.15);
+  }
+
+  .dark .neon-border-magenta {
+    border: 1px solid hsl(var(--neon-magenta) / 0.4);
+    box-shadow: 0 0 15px hsl(var(--neon-magenta) / 0.3), inset 0 0 15px hsl(var(--neon-magenta) / 0.15);
+  }
+
+  .dark .neon-border-purple {
+    border: 1px solid hsl(var(--neon-purple) / 0.4);
+    box-shadow: 0 0 15px hsl(var(--neon-purple) / 0.3), inset 0 0 15px hsl(var(--neon-purple) / 0.15);
+  }
+
+  .wood-texture {
+    background-image: 
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+      );
+  }
+}

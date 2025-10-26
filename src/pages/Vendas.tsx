@@ -1,0 +1,258 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ShoppingCart, Edit, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+import { getVendas, saveVendas, getProducao } from "@/lib/storage";
+import { Venda } from "@/types";
+
+export default function Vendas() {
+  const [vendas, setVendas] = useState<Venda[]>([]);
+  const [producao, setProducao] = useState<any[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const [produtoId, setProdutoId] = useState("");
+  const [tipo, setTipo] = useState<'serrada' | 'tora'>('serrada');
+  const [quantidade, setQuantidade] = useState("");
+  const [unidadeMedida, setUnidadeMedida] = useState<'unidade' | 'm3' | 'tonelada'>('unidade');
+  const [valorUnitario, setValorUnitario] = useState("");
+
+  useEffect(() => {
+    setVendas(getVendas());
+    setProducao(getProducao());
+  }, []);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const qtd = parseFloat(quantidade);
+    const valor = parseFloat(valorUnitario);
+    
+    if (!produtoId || isNaN(qtd) || isNaN(valor)) {
+      toast.error("Preencha todos os campos corretamente");
+      return;
+    }
+
+    const novaVenda: Venda = {
+      id: editingId || Date.now().toString(),
+      data: new Date().toISOString(),
+      produtoId,
+      tipo,
+      quantidade: qtd,
+      unidadeMedida,
+      valorUnitario: valor,
+      valorTotal: qtd * valor,
+    };
+
+    let novasVendas;
+    if (editingId) {
+      novasVendas = vendas.map(v => v.id === editingId ? novaVenda : v);
+      toast.success("Venda atualizada com sucesso!");
+    } else {
+      novasVendas = [...vendas, novaVenda];
+      toast.success(`Venda registrada: R$ ${novaVenda.valorTotal.toFixed(2)}`);
+    }
+    
+    saveVendas(novasVendas);
+    setVendas(novasVendas);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setProdutoId("");
+    setTipo('serrada');
+    setQuantidade("");
+    setUnidadeMedida('unidade');
+    setValorUnitario("");
+    setEditingId(null);
+  };
+
+  const handleEdit = (venda: Venda) => {
+    setProdutoId(venda.produtoId);
+    setTipo(venda.tipo);
+    setQuantidade(venda.quantidade.toString());
+    setUnidadeMedida(venda.unidadeMedida);
+    setValorUnitario(venda.valorUnitario.toString());
+    setEditingId(venda.id);
+  };
+
+  const handleDelete = (id: string) => {
+    const novasVendas = vendas.filter(v => v.id !== id);
+    saveVendas(novasVendas);
+    setVendas(novasVendas);
+    toast.success("Venda excluída");
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <ShoppingCart className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Vendas</h1>
+          <p className="text-muted-foreground">Registro e controle de vendas</p>
+        </div>
+      </div>
+
+      <Card className="shadow-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-foreground">Nova Venda</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="tipo">Tipo de Produto</Label>
+                <Select value={tipo} onValueChange={(v) => setTipo(v as 'serrada' | 'tora')}>
+                  <SelectTrigger className="border-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="serrada">Madeira Serrada</SelectItem>
+                    <SelectItem value="tora">Tora</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="produtoId">Produto</Label>
+                <Select value={produtoId} onValueChange={setProdutoId}>
+                  <SelectTrigger className="border-input">
+                    <SelectValue placeholder="Selecione o produto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {producao.map((prod) => (
+                      <SelectItem key={prod.id} value={prod.id}>
+                        {prod.tipo} - {prod.largura}×{prod.espessura}×{prod.comprimento}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="unidadeMedida">Unidade de Medida</Label>
+                <Select 
+                  value={unidadeMedida} 
+                  onValueChange={(v) => setUnidadeMedida(v as 'unidade' | 'm3' | 'tonelada')}
+                >
+                  <SelectTrigger className="border-input">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unidade">Unidade</SelectItem>
+                    <SelectItem value="m3">Metro Cúbico (m³)</SelectItem>
+                    {tipo === 'tora' && <SelectItem value="tonelada">Tonelada</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="quantidade">Quantidade</Label>
+                <Input
+                  id="quantidade"
+                  type="number"
+                  step="0.01"
+                  value={quantidade}
+                  onChange={(e) => setQuantidade(e.target.value)}
+                  placeholder="10"
+                  className="border-input"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="valorUnitario">
+                  Valor {unidadeMedida === 'unidade' ? 'Unitário' : `por ${unidadeMedida === 'm3' ? 'm³' : 'T'}`} (R$)
+                </Label>
+                <Input
+                  id="valorUnitario"
+                  type="number"
+                  step="0.01"
+                  value={valorUnitario}
+                  onChange={(e) => setValorUnitario(e.target.value)}
+                  placeholder="100.00"
+                  className="border-input"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                {editingId ? "Atualizar" : "Registrar"} Venda
+              </Button>
+              {editingId && (
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Cancelar
+                </Button>
+              )}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="shadow-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-foreground">Histórico de Vendas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-border overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead>Data</TableHead>
+                  <TableHead>Produto</TableHead>
+                  <TableHead>Quantidade</TableHead>
+                  <TableHead>Valor Unit.</TableHead>
+                  <TableHead>Total</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {vendas.map((venda) => {
+                  const prod = producao.find(p => p.id === venda.produtoId);
+                  return (
+                    <TableRow key={venda.id}>
+                      <TableCell>{new Date(venda.data).toLocaleDateString()}</TableCell>
+                      <TableCell className="font-medium">
+                        {prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {venda.quantidade} {venda.unidadeMedida === 'unidade' ? 'un' : venda.unidadeMedida === 'm3' ? 'm³' : 'T'}
+                      </TableCell>
+                      <TableCell>R$ {venda.valorUnitario.toFixed(2)}</TableCell>
+                      <TableCell className="font-semibold text-primary">R$ {venda.valorTotal.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => handleEdit(venda)}
+                            className="h-8 w-8"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => handleDelete(venda.id)}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
