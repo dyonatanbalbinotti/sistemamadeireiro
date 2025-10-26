@@ -5,8 +5,11 @@ import {
   LayoutDashboard, 
   Package, 
   ShoppingCart, 
-  Factory
+  Factory,
+  LogOut
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 import ThemeToggle from "./ThemeToggle";
 import dwLogo from "@/assets/dw-logo.png";
 
@@ -23,6 +26,7 @@ const navItems = [
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const { signOut, userRole } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/10 wood-texture">
@@ -35,9 +39,16 @@ export default function Layout({ children }: LayoutProps) {
                 alt="DW Corporation Logo" 
                 className="h-10 w-10 object-contain dark:drop-shadow-[0_0_12px_rgba(0,255,255,0.6)] transition-all" 
               />
-              <h1 className="text-lg font-tech font-bold text-primary tracking-wider">
-                DwCorporation Sist. Madeireiro
-              </h1>
+              <div>
+                <h1 className="text-lg font-tech font-bold text-primary tracking-wider">
+                  DwCorporation Sist. Madeireiro
+                </h1>
+                {userRole && (
+                  <p className="text-xs text-muted-foreground">
+                    {userRole === 'dono' ? 'Administrador' : 'Funcionário'}
+                  </p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-2">
               <div className="flex gap-1">
@@ -62,6 +73,15 @@ export default function Layout({ children }: LayoutProps) {
                 })}
               </div>
               <ThemeToggle />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={signOut} 
+                title="Sair"
+                className="hover:bg-destructive/10 hover:text-destructive"
+              >
+                <LogOut className="h-5 w-5" />
+              </Button>
             </div>
           </div>
         </div>

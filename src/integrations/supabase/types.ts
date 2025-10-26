@@ -14,16 +14,243 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      producao: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          m3: number
+          produto_id: string
+          quantidade: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          id?: string
+          m3: number
+          produto_id: string
+          quantidade: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          m3?: number
+          produto_id?: string
+          quantidade?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "producao_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produtos: {
+        Row: {
+          comprimento: number
+          created_at: string
+          espessura: number
+          id: string
+          largura: number
+          nome: string
+          tipo: string
+        }
+        Insert: {
+          comprimento: number
+          created_at?: string
+          espessura: number
+          id?: string
+          largura: number
+          nome: string
+          tipo: string
+        }
+        Update: {
+          comprimento?: number
+          created_at?: string
+          espessura?: number
+          id?: string
+          largura?: number
+          nome?: string
+          tipo?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          nome?: string
+        }
+        Relationships: []
+      }
+      toras: {
+        Row: {
+          created_at: string
+          data: string
+          descricao: string
+          id: string
+          peso: number
+          toneladas: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          descricao: string
+          id?: string
+          peso: number
+          toneladas: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          descricao?: string
+          id?: string
+          peso?: number
+          toneladas?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      toras_serradas: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          peso: number
+          toneladas: number
+          tora_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          id?: string
+          peso: number
+          toneladas: number
+          tora_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          peso?: number
+          toneladas?: number
+          tora_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toras_serradas_tora_id_fkey"
+            columns: ["tora_id"]
+            isOneToOne: false
+            referencedRelation: "toras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vendas: {
+        Row: {
+          created_at: string
+          data: string
+          id: string
+          produto_id: string
+          quantidade: number
+          tipo: string
+          unidade_medida: string
+          user_id: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          id?: string
+          produto_id: string
+          quantidade: number
+          tipo: string
+          unidade_medida: string
+          user_id: string
+          valor_total: number
+          valor_unitario: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          id?: string
+          produto_id?: string
+          quantidade?: number
+          tipo?: string
+          unidade_medida?: string
+          user_id?: string
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "dono" | "funcionario"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +377,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["dono", "funcionario"],
+    },
   },
 } as const
