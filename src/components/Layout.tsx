@@ -5,10 +5,10 @@ import {
   LayoutDashboard, 
   Package, 
   ShoppingCart, 
-  Factory,
-  TreeDeciduous
+  Factory
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import dwLogo from "@/assets/dw-logo.png";
 
 interface LayoutProps {
   children: ReactNode;
@@ -30,9 +30,13 @@ export default function Layout({ children }: LayoutProps) {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <TreeDeciduous className="h-8 w-8 text-primary dark:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)] transition-all" />
-              <h1 className="text-xl font-tech font-bold text-primary tracking-wider">
-                MadeiraStock
+              <img 
+                src={dwLogo} 
+                alt="DW Corporation Logo" 
+                className="h-10 w-10 object-contain dark:drop-shadow-[0_0_12px_rgba(0,255,255,0.6)] transition-all" 
+              />
+              <h1 className="text-lg font-tech font-bold text-primary tracking-wider">
+                DwCorporation Sist. Madeireiro
               </h1>
             </div>
             <div className="flex items-center gap-2">
