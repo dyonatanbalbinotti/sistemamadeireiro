@@ -9,26 +9,20 @@ import { Plus, Edit, Trash2, Factory, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
-import { 
-  getProducao, 
-  saveProducao, 
-  getToras,
-  saveToras,
-  getTorasSerradas,
-  saveTorasSerradas,
-  calcularCubagem,
-  getProdutos,
-  saveProdutos
-} from "@/lib/storage";
+import { calcularCubagem } from "@/lib/storage";
 import { MadeiraProduzida, Tora, ToraSerrada, Produto } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Producao() {
+  const { user } = useAuth();
   const [producao, setProducao] = useState<MadeiraProduzida[]>([]);
   const [toras, setToras] = useState<Tora[]>([]);
   const [torasSerradas, setTorasSerradas] = useState<ToraSerrada[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Form states - Produção
   const [produtoSelecionado, setProdutoSelecionado] = useState("");
@@ -51,14 +45,106 @@ export default function Producao() {
   const [pesoSerrada, setPesoSerrada] = useState("");
 
   useEffect(() => {
-    setProducao(getProducao());
-    setToras(getToras());
-    setTorasSerradas(getTorasSerradas());
-    setProdutos(getProdutos());
-  }, []);
+    const loadData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-  const handleSubmitProduto = (e: React.FormEvent) => {
+      try {
+        // Carregar produtos
+        const { data: produtosData } = await supabase
+          .from('produtos')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (produtosData) {
+          setProdutos(produtosData.map(p => ({
+            id: p.id,
+            nome: p.nome,
+            tipo: p.tipo,
+            largura: Number(p.largura),
+            espessura: Number(p.espessura),
+            comprimento: Number(p.comprimento),
+          })));
+        }
+
+        // Carregar toras
+        const { data: torasData } = await supabase
+          .from('toras')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (torasData) {
+          setToras(torasData.map(t => ({
+            id: t.id,
+            data: t.data,
+            descricao: t.descricao,
+            peso: Number(t.peso),
+            toneladas: Number(t.toneladas),
+          })));
+        }
+
+        // Carregar produção
+        const { data: producaoData } = await supabase
+          .from('producao')
+          .select(`
+            *,
+            produtos (nome, tipo, largura, espessura, comprimento),
+            toras (descricao)
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (producaoData) {
+          setProducao(producaoData.map(p => ({
+            id: p.id,
+            data: p.data,
+            produtoId: p.produto_id,
+            produtoNome: p.produtos?.nome || '',
+            tipo: p.produtos?.tipo || '',
+            largura: Number(p.produtos?.largura || 0),
+            espessura: Number(p.produtos?.espessura || 0),
+            comprimento: Number(p.produtos?.comprimento || 0),
+            quantidade: p.quantidade,
+            m3: Number(p.m3),
+            toraId: p.tora_id,
+            toraDescricao: p.toras?.descricao,
+          })));
+        }
+
+        // Carregar toras serradas
+        const { data: torasSerradasData } = await supabase
+          .from('toras_serradas')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (torasSerradasData) {
+          setTorasSerradas(torasSerradasData.map(ts => ({
+            id: ts.id,
+            data: ts.data,
+            toraId: ts.tora_id,
+            peso: Number(ts.peso),
+            toneladas: Number(ts.toneladas),
+          })));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        toast.error('Erro ao carregar dados');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
+
+  const handleSubmitProduto = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
     
     const l = parseFloat(larguraProduto);
     const es = parseFloat(espessuraProduto);
@@ -69,29 +155,52 @@ export default function Producao() {
       return;
     }
 
-    const novoProduto: Produto = {
-      id: Date.now().toString(),
-      nome: nomeProduto,
-      tipo: tipoProduto,
-      largura: l,
-      espessura: es,
-      comprimento: c,
-    };
+    try {
+      const { data, error } = await supabase
+        .from('produtos')
+        .insert({
+          nome: nomeProduto,
+          tipo: tipoProduto,
+          largura: l,
+          espessura: es,
+          comprimento: c,
+        })
+        .select()
+        .single();
 
-    const novosProdutos = [...produtos, novoProduto];
-    saveProdutos(novosProdutos);
-    setProdutos(novosProdutos);
-    
-    toast.success("Produto cadastrado com sucesso!");
-    setNomeProduto("");
-    setTipoProduto("");
-    setLarguraProduto("");
-    setEspessuraProduto("");
-    setComprimentoProduto("");
+      if (error) throw error;
+
+      if (data) {
+        const novoProduto: Produto = {
+          id: data.id,
+          nome: data.nome,
+          tipo: data.tipo,
+          largura: Number(data.largura),
+          espessura: Number(data.espessura),
+          comprimento: Number(data.comprimento),
+        };
+
+        setProdutos([novoProduto, ...produtos]);
+        toast.success("Produto cadastrado com sucesso!");
+        setNomeProduto("");
+        setTipoProduto("");
+        setLarguraProduto("");
+        setEspessuraProduto("");
+        setComprimentoProduto("");
+      }
+    } catch (error) {
+      console.error('Erro ao cadastrar produto:', error);
+      toast.error('Erro ao cadastrar produto');
+    }
   };
 
-  const handleSubmitProducao = (e: React.FormEvent) => {
+  const handleSubmitProducao = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
     
     const q = parseInt(quantidade);
     
@@ -107,40 +216,92 @@ export default function Producao() {
     }
 
     const tora = toraSelecionada ? toras.find(t => t.id === toraSelecionada) : undefined;
-
     const m3 = calcularCubagem(produto.largura, produto.espessura, produto.comprimento, q);
-    
-    const novaProd: MadeiraProduzida = {
-      id: editingId || Date.now().toString(),
-      data: new Date().toISOString(),
-      produtoId: produto.id,
-      produtoNome: produto.nome,
-      tipo: produto.tipo,
-      largura: produto.largura,
-      espessura: produto.espessura,
-      comprimento: produto.comprimento,
-      quantidade: q,
-      m3,
-      toraId: tora?.id,
-      toraDescricao: tora?.descricao,
-    };
 
-    let novaProducao;
-    if (editingId) {
-      novaProducao = producao.map(p => p.id === editingId ? novaProd : p);
-      toast.success("Produção atualizada com sucesso!");
-    } else {
-      novaProducao = [...producao, novaProd];
-      toast.success(`Produção lançada: ${m3.toFixed(2)} m³`);
+    try {
+      if (editingId) {
+        const { error } = await supabase
+          .from('producao')
+          .update({
+            produto_id: produto.id,
+            quantidade: q,
+            m3: m3,
+            tora_id: tora?.id || null,
+          })
+          .eq('id', editingId);
+
+        if (error) throw error;
+
+        setProducao(producao.map(p => p.id === editingId ? {
+          ...p,
+          produtoId: produto.id,
+          produtoNome: produto.nome,
+          tipo: produto.tipo,
+          largura: produto.largura,
+          espessura: produto.espessura,
+          comprimento: produto.comprimento,
+          quantidade: q,
+          m3,
+          toraId: tora?.id,
+          toraDescricao: tora?.descricao,
+        } : p));
+        
+        toast.success("Produção atualizada com sucesso!");
+      } else {
+        const { data, error } = await supabase
+          .from('producao')
+          .insert({
+            data: new Date().toISOString().split('T')[0],
+            produto_id: produto.id,
+            quantidade: q,
+            m3: m3,
+            tora_id: tora?.id || null,
+            user_id: user.id,
+          })
+          .select(`
+            *,
+            produtos (nome, tipo, largura, espessura, comprimento),
+            toras (descricao)
+          `)
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          const novaProd: MadeiraProduzida = {
+            id: data.id,
+            data: data.data,
+            produtoId: data.produto_id,
+            produtoNome: data.produtos?.nome || produto.nome,
+            tipo: data.produtos?.tipo || produto.tipo,
+            largura: Number(data.produtos?.largura || produto.largura),
+            espessura: Number(data.produtos?.espessura || produto.espessura),
+            comprimento: Number(data.produtos?.comprimento || produto.comprimento),
+            quantidade: data.quantidade,
+            m3: Number(data.m3),
+            toraId: data.tora_id,
+            toraDescricao: data.toras?.descricao,
+          };
+
+          setProducao([novaProd, ...producao]);
+          toast.success(`Produção lançada: ${m3.toFixed(2)} m³`);
+        }
+      }
+      
+      resetFormProducao();
+    } catch (error) {
+      console.error('Erro ao salvar produção:', error);
+      toast.error('Erro ao salvar produção');
     }
-    
-    saveProducao(novaProducao);
-    setProducao(novaProducao);
-    resetFormProducao();
   };
 
-  const handleSubmitTora = (e: React.FormEvent) => {
+  const handleSubmitTora = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
     
     const peso = parseFloat(pesoTora);
     
@@ -149,25 +310,48 @@ export default function Producao() {
       return;
     }
 
-    const novaTora: Tora = {
-      id: Date.now().toString(),
-      data: new Date().toISOString(),
-      descricao: descricaoTora,
-      peso,
-      toneladas: peso / 1000,
-    };
+    try {
+      const { data, error } = await supabase
+        .from('toras')
+        .insert({
+          data: new Date().toISOString().split('T')[0],
+          descricao: descricaoTora,
+          peso,
+          toneladas: peso / 1000,
+          user_id: user.id,
+        })
+        .select()
+        .single();
 
-    const novasToras = [...toras, novaTora];
-    saveToras(novasToras);
-    setToras(novasToras);
-    
-    toast.success(`Tora adicionada: ${(peso / 1000).toFixed(2)} T`);
-    setDescricaoTora("");
-    setPesoTora("");
+      if (error) throw error;
+
+      if (data) {
+        const novaTora: Tora = {
+          id: data.id,
+          data: data.data,
+          descricao: data.descricao,
+          peso: Number(data.peso),
+          toneladas: Number(data.toneladas),
+        };
+
+        setToras([novaTora, ...toras]);
+        toast.success(`Tora adicionada: ${(peso / 1000).toFixed(2)} T`);
+        setDescricaoTora("");
+        setPesoTora("");
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar tora:', error);
+      toast.error('Erro ao adicionar tora');
+    }
   };
 
-  const handleSubmitToraSerrada = (e: React.FormEvent) => {
+  const handleSubmitToraSerrada = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
     
     const peso = parseFloat(pesoSerrada);
     
@@ -176,21 +360,39 @@ export default function Producao() {
       return;
     }
 
-    const novaToraSerrada: ToraSerrada = {
-      id: Date.now().toString(),
-      data: new Date().toISOString(),
-      toraId: toraIdSerrada,
-      peso,
-      toneladas: peso / 1000,
-    };
+    try {
+      const { data, error } = await supabase
+        .from('toras_serradas')
+        .insert({
+          data: new Date().toISOString().split('T')[0],
+          tora_id: toraIdSerrada,
+          peso,
+          toneladas: peso / 1000,
+          user_id: user.id,
+        })
+        .select()
+        .single();
 
-    const novasTorasSerradas = [...torasSerradas, novaToraSerrada];
-    saveTorasSerradas(novasTorasSerradas);
-    setTorasSerradas(novasTorasSerradas);
-    
-    toast.success(`Tora serrada registrada: ${(peso / 1000).toFixed(2)} T`);
-    setToraIdSerrada("");
-    setPesoSerrada("");
+      if (error) throw error;
+
+      if (data) {
+        const novaToraSerrada: ToraSerrada = {
+          id: data.id,
+          data: data.data,
+          toraId: data.tora_id,
+          peso: Number(data.peso),
+          toneladas: Number(data.toneladas),
+        };
+
+        setTorasSerradas([novaToraSerrada, ...torasSerradas]);
+        toast.success(`Tora serrada registrada: ${(peso / 1000).toFixed(2)} T`);
+        setToraIdSerrada("");
+        setPesoSerrada("");
+      }
+    } catch (error) {
+      console.error('Erro ao registrar tora serrada:', error);
+      toast.error('Erro ao registrar tora serrada');
+    }
   };
 
   const resetFormProducao = () => {
@@ -207,26 +409,64 @@ export default function Producao() {
     setEditingId(prod.id);
   };
 
-  const handleDeleteProduto = (id: string) => {
-    const novosProdutos = produtos.filter(p => p.id !== id);
-    saveProdutos(novosProdutos);
-    setProdutos(novosProdutos);
-    toast.success("Produto excluído");
+  const handleDeleteProduto = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('produtos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setProdutos(produtos.filter(p => p.id !== id));
+      toast.success("Produto excluído");
+    } catch (error) {
+      console.error('Erro ao excluir produto:', error);
+      toast.error('Erro ao excluir produto');
+    }
   };
 
-  const handleDelete = (id: string) => {
-    const novaProducao = producao.filter(p => p.id !== id);
-    saveProducao(novaProducao);
-    setProducao(novaProducao);
-    toast.success("Produção excluída");
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('producao')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setProducao(producao.filter(p => p.id !== id));
+      toast.success("Produção excluída");
+    } catch (error) {
+      console.error('Erro ao excluir produção:', error);
+      toast.error('Erro ao excluir produção');
+    }
   };
 
-  const handleDeleteToraSerrada = (id: string) => {
-    const novasTorasSerradas = torasSerradas.filter(ts => ts.id !== id);
-    saveTorasSerradas(novasTorasSerradas);
-    setTorasSerradas(novasTorasSerradas);
-    toast.success("Registro excluído");
+  const handleDeleteToraSerrada = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('toras_serradas')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTorasSerradas(torasSerradas.filter(ts => ts.id !== id));
+      toast.success("Registro excluído");
+    } catch (error) {
+      console.error('Erro ao excluir tora serrada:', error);
+      toast.error('Erro ao excluir tora serrada');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando dados...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

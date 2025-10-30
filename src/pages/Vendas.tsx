@@ -7,13 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShoppingCart, Edit, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { getVendas, saveVendas, getProducao } from "@/lib/storage";
 import { Venda } from "@/types";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Vendas() {
+  const { user } = useAuth();
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [producao, setProducao] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const [produtoId, setProdutoId] = useState("");
   const [tipo, setTipo] = useState<'serrada' | 'tora'>('serrada');
@@ -22,12 +25,69 @@ export default function Vendas() {
   const [valorUnitario, setValorUnitario] = useState("");
 
   useEffect(() => {
-    setVendas(getVendas());
-    setProducao(getProducao());
-  }, []);
+    const loadData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-  const handleSubmit = (e: React.FormEvent) => {
+      try {
+        // Carregar produção
+        const { data: producaoData } = await supabase
+          .from('producao')
+          .select(`
+            *,
+            produtos (nome, tipo, largura, espessura, comprimento)
+          `)
+          .order('created_at', { ascending: false });
+        
+        if (producaoData) {
+          setProducao(producaoData.map(p => ({
+            id: p.id,
+            produtoId: p.produto_id,
+            tipo: p.produtos?.tipo || '',
+            largura: Number(p.produtos?.largura || 0),
+            espessura: Number(p.produtos?.espessura || 0),
+            comprimento: Number(p.produtos?.comprimento || 0),
+          })));
+        }
+
+        // Carregar vendas
+        const { data: vendasData } = await supabase
+          .from('vendas')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (vendasData) {
+          setVendas(vendasData.map(v => ({
+            id: v.id,
+            data: v.data,
+            produtoId: v.produto_id,
+            tipo: v.tipo as 'serrada' | 'tora',
+            quantidade: Number(v.quantidade),
+            unidadeMedida: v.unidade_medida as 'unidade' | 'm3' | 'tonelada',
+            valorUnitario: Number(v.valor_unitario),
+            valorTotal: Number(v.valor_total),
+          })));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        toast.error('Erro ao carregar dados');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
     
     const qtd = parseFloat(quantidade);
     const valor = parseFloat(valorUnitario);
@@ -37,29 +97,75 @@ export default function Vendas() {
       return;
     }
 
-    const novaVenda: Venda = {
-      id: editingId || Date.now().toString(),
-      data: new Date().toISOString(),
-      produtoId,
-      tipo,
-      quantidade: qtd,
-      unidadeMedida,
-      valorUnitario: valor,
-      valorTotal: qtd * valor,
-    };
+    const valorTotal = qtd * valor;
 
-    let novasVendas;
-    if (editingId) {
-      novasVendas = vendas.map(v => v.id === editingId ? novaVenda : v);
-      toast.success("Venda atualizada com sucesso!");
-    } else {
-      novasVendas = [...vendas, novaVenda];
-      toast.success(`Venda registrada: R$ ${novaVenda.valorTotal.toFixed(2)}`);
+    try {
+      if (editingId) {
+        const { error } = await supabase
+          .from('vendas')
+          .update({
+            produto_id: produtoId,
+            tipo,
+            quantidade: qtd,
+            unidade_medida: unidadeMedida,
+            valor_unitario: valor,
+            valor_total: valorTotal,
+          })
+          .eq('id', editingId);
+
+        if (error) throw error;
+
+        setVendas(vendas.map(v => v.id === editingId ? {
+          ...v,
+          produtoId,
+          tipo,
+          quantidade: qtd,
+          unidadeMedida,
+          valorUnitario: valor,
+          valorTotal,
+        } : v));
+        
+        toast.success("Venda atualizada com sucesso!");
+      } else {
+        const { data, error } = await supabase
+          .from('vendas')
+          .insert({
+            data: new Date().toISOString().split('T')[0],
+            produto_id: produtoId,
+            tipo,
+            quantidade: qtd,
+            unidade_medida: unidadeMedida,
+            valor_unitario: valor,
+            valor_total: valorTotal,
+            user_id: user.id,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          const novaVenda: Venda = {
+            id: data.id,
+            data: data.data,
+            produtoId: data.produto_id,
+            tipo: data.tipo as 'serrada' | 'tora',
+            quantidade: Number(data.quantidade),
+            unidadeMedida: data.unidade_medida as 'unidade' | 'm3' | 'tonelada',
+            valorUnitario: Number(data.valor_unitario),
+            valorTotal: Number(data.valor_total),
+          };
+
+          setVendas([novaVenda, ...vendas]);
+          toast.success(`Venda registrada: R$ ${valorTotal.toFixed(2)}`);
+        }
+      }
+      
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar venda:', error);
+      toast.error('Erro ao salvar venda');
     }
-    
-    saveVendas(novasVendas);
-    setVendas(novasVendas);
-    resetForm();
   };
 
   const resetForm = () => {
@@ -80,12 +186,30 @@ export default function Vendas() {
     setEditingId(venda.id);
   };
 
-  const handleDelete = (id: string) => {
-    const novasVendas = vendas.filter(v => v.id !== id);
-    saveVendas(novasVendas);
-    setVendas(novasVendas);
-    toast.success("Venda excluída");
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('vendas')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setVendas(vendas.filter(v => v.id !== id));
+      toast.success("Venda excluída");
+    } catch (error) {
+      console.error('Erro ao excluir venda:', error);
+      toast.error('Erro ao excluir venda');
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando dados...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
