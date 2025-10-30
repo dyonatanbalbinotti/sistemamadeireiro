@@ -33,6 +33,7 @@ export default function Producao() {
   // Form states - Produção
   const [produtoSelecionado, setProdutoSelecionado] = useState("");
   const [quantidade, setQuantidade] = useState("");
+  const [toraSelecionada, setToraSelecionada] = useState("");
 
   // Form states - Produtos
   const [nomeProduto, setNomeProduto] = useState("");
@@ -105,6 +106,8 @@ export default function Producao() {
       return;
     }
 
+    const tora = toraSelecionada ? toras.find(t => t.id === toraSelecionada) : undefined;
+
     const m3 = calcularCubagem(produto.largura, produto.espessura, produto.comprimento, q);
     
     const novaProd: MadeiraProduzida = {
@@ -118,6 +121,8 @@ export default function Producao() {
       comprimento: produto.comprimento,
       quantidade: q,
       m3,
+      toraId: tora?.id,
+      toraDescricao: tora?.descricao,
     };
 
     let novaProducao;
@@ -191,12 +196,14 @@ export default function Producao() {
   const resetFormProducao = () => {
     setProdutoSelecionado("");
     setQuantidade("");
+    setToraSelecionada("");
     setEditingId(null);
   };
 
   const handleEdit = (prod: MadeiraProduzida) => {
     setProdutoSelecionado(prod.produtoId);
     setQuantidade(prod.quantidade.toString());
+    setToraSelecionada(prod.toraId || "");
     setEditingId(prod.id);
   };
 
@@ -405,7 +412,7 @@ export default function Producao() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitProducao} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="produto">Produto</Label>
                     <Select value={produtoSelecionado} onValueChange={setProdutoSelecionado}>
@@ -431,6 +438,21 @@ export default function Producao() {
                       placeholder="100"
                       className="border-input"
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tora">Tora (Lote)</Label>
+                    <Select value={toraSelecionada} onValueChange={setToraSelecionada}>
+                      <SelectTrigger className="border-input">
+                        <SelectValue placeholder="Selecione uma tora" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {toras.map((tora) => (
+                          <SelectItem key={tora.id} value={tora.id}>
+                            {tora.descricao} - {tora.toneladas.toFixed(2)} T
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 {produtoSelecionado && quantidade && (
@@ -478,6 +500,7 @@ export default function Producao() {
                       <TableHead>Dimensões</TableHead>
                       <TableHead>Qtd</TableHead>
                       <TableHead>m³</TableHead>
+                      <TableHead>Tora</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -491,6 +514,9 @@ export default function Producao() {
                         </TableCell>
                         <TableCell>{prod.quantidade}</TableCell>
                         <TableCell className="font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {prod.toraDescricao || "-"}
+                        </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
                             <Button
@@ -513,6 +539,66 @@ export default function Producao() {
                         </TableCell>
                       </TableRow>
                     ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="glass-effect neon-border shadow-elegant">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Conversão por Lote de Toras
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Lote (Tora)</TableHead>
+                      <TableHead>Peso Total (kg)</TableHead>
+                      <TableHead>m³ Serrados</TableHead>
+                      <TableHead className="text-primary font-semibold">Conversão (kg/m³)</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(() => {
+                      const conversoes = toras.map(tora => {
+                        const producoesDoLote = producao.filter(p => p.toraId === tora.id);
+                        const m3Total = producoesDoLote.reduce((sum, p) => sum + p.m3, 0);
+                        const conversao = m3Total > 0 ? tora.peso / m3Total : 0;
+                        
+                        return {
+                          descricao: tora.descricao,
+                          peso: tora.peso,
+                          m3Total,
+                          conversao
+                        };
+                      }).filter(c => c.m3Total > 0);
+
+                      if (conversoes.length === 0) {
+                        return (
+                          <TableRow>
+                            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                              Nenhuma produção vinculada a toras ainda
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+
+                      return conversoes.map((conv, idx) => (
+                        <TableRow key={idx}>
+                          <TableCell className="font-medium">{conv.descricao}</TableCell>
+                          <TableCell>{conv.peso.toFixed(2)} kg</TableCell>
+                          <TableCell>{conv.m3Total.toFixed(2)} m³</TableCell>
+                          <TableCell className="font-bold text-primary text-lg">
+                            {conv.conversao.toFixed(2)} kg/m³
+                          </TableCell>
+                        </TableRow>
+                      ));
+                    })()}
                   </TableBody>
                 </Table>
               </div>

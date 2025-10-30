@@ -22,6 +22,7 @@ export type Database = {
           m3: number
           produto_id: string
           quantidade: number
+          tora_id: string | null
           user_id: string
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           m3: number
           produto_id: string
           quantidade: number
+          tora_id?: string | null
           user_id: string
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           m3?: number
           produto_id?: string
           quantidade?: number
+          tora_id?: string | null
           user_id?: string
         }
         Relationships: [
@@ -48,6 +51,13 @@ export type Database = {
             columns: ["produto_id"]
             isOneToOne: false
             referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "producao_tora_id_fkey"
+            columns: ["tora_id"]
+            isOneToOne: false
+            referencedRelation: "toras"
             referencedColumns: ["id"]
           },
         ]

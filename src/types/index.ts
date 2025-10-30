@@ -18,6 +18,8 @@ export interface MadeiraProduzida {
   quantidade: number;
   m3: number;
   tipo: string;
+  toraId?: string;
+  toraDescricao?: string;
 }
 
 export interface Tora {
