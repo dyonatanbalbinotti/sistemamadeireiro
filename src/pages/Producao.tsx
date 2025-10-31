@@ -798,9 +798,9 @@ export default function Producao() {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead>Lote (Tora)</TableHead>
-                      <TableHead>Peso Total (kg)</TableHead>
+                      <TableHead>Toneladas</TableHead>
                       <TableHead>m³ Serrados</TableHead>
-                      <TableHead className="text-primary font-semibold">Conversão (kg/m³)</TableHead>
+                      <TableHead className="text-primary font-semibold">Conversão (T/m³)</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -808,11 +808,11 @@ export default function Producao() {
                       const conversoes = toras.map(tora => {
                         const producoesDoLote = producao.filter(p => p.toraId === tora.id);
                         const m3Total = producoesDoLote.reduce((sum, p) => sum + p.m3, 0);
-                        const conversao = m3Total > 0 ? tora.peso / m3Total : 0;
+                        const conversao = m3Total > 0 ? tora.toneladas / m3Total : 0;
                         
                         return {
                           descricao: tora.descricao,
-                          peso: tora.peso,
+                          toneladas: tora.toneladas,
                           m3Total,
                           conversao
                         };
@@ -831,10 +831,10 @@ export default function Producao() {
                       return conversoes.map((conv, idx) => (
                         <TableRow key={idx}>
                           <TableCell className="font-medium">{conv.descricao}</TableCell>
-                          <TableCell>{conv.peso.toFixed(2)} kg</TableCell>
+                          <TableCell>{conv.toneladas.toFixed(2)} T</TableCell>
                           <TableCell>{conv.m3Total.toFixed(2)} m³</TableCell>
                           <TableCell className="font-bold text-primary text-lg">
-                            {conv.conversao.toFixed(2)} kg/m³
+                            {conv.conversao.toFixed(2)} T/m³
                           </TableCell>
                         </TableRow>
                       ));
