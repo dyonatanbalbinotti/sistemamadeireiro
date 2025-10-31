@@ -28,6 +28,7 @@ export default function Producao() {
   const [produtoSelecionado, setProdutoSelecionado] = useState("");
   const [quantidade, setQuantidade] = useState("");
   const [toraSelecionada, setToraSelecionada] = useState("");
+  const [dataProducao, setDataProducao] = useState("");
 
   // Form states - Produtos
   const [nomeProduto, setNomeProduto] = useState("");
@@ -223,6 +224,7 @@ export default function Producao() {
         const { error } = await supabase
           .from('producao')
           .update({
+            data: dataProducao || new Date().toISOString().split('T')[0],
             produto_id: produto.id,
             quantidade: q,
             m3: m3,
@@ -234,6 +236,7 @@ export default function Producao() {
 
         setProducao(producao.map(p => p.id === editingId ? {
           ...p,
+          data: dataProducao || p.data,
           produtoId: produto.id,
           produtoNome: produto.nome,
           tipo: produto.tipo,
@@ -399,6 +402,7 @@ export default function Producao() {
     setProdutoSelecionado("");
     setQuantidade("");
     setToraSelecionada("");
+    setDataProducao("");
     setEditingId(null);
   };
 
@@ -406,6 +410,7 @@ export default function Producao() {
     setProdutoSelecionado(prod.produtoId);
     setQuantidade(prod.quantidade.toString());
     setToraSelecionada(prod.toraId || "");
+    setDataProducao(prod.data);
     setEditingId(prod.id);
   };
 
@@ -652,7 +657,7 @@ export default function Producao() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitProducao} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className={`grid gap-4 ${editingId ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
                   <div className="space-y-2">
                     <Label htmlFor="produto">Produto</Label>
                     <Select value={produtoSelecionado} onValueChange={setProdutoSelecionado}>
@@ -694,6 +699,18 @@ export default function Producao() {
                       </SelectContent>
                     </Select>
                   </div>
+                  {editingId && (
+                    <div className="space-y-2">
+                      <Label htmlFor="dataProducao">Data</Label>
+                      <Input
+                        id="dataProducao"
+                        type="date"
+                        value={dataProducao}
+                        onChange={(e) => setDataProducao(e.target.value)}
+                        className="border-input"
+                      />
+                    </div>
+                  )}
                 </div>
                 {produtoSelecionado && quantidade && (
                   <div className="p-4 bg-muted/50 rounded-lg">
