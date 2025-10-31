@@ -2,20 +2,57 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Package, Weight } from "lucide-react";
-import { calcularEstoqueSerrado, calcularEstoqueToras } from "@/lib/storage";
+import { calcularEstoqueSerradoSupabase, calcularEstoqueTorasSupabase } from "@/lib/supabaseStorage";
 import { EstoqueSerrado, EstoqueToras } from "@/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Estoque() {
   const [estoqueSerrado, setEstoqueSerrado] = useState<EstoqueSerrado[]>([]);
   const [estoqueToras, setEstoqueToras] = useState<EstoqueToras | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setEstoqueSerrado(calcularEstoqueSerrado());
-    setEstoqueToras(calcularEstoqueToras());
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [serrado, toras] = await Promise.all([
+          calcularEstoqueSerradoSupabase(),
+          calcularEstoqueTorasSupabase()
+        ]);
+        setEstoqueSerrado(serrado);
+        setEstoqueToras(toras);
+      } catch (error) {
+        console.error('Erro ao carregar estoque:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const totalM3 = estoqueSerrado.reduce((acc, item) => acc + item.m3Total, 0);
   const totalUnidades = estoqueSerrado.reduce((acc, item) => acc + item.quantidadeUnidades, 0);
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8" />
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-5 w-64" />
+          </div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-32" />
+          <Skeleton className="h-32" />
+        </div>
+        <Skeleton className="h-96" />
+        <Skeleton className="h-64" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

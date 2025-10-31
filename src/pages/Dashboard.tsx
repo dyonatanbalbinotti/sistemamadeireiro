@@ -1,8 +1,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Factory, TrendingUp, Weight, TreeDeciduous, DollarSign, PieChart as PieChartIcon } from "lucide-react";
-import { calcularEstoqueSerrado, calcularEstoqueToras, getVendas } from "@/lib/storage";
+import { calcularEstoqueSerradoSupabase, calcularEstoqueTorasSupabase, getVendasSupabase } from "@/lib/supabaseStorage";
 import { useEffect, useState } from "react";
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Dashboard() {
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
@@ -10,43 +11,57 @@ export default function Dashboard() {
   const [totalItens, setTotalItens] = useState(0);
   const [vendasData, setVendasData] = useState<any[]>([]);
   const [estoqueData, setEstoqueData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const serrado = calcularEstoqueSerrado();
-    const toras = calcularEstoqueToras();
-    const vendas = getVendas();
-    
-    const totalM3 = serrado.reduce((acc, item) => acc + item.m3Total, 0);
-    setEstoqueSerrado(totalM3);
-    setEstoqueToras(toras.toneladas);
-    setTotalItens(serrado.length);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [serrado, toras, vendas] = await Promise.all([
+          calcularEstoqueSerradoSupabase(),
+          calcularEstoqueTorasSupabase(),
+          getVendasSupabase()
+        ]);
+        
+        const totalM3 = serrado.reduce((acc, item) => acc + item.m3Total, 0);
+        setEstoqueSerrado(totalM3);
+        setEstoqueToras(toras.toneladas);
+        setTotalItens(serrado.length);
 
-    // Dados de vendas dos últimos 7 dias
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      return date.toISOString().split('T')[0];
-    });
+        // Dados de vendas dos últimos 7 dias
+        const last7Days = Array.from({ length: 7 }, (_, i) => {
+          const date = new Date();
+          date.setDate(date.getDate() - (6 - i));
+          return date.toISOString().split('T')[0];
+        });
 
-    const vendasPorDia = last7Days.map(date => {
-      const dayVendas = vendas.filter(v => v.data.split('T')[0] === date);
-      const total = dayVendas.reduce((sum, v) => sum + v.valorTotal, 0);
-      return {
-        data: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-        valor: parseFloat(total.toFixed(2))
-      };
-    });
-    setVendasData(vendasPorDia);
+        const vendasPorDia = last7Days.map(date => {
+          const dayVendas = vendas.filter(v => v.data.split('T')[0] === date);
+          const total = dayVendas.reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0);
+          return {
+            data: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+            valor: parseFloat(total.toFixed(2))
+          };
+        });
+        setVendasData(vendasPorDia);
 
-    // Dados de estoque por produto (top 5)
-    const estoquesPorProduto = serrado
-      .sort((a, b) => b.m3Total - a.m3Total)
-      .slice(0, 5)
-      .map(item => ({
-        nome: `${item.tipo.substring(0, 10)}... ${item.largura}x${item.espessura}`,
-        valor: parseFloat(item.m3Total.toFixed(2))
-      }));
-    setEstoqueData(estoquesPorProduto);
+        // Dados de estoque por produto (top 5)
+        const estoquesPorProduto = serrado
+          .sort((a, b) => b.m3Total - a.m3Total)
+          .slice(0, 5)
+          .map(item => ({
+            nome: `${item.tipo.substring(0, 10)}... ${item.largura}x${item.espessura}`,
+            valor: parseFloat(item.m3Total.toFixed(2))
+          }));
+        setEstoqueData(estoquesPorProduto);
+      } catch (error) {
+        console.error('Erro ao carregar dados do dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const cards = [
@@ -75,6 +90,26 @@ export default function Dashboard() {
       gradient: "from-primary/10 to-accent/10",
     },
   ];
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="space-y-2">
+          <Skeleton className="h-12 w-64" />
+          <Skeleton className="h-6 w-96" />
+        </div>
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-32" />
+          ))}
+        </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <Skeleton className="h-96" />
+          <Skeleton className="h-96" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
