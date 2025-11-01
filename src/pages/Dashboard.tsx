@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Factory, TrendingUp, Weight, TreeDeciduous, DollarSign, PieChart as PieChartIcon } from "lucide-react";
+import { Package, Factory, TrendingUp, Weight, TreeDeciduous, DollarSign, PieChart as PieChartIcon, BarChart3 } from "lucide-react";
 import { calcularEstoqueSerradoSupabase, calcularEstoqueTorasSupabase, getVendasSupabase } from "@/lib/supabaseStorage";
 import { useEffect, useState } from "react";
-import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Bar, BarChart } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
@@ -11,6 +12,8 @@ export default function Dashboard() {
   const [totalItens, setTotalItens] = useState(0);
   const [vendasData, setVendasData] = useState<any[]>([]);
   const [estoqueData, setEstoqueData] = useState<any[]>([]);
+  const [producaoDiariaData, setProducaoDiariaData] = useState<any[]>([]);
+  const [producaoMensalData, setProducaoMensalData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,6 +57,54 @@ export default function Dashboard() {
             valor: parseFloat(item.m3Total.toFixed(2))
           }));
         setEstoqueData(estoquesPorProduto);
+
+        // Buscar dados de produção
+        const { data: producaoData } = await supabase
+          .from('producao')
+          .select('data, m3')
+          .order('data', { ascending: true });
+
+        if (producaoData) {
+          // Produção diária - últimos 7 dias
+          const last7Days = Array.from({ length: 7 }, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (6 - i));
+            return date.toISOString().split('T')[0];
+          });
+
+          const producaoPorDia = last7Days.map(date => {
+            const dayProduction = producaoData.filter(p => p.data.split('T')[0] === date);
+            const total = dayProduction.reduce((sum, p) => sum + parseFloat(p.m3.toString()), 0);
+            return {
+              data: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+              total: parseFloat(total.toFixed(2))
+            };
+          });
+          setProducaoDiariaData(producaoPorDia);
+
+          // Produção mensal - últimos 6 meses
+          const last6Months = Array.from({ length: 6 }, (_, i) => {
+            const date = new Date();
+            date.setMonth(date.getMonth() - (5 - i));
+            return {
+              year: date.getFullYear(),
+              month: date.getMonth() + 1
+            };
+          });
+
+          const producaoPorMes = last6Months.map(({ year, month }) => {
+            const monthProduction = producaoData.filter(p => {
+              const pDate = new Date(p.data);
+              return pDate.getFullYear() === year && pDate.getMonth() + 1 === month;
+            });
+            const total = monthProduction.reduce((sum, p) => sum + parseFloat(p.m3.toString()), 0);
+            return {
+              mes: new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'short' }),
+              total: parseFloat(total.toFixed(2))
+            };
+          });
+          setProducaoMensalData(producaoPorMes);
+        }
       } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
       } finally {
@@ -238,6 +289,80 @@ export default function Dashboard() {
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="glass-effect dark:neon-border-lime shadow-elegant neon-glow-lime overflow-hidden relative group">
+          <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-lime))]/10 via-transparent to-[hsl(var(--neon-lime))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-[hsl(var(--neon-lime))] dark:drop-shadow-[0_0_8px_rgba(173,255,47,0.5)]" />
+              Produção - Últimos 7 dias
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={producaoDiariaData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="data" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: number) => [`${value} m³`, 'Produção']}
+                />
+                <Bar dataKey="total" fill="hsl(var(--neon-lime))" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Total produzido: <span className="text-lg font-bold text-[hsl(var(--neon-lime))]">
+                  {producaoDiariaData.reduce((sum, d) => sum + d.total, 0).toFixed(2)} m³
+                </span>
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-effect dark:neon-border-magenta shadow-elegant neon-glow-magenta overflow-hidden relative group">
+          <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-magenta))]/10 via-transparent to-[hsl(var(--neon-magenta))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
+              <Factory className="h-5 w-5 text-[hsl(var(--neon-magenta))] dark:drop-shadow-[0_0_8px_rgba(255,0,255,0.5)]" />
+              Produção Mensal
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={producaoMensalData}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="mes" className="text-xs" />
+                <YAxis className="text-xs" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--background))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                  formatter={(value: number) => [`${value} m³`, 'Produção']}
+                />
+                <Bar dataKey="total" fill="hsl(var(--neon-magenta))" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+              <p className="text-sm text-muted-foreground">
+                Crescimento: <span className="text-lg font-bold text-[hsl(var(--neon-magenta))]">
+                  {producaoMensalData.length > 1 ? 
+                    `${((producaoMensalData[producaoMensalData.length - 1]?.total || 0) / (producaoMensalData[producaoMensalData.length - 2]?.total || 1) * 100 - 100).toFixed(1)}%` : 
+                    '0%'}
+                </span>
+              </p>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -743,65 +743,6 @@ export default function Producao() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-card border-border/50">
-            <CardHeader>
-              <CardTitle className="text-foreground">Histórico de Produção</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead>Data</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Dimensões</TableHead>
-                      <TableHead>Qtd</TableHead>
-                      <TableHead>m³</TableHead>
-                      <TableHead>Tora</TableHead>
-                      <TableHead>Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {producao.map((prod) => (
-                      <TableRow key={prod.id}>
-                        <TableCell>{new Date(prod.data).toLocaleDateString()}</TableCell>
-                        <TableCell className="font-medium">{prod.produtoNome}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {prod.largura}×{prod.espessura}×{prod.comprimento}
-                        </TableCell>
-                        <TableCell>{prod.quantidade}</TableCell>
-                        <TableCell className="font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {prod.toraDescricao || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => handleEdit(prod)}
-                              className="h-8 w-8"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => handleDelete(prod.id)}
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-
           <Card className="glass-effect neon-border shadow-elegant">
             <CardHeader>
               <CardTitle className="text-foreground flex items-center gap-2">
@@ -856,6 +797,65 @@ export default function Producao() {
                         </TableRow>
                       ));
                     })()}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-foreground">Histórico de Produção</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Data</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Dimensões</TableHead>
+                      <TableHead>Qtd</TableHead>
+                      <TableHead>m³</TableHead>
+                      <TableHead>Tora</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {producao.map((prod) => (
+                      <TableRow key={prod.id}>
+                        <TableCell>{new Date(prod.data).toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium">{prod.produtoNome}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {prod.largura}×{prod.espessura}×{prod.comprimento}
+                        </TableCell>
+                        <TableCell>{prod.quantidade}</TableCell>
+                        <TableCell className="font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {prod.toraDescricao || "-"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleEdit(prod)}
+                              className="h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleDelete(prod.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
@@ -942,14 +942,19 @@ export default function Producao() {
               <form onSubmit={handleSubmitToraSerrada} className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="toraId">ID da Tora</Label>
-                    <Input
-                      id="toraId"
-                      value={toraIdSerrada}
-                      onChange={(e) => setToraIdSerrada(e.target.value)}
-                      placeholder="ID ou descrição"
-                      className="border-input"
-                    />
+                    <Label htmlFor="toraId">Selecionar Tora</Label>
+                    <Select value={toraIdSerrada} onValueChange={setToraIdSerrada}>
+                      <SelectTrigger className="border-input">
+                        <SelectValue placeholder="Selecione uma tora" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {toras.map((tora) => (
+                          <SelectItem key={tora.id} value={tora.id}>
+                            {tora.descricao} - {tora.toneladas.toFixed(2)} T ({new Date(tora.data).toLocaleDateString()})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="pesoSerrada">Peso Serrado (kg)</Label>
