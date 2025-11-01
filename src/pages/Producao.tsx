@@ -220,11 +220,14 @@ export default function Producao() {
     const m3 = calcularCubagem(produto.largura, produto.espessura, produto.comprimento, q);
 
     try {
+      // Garantir que a data seja salva no formato correto YYYY-MM-DD
+      const dataSalvar = dataProducao || new Date().toISOString().split('T')[0];
+      
       if (editingId) {
         const { error } = await supabase
           .from('producao')
           .update({
-            data: dataProducao || new Date().toISOString().split('T')[0],
+            data: dataSalvar,
             produto_id: produto.id,
             quantidade: q,
             m3: m3,
@@ -236,7 +239,7 @@ export default function Producao() {
 
         setProducao(producao.map(p => p.id === editingId ? {
           ...p,
-          data: dataProducao || p.data,
+          data: dataSalvar,
           produtoId: produto.id,
           produtoNome: produto.nome,
           tipo: produto.tipo,
@@ -254,7 +257,7 @@ export default function Producao() {
         const { data, error } = await supabase
           .from('producao')
           .insert({
-            data: new Date().toISOString().split('T')[0],
+            data: dataSalvar,
             produto_id: produto.id,
             quantidade: q,
             m3: m3,
@@ -410,7 +413,9 @@ export default function Producao() {
     setProdutoSelecionado(prod.produtoId);
     setQuantidade(prod.quantidade.toString());
     setToraSelecionada(prod.toraId || "");
-    setDataProducao(prod.data);
+    // Garantir que a data seja exibida corretamente no formato YYYY-MM-DD
+    const dataFormatada = prod.data.includes('T') ? prod.data.split('T')[0] : prod.data;
+    setDataProducao(dataFormatada);
     setEditingId(prod.id);
   };
 

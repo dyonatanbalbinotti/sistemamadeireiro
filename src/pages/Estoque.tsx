@@ -149,7 +149,7 @@ export default function Estoque() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={estoqueSerrado.map(item => ({
+                  data={estoqueSerrado.slice(0, 5).map(item => ({
                     nome: `${item.tipo.substring(0, 10)}... ${item.largura}x${item.espessura}`,
                     valor: parseFloat(item.m3Total.toFixed(2))
                   }))}
@@ -160,16 +160,13 @@ export default function Estoque() {
                   outerRadius={100}
                   label={(entry) => `${entry.valor} m³`}
                 >
-                  {estoqueSerrado.map((_, index) => {
+                  {estoqueSerrado.slice(0, 5).map((_, index) => {
                     const neonColors = [
                       'hsl(var(--neon-cyan))',
                       'hsl(var(--neon-lime))',
                       'hsl(var(--neon-magenta))',
                       'hsl(var(--neon-purple))',
-                      'hsl(var(--neon-cyan) / 0.7)',
-                      'hsl(var(--neon-lime) / 0.7)',
-                      'hsl(var(--neon-magenta) / 0.7)',
-                      'hsl(var(--neon-purple) / 0.7)',
+                      '#FF6B6B',
                     ];
                     return (
                       <Cell 
