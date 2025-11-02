@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { motion } from "framer-motion";
 import dwLogo from "@/assets/dw-logo.png";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
-  const [role, setRole] = useState<'dono' | 'funcionario'>('funcionario');
+  const [role, setRole] = useState<'admin' | 'empresa' | 'funcionario'>('funcionario');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp, user } = useAuth();
@@ -85,7 +85,12 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md glass-effect neon-border">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Card className="w-full max-w-md glass-effect neon-border">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
             <img 
@@ -207,13 +212,14 @@ const Auth = () => {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Cargo</Label>
-                  <Select value={role} onValueChange={(value: 'dono' | 'funcionario') => setRole(value)}>
+                  <Select value={role} onValueChange={(value: 'admin' | 'empresa' | 'funcionario') => setRole(value)}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="funcionario">Funcionário</SelectItem>
-                      <SelectItem value="dono">Dono</SelectItem>
+                      <SelectItem value="empresa">Empresa</SelectItem>
+                      <SelectItem value="admin">Administrador</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -225,6 +231,7 @@ const Auth = () => {
           </Tabs>
         </CardContent>
       </Card>
+      </motion.div>
     </div>
   );
 };

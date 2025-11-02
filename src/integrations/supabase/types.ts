@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      empresas: {
+        Row: {
+          cnpj: string | null
+          created_at: string
+          endereco: string | null
+          id: string
+          logo_url: string | null
+          nome_empresa: string
+          telefone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cnpj?: string | null
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          logo_url?: string | null
+          nome_empresa: string
+          telefone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cnpj?: string | null
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          logo_url?: string | null
+          nome_empresa?: string
+          telefone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       producao: {
         Row: {
           created_at: string
@@ -96,22 +132,33 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          empresa_id: string | null
           id: string
           nome: string
         }
         Insert: {
           created_at?: string
           email: string
+          empresa_id?: string | null
           id: string
           nome: string
         }
         Update: {
           created_at?: string
           email?: string
+          empresa_id?: string | null
           id?: string
           nome?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       toras: {
         Row: {
@@ -258,9 +305,11 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_empresa: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "dono" | "funcionario"
+      app_role: "admin" | "empresa" | "funcionario"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -388,7 +437,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["dono", "funcionario"],
+      app_role: ["admin", "empresa", "funcionario"],
     },
   },
 } as const
