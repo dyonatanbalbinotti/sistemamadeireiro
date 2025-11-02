@@ -10,36 +10,20 @@ import Vendas from "./pages/Vendas";
 import Estoque from "./pages/Estoque";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { useDarkMode } from "@/hooks/useDarkMode";
+import { AuthProvider } from "@/hooks/useAuth";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import Admin from "./pages/Admin";
+import Funcionarios from "./pages/Funcionarios";
 
 const queryClient = new QueryClient();
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-primary animate-pulse text-xl font-tech">Carregando...</div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
-
-  return <>{children}</>;
-};
-
 const AppContent = () => {
-  useDarkMode();
-
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute requireAdmin><Layout><Admin /></Layout></ProtectedRoute>} />
+      <Route path="/funcionarios" element={<ProtectedRoute requireEmpresa><Layout><Funcionarios /></Layout></ProtectedRoute>} />
       <Route path="/producao" element={<ProtectedRoute><Layout><Producao /></Layout></ProtectedRoute>} />
       <Route path="/vendas" element={<ProtectedRoute><Layout><Vendas /></Layout></ProtectedRoute>} />
       <Route path="/estoque" element={<ProtectedRoute><Layout><Estoque /></Layout></ProtectedRoute>} />

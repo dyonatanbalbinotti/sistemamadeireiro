@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
@@ -16,7 +15,8 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
-  const [role, setRole] = useState<'admin' | 'empresa' | 'funcionario'>('funcionario');
+  const [nomeEmpresa, setNomeEmpresa] = useState("");
+  const [cnpj, setCnpj] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp, user } = useAuth();
@@ -55,17 +55,17 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (!nome) {
+    if (!nome || !nomeEmpresa) {
       toast({
         variant: "destructive",
-        title: "Nome obrigatório",
-        description: "Por favor, informe seu nome.",
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos obrigatórios.",
       });
       setIsLoading(false);
       return;
     }
 
-    const { error } = await signUp(email, password, nome, role);
+    const { error } = await signUp(email, password, nome, 'empresa', nomeEmpresa, cnpj);
 
     if (error) {
       toast({
@@ -76,7 +76,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Conta criada!",
-        description: "Sua conta foi criada com sucesso.",
+        description: "Sua empresa foi cadastrada com sucesso.",
       });
     }
 
@@ -103,7 +103,7 @@ const Auth = () => {
             DwCorporation Sist. Madeireiro
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
-            Sistema de controle de produção e vendas
+            Cadastre sua empresa ou faça login
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -162,14 +162,35 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nome">Nome</Label>
+                  <Label htmlFor="nome">Nome do Responsável</Label>
                   <Input
                     id="nome"
                     type="text"
-                    placeholder="Seu nome"
+                    placeholder="Seu nome completo"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
                     required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nomeEmpresa">Nome da Empresa</Label>
+                  <Input
+                    id="nomeEmpresa"
+                    type="text"
+                    placeholder="Nome da sua empresa"
+                    value={nomeEmpresa}
+                    onChange={(e) => setNomeEmpresa(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cnpj">CNPJ (opcional)</Label>
+                  <Input
+                    id="cnpj"
+                    type="text"
+                    placeholder="00.000.000/0000-00"
+                    value={cnpj}
+                    onChange={(e) => setCnpj(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -177,7 +198,7 @@ const Auth = () => {
                   <Input
                     id="signup-email"
                     type="email"
-                    placeholder="seu@email.com"
+                    placeholder="empresa@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -193,6 +214,7 @@ const Auth = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
+                      minLength={6}
                       className="pr-10"
                     />
                     <Button
@@ -210,21 +232,8 @@ const Auth = () => {
                     </Button>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Cargo</Label>
-                  <Select value={role} onValueChange={(value: 'admin' | 'empresa' | 'funcionario') => setRole(value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="funcionario">Funcionário</SelectItem>
-                      <SelectItem value="empresa">Empresa</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
                 <Button type="submit" className="w-full neon-glow" disabled={isLoading}>
-                  {isLoading ? "Criando conta..." : "Criar conta"}
+                  {isLoading ? "Criando conta..." : "Cadastrar Empresa"}
                 </Button>
               </form>
             </TabsContent>

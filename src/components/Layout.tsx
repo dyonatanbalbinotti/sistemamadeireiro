@@ -6,26 +6,37 @@ import {
   Package, 
   ShoppingCart, 
   Factory,
-  LogOut
+  LogOut,
+  Settings,
+  Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import ThemeToggle from "@/components/ThemeToggle";
 import dwLogo from "@/assets/dw-logo.png";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
-const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/producao", icon: Factory, label: "Produção" },
-  { to: "/vendas", icon: ShoppingCart, label: "Vendas" },
-  { to: "/estoque", icon: Package, label: "Estoque" },
-];
-
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { signOut, userRole } = useAuth();
+  const { signOut, userRole, isAdmin, isEmpresa } = useAuth();
+
+  const navItems = [
+    { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'empresa', 'funcionario'] },
+    ...(isAdmin ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ['admin'] }] : []),
+    ...(isEmpresa ? [{ to: "/funcionarios", icon: Users, label: "Funcionários", roles: ['empresa'] }] : []),
+    { to: "/producao", icon: Factory, label: "Produção", roles: ['admin', 'empresa', 'funcionario'] },
+    { to: "/vendas", icon: ShoppingCart, label: "Vendas", roles: ['admin', 'empresa', 'funcionario'] },
+    { to: "/estoque", icon: Package, label: "Estoque", roles: ['admin', 'empresa', 'funcionario'] },
+  ];
+
+  const getRoleLabel = () => {
+    if (userRole === 'admin') return 'Administrador';
+    if (userRole === 'empresa') return 'Empresa';
+    return 'Funcionário';
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/10 wood-texture">
@@ -44,7 +55,7 @@ export default function Layout({ children }: LayoutProps) {
                 </h1>
                 {userRole && (
                   <p className="text-xs text-muted-foreground">
-                    {userRole === 'dono' ? 'Administrador' : 'Funcionário'}
+                    {getRoleLabel()}
                   </p>
                 )}
               </div>
@@ -71,6 +82,7 @@ export default function Layout({ children }: LayoutProps) {
                   );
                 })}
               </div>
+              <ThemeToggle />
               <Button 
                 variant="ghost" 
                 size="icon" 

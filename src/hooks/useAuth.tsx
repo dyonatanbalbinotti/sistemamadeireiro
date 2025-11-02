@@ -12,7 +12,7 @@ interface AuthContextType {
   isEmpresa: boolean;
   isFuncionario: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, nome: string, role: 'admin' | 'empresa' | 'funcionario') => Promise<{ error: any }>;
+  signUp: (email: string, password: string, nome: string, role: 'admin' | 'empresa' | 'funcionario', nomeEmpresa?: string, cnpj?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -91,7 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
-  const signUp = async (email: string, password: string, nome: string, role: 'admin' | 'empresa' | 'funcionario') => {
+  const signUp = async (email: string, password: string, nome: string, role: 'admin' | 'empresa' | 'funcionario', nomeEmpresa?: string, cnpj?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -114,6 +114,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .insert({ user_id: data.user.id, role });
       
       if (roleError) return { error: roleError };
+
+      // If empresa, create empresa record
+      if (role === 'empresa' && nomeEmpresa) {
+        const { error: empresaError } = await supabase
+          .from('empresas')
+          .insert({ 
+            user_id: data.user.id, 
+            nome_empresa: nomeEmpresa,
+            cnpj: cnpj || null
+          });
+        
+        if (empresaError) return { error: empresaError };
+      }
     }
 
     navigate('/');
