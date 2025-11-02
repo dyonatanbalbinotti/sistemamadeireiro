@@ -15,20 +15,20 @@ export const useEmpresaId = () => {
         return;
       }
 
-      // Admin não tem empresa_id
       if (isAdmin) {
+        // Admins não têm empresa_id específico
         setEmpresaId(null);
         setLoading(false);
         return;
       }
 
       try {
-        // Primeiro tenta pegar da tabela profiles (para funcionários)
+        // Primeiro tenta buscar do profile (para funcionários)
         const { data: profile } = await supabase
           .from('profiles')
           .select('empresa_id')
           .eq('id', user.id)
-          .single();
+          .maybeSingle();
 
         if (profile?.empresa_id) {
           setEmpresaId(profile.empresa_id);
@@ -36,18 +36,17 @@ export const useEmpresaId = () => {
           return;
         }
 
-        // Se não encontrou, tenta pegar da tabela empresas (para empresas)
+        // Se não encontrou, busca na tabela empresas (para donos de empresa)
         const { data: empresa } = await supabase
           .from('empresas')
           .select('id')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (empresa) {
-          setEmpresaId(empresa.id);
-        }
+        setEmpresaId(empresa?.id || null);
       } catch (error) {
         console.error('Erro ao buscar empresa_id:', error);
+        setEmpresaId(null);
       } finally {
         setLoading(false);
       }
