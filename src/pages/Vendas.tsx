@@ -263,7 +263,7 @@ export default function Vendas() {
                   </SelectTrigger>
                   <SelectContent>
                     {producao.map((prod) => (
-                      <SelectItem key={prod.id} value={prod.id}>
+                      <SelectItem key={prod.id} value={prod.produtoId}>
                         {prod.tipo} - {prod.largura}×{prod.espessura}×{prod.comprimento}
                       </SelectItem>
                     ))}
