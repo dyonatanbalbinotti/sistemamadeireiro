@@ -43,9 +43,19 @@ export default function Funcionarios() {
         .from('empresas')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (empresaError) throw empresaError;
+      
+      if (!empresaData) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: "Empresa não encontrada. Entre em contato com o suporte.",
+        });
+        setLoading(false);
+        return;
+      }
       setEmpresaId(empresaData.id);
 
       // Get funcionarios
