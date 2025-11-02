@@ -23,7 +23,6 @@ export default function Vendas() {
   const [produtoId, setProdutoId] = useState("");
   const [tipo, setTipo] = useState<'serrada' | 'tora'>('serrada');
   const [quantidade, setQuantidade] = useState("");
-  const [unidadeMedida, setUnidadeMedida] = useState<'unidade' | 'm3' | 'tonelada'>('unidade');
   const [valorUnitario, setValorUnitario] = useState("");
 
   useEffect(() => {
@@ -109,7 +108,7 @@ export default function Vendas() {
             produto_id: produtoId,
             tipo,
             quantidade: qtd,
-            unidade_medida: unidadeMedida,
+            unidade_medida: 'unidade',
             valor_unitario: valor,
             valor_total: valorTotal,
           })
@@ -122,15 +121,21 @@ export default function Vendas() {
           produtoId,
           tipo,
           quantidade: qtd,
-          unidadeMedida,
+          unidadeMedida: 'unidade',
           valorUnitario: valor,
           valorTotal,
         } : v));
         
         toast.success("Venda atualizada com sucesso!");
       } else {
+        if (loadingEmpresaId) {
+          toast.error("Aguardando carregamento dos dados da empresa...");
+          return;
+        }
+        
         if (!empresaId) {
-          toast.error("Erro ao identificar empresa");
+          toast.error("Erro ao identificar empresa. Entre em contato com o suporte.");
+          console.error('empresaId não disponível:', { user: user?.id, empresaId });
           return;
         }
 
@@ -141,7 +146,7 @@ export default function Vendas() {
             produto_id: produtoId,
             tipo,
             quantidade: qtd,
-            unidade_medida: unidadeMedida,
+            unidade_medida: 'unidade',
             valor_unitario: valor,
             valor_total: valorTotal,
             user_id: user.id,
@@ -150,7 +155,10 @@ export default function Vendas() {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Erro ao inserir venda:', error);
+          throw error;
+        }
 
         if (data) {
           const novaVenda: Venda = {
@@ -159,7 +167,7 @@ export default function Vendas() {
             produtoId: data.produto_id,
             tipo: data.tipo as 'serrada' | 'tora',
             quantidade: Number(data.quantidade),
-            unidadeMedida: data.unidade_medida as 'unidade' | 'm3' | 'tonelada',
+            unidadeMedida: 'unidade',
             valorUnitario: Number(data.valor_unitario),
             valorTotal: Number(data.valor_total),
           };
@@ -180,7 +188,6 @@ export default function Vendas() {
     setProdutoId("");
     setTipo('serrada');
     setQuantidade("");
-    setUnidadeMedida('unidade');
     setValorUnitario("");
     setEditingId(null);
   };
@@ -189,7 +196,6 @@ export default function Vendas() {
     setProdutoId(venda.produtoId);
     setTipo(venda.tipo);
     setQuantidade(venda.quantidade.toString());
-    setUnidadeMedida(venda.unidadeMedida);
     setValorUnitario(venda.valorUnitario.toString());
     setEditingId(venda.id);
   };
@@ -266,28 +272,11 @@ export default function Vendas() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="unidadeMedida">Unidade de Medida</Label>
-                <Select 
-                  value={unidadeMedida} 
-                  onValueChange={(v) => setUnidadeMedida(v as 'unidade' | 'm3' | 'tonelada')}
-                >
-                  <SelectTrigger className="border-input">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="unidade">Unidade</SelectItem>
-                    <SelectItem value="m3">Metro Cúbico (m³)</SelectItem>
-                    {tipo === 'tora' && <SelectItem value="tonelada">Tonelada</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="quantidade">Quantidade</Label>
+                <Label htmlFor="quantidade">Quantidade (Unidades)</Label>
                 <Input
                   id="quantidade"
                   type="number"
-                  step="0.01"
+                  step="1"
                   value={quantidade}
                   onChange={(e) => setQuantidade(e.target.value)}
                   placeholder="10"
@@ -296,9 +285,7 @@ export default function Vendas() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="valorUnitario">
-                  Valor {unidadeMedida === 'unidade' ? 'Unitário' : `por ${unidadeMedida === 'm3' ? 'm³' : 'T'}`} (R$)
-                </Label>
+                <Label htmlFor="valorUnitario">Valor Unitário (R$)</Label>
                 <Input
                   id="valorUnitario"
                   type="number"
@@ -353,7 +340,7 @@ export default function Vendas() {
                         {prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A'}
                       </TableCell>
                       <TableCell>
-                        {venda.quantidade} {venda.unidadeMedida === 'unidade' ? 'un' : venda.unidadeMedida === 'm3' ? 'm³' : 'T'}
+                        {venda.quantidade} un
                       </TableCell>
                       <TableCell>R$ {venda.valorUnitario.toFixed(2)}</TableCell>
                       <TableCell className="font-semibold text-primary">R$ {venda.valorTotal.toFixed(2)}</TableCell>
