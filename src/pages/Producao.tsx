@@ -14,9 +14,11 @@ import { MadeiraProduzida, Tora, ToraSerrada, Produto } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresaId } from "@/hooks/useEmpresaId";
 
 export default function Producao() {
   const { user } = useAuth();
+  const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
   const [producao, setProducao] = useState<MadeiraProduzida[]>([]);
   const [toras, setToras] = useState<Tora[]>([]);
   const [torasSerradas, setTorasSerradas] = useState<ToraSerrada[]>([]);
@@ -156,6 +158,11 @@ export default function Producao() {
       return;
     }
 
+    if (!empresaId) {
+      toast.error("Erro ao identificar empresa");
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('produtos')
@@ -165,6 +172,7 @@ export default function Producao() {
           largura: l,
           espessura: es,
           comprimento: c,
+          empresa_id: empresaId,
         })
         .select()
         .single();
@@ -254,6 +262,11 @@ export default function Producao() {
         
         toast.success("Produção atualizada com sucesso!");
       } else {
+        if (!empresaId) {
+          toast.error("Erro ao identificar empresa");
+          return;
+        }
+
         const { data, error } = await supabase
           .from('producao')
           .insert({
@@ -263,6 +276,7 @@ export default function Producao() {
             m3: m3,
             tora_id: tora?.id || null,
             user_id: user.id,
+            empresa_id: empresaId,
           })
           .select(`
             *,
@@ -316,6 +330,11 @@ export default function Producao() {
       return;
     }
 
+    if (!empresaId) {
+      toast.error("Erro ao identificar empresa");
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('toras')
@@ -325,6 +344,7 @@ export default function Producao() {
           peso,
           toneladas: peso / 1000,
           user_id: user.id,
+          empresa_id: empresaId,
         })
         .select()
         .single();
@@ -366,6 +386,11 @@ export default function Producao() {
       return;
     }
 
+    if (!empresaId) {
+      toast.error("Erro ao identificar empresa");
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('toras_serradas')
@@ -375,6 +400,7 @@ export default function Producao() {
           peso,
           toneladas: peso / 1000,
           user_id: user.id,
+          empresa_id: empresaId,
         })
         .select()
         .single();
@@ -470,7 +496,7 @@ export default function Producao() {
     }
   };
 
-  if (loading) {
+  if (loading || loadingEmpresaId) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Carregando dados...</p>

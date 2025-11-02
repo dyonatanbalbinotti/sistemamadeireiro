@@ -10,9 +10,11 @@ import { toast } from "sonner";
 import { Venda } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEmpresaId } from "@/hooks/useEmpresaId";
 
 export default function Vendas() {
   const { user } = useAuth();
+  const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [producao, setProducao] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -127,6 +129,11 @@ export default function Vendas() {
         
         toast.success("Venda atualizada com sucesso!");
       } else {
+        if (!empresaId) {
+          toast.error("Erro ao identificar empresa");
+          return;
+        }
+
         const { data, error } = await supabase
           .from('vendas')
           .insert({
@@ -138,6 +145,7 @@ export default function Vendas() {
             valor_unitario: valor,
             valor_total: valorTotal,
             user_id: user.id,
+            empresa_id: empresaId,
           })
           .select()
           .single();
@@ -203,7 +211,7 @@ export default function Vendas() {
     }
   };
 
-  if (loading) {
+  if (loading || loadingEmpresaId) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Carregando dados...</p>
