@@ -5,12 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ShoppingCart, Edit, Trash2 } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ShoppingCart, Edit, Trash2, CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Venda } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresaId } from "@/hooks/useEmpresaId";
+import { formatDateBR, getTodayBR } from "@/lib/dateUtils";
+import { cn } from "@/lib/utils";
 
 export default function Vendas() {
   const { user } = useAuth();
@@ -24,6 +28,7 @@ export default function Vendas() {
   const [tipo, setTipo] = useState<'serrada' | 'tora'>('serrada');
   const [quantidade, setQuantidade] = useState("");
   const [valorUnitario, setValorUnitario] = useState("");
+  const [dataVenda, setDataVenda] = useState<Date>(new Date());
 
   useEffect(() => {
     const loadData = async () => {
@@ -139,10 +144,16 @@ export default function Vendas() {
           return;
         }
 
+        // Formatar data como YYYY-MM-DD para evitar problemas de fuso horário
+        const year = dataVenda.getFullYear();
+        const month = String(dataVenda.getMonth() + 1).padStart(2, '0');
+        const day = String(dataVenda.getDate()).padStart(2, '0');
+        const dataFormatada = `${year}-${month}-${day}`;
+
         const { data, error } = await supabase
           .from('vendas')
           .insert({
-            data: new Date().toISOString().split('T')[0],
+            data: dataFormatada,
             produto_id: produtoId,
             tipo,
             quantidade: qtd,
@@ -189,6 +200,7 @@ export default function Vendas() {
     setTipo('serrada');
     setQuantidade("");
     setValorUnitario("");
+    setDataVenda(new Date());
     setEditingId(null);
   };
 
@@ -197,6 +209,7 @@ export default function Vendas() {
     setTipo(venda.tipo);
     setQuantidade(venda.quantidade.toString());
     setValorUnitario(venda.valorUnitario.toString());
+    setDataVenda(new Date(venda.data + 'T00:00:00'));
     setEditingId(venda.id);
   };
 
@@ -242,6 +255,33 @@ export default function Vendas() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="dataVenda">Data da Venda</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal border-input",
+                        !dataVenda && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dataVenda ? formatDateBR(dataVenda) : "Selecione a data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataVenda}
+                      onSelect={(date) => date && setDataVenda(date)}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="tipo">Tipo de Produto</Label>
                 <Select value={tipo} onValueChange={(v) => setTipo(v as 'serrada' | 'tora')}>
@@ -335,7 +375,7 @@ export default function Vendas() {
                   const prod = producao.find(p => p.id === venda.produtoId);
                   return (
                     <TableRow key={venda.id}>
-                      <TableCell>{new Date(venda.data).toLocaleDateString()}</TableCell>
+                      <TableCell>{formatDateBR(venda.data)}</TableCell>
                       <TableCell className="font-medium">
                         {prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A'}
                       </TableCell>
