@@ -29,6 +29,11 @@ export default function Vendas() {
   const [quantidade, setQuantidade] = useState("");
   const [valorUnitario, setValorUnitario] = useState("");
   const [dataVenda, setDataVenda] = useState<Date>(new Date());
+  
+  // Campos para cálculo de conversão m³
+  const [valorM3, setValorM3] = useState("");
+  const [quantidadePecas, setQuantidadePecas] = useState("");
+  const [totalM3, setTotalM3] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -202,6 +207,9 @@ export default function Vendas() {
     setValorUnitario("");
     setDataVenda(new Date());
     setEditingId(null);
+    setValorM3("");
+    setQuantidadePecas("");
+    setTotalM3("");
   };
 
   const handleEdit = (venda: Venda) => {
@@ -336,6 +344,82 @@ export default function Vendas() {
                   className="border-input"
                 />
               </div>
+            </div>
+
+            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
+              <h3 className="font-semibold text-sm">Cálculo de Conversão m³ para Valor Unitário</h3>
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="valorM3">Valor do m³ (R$)</Label>
+                  <Input
+                    id="valorM3"
+                    type="number"
+                    step="0.01"
+                    value={valorM3}
+                    onChange={(e) => {
+                      setValorM3(e.target.value);
+                      // Calcular valor unitário automaticamente
+                      const vm3 = parseFloat(e.target.value);
+                      const tm3 = parseFloat(totalM3);
+                      if (!isNaN(vm3) && !isNaN(tm3) && tm3 > 0) {
+                        setValorUnitario((vm3 / tm3).toFixed(2));
+                      }
+                    }}
+                    placeholder="1000.00"
+                    className="border-input"
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="quantidadePecas">Quantidade Peças</Label>
+                  <Input
+                    id="quantidadePecas"
+                    type="number"
+                    step="1"
+                    value={quantidadePecas}
+                    onChange={(e) => {
+                      setQuantidadePecas(e.target.value);
+                      setQuantidade(e.target.value); // Sincronizar com quantidade principal
+                    }}
+                    placeholder="10"
+                    className="border-input"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="totalM3">Total m³</Label>
+                  <Input
+                    id="totalM3"
+                    type="number"
+                    step="0.001"
+                    value={totalM3}
+                    onChange={(e) => {
+                      setTotalM3(e.target.value);
+                      // Recalcular valor unitário se houver valorM3
+                      const vm3 = parseFloat(valorM3);
+                      const tm3 = parseFloat(e.target.value);
+                      if (!isNaN(vm3) && !isNaN(tm3) && tm3 > 0) {
+                        setValorUnitario((vm3 / tm3).toFixed(2));
+                      }
+                    }}
+                    placeholder="5.5"
+                    className="border-input"
+                  />
+                </div>
+              </div>
+              
+              {valorM3 && totalM3 && parseFloat(totalM3) > 0 && (
+                <div className="p-3 bg-primary/10 rounded-lg">
+                  <p className="text-sm text-muted-foreground">
+                    Valor unitário calculado: <span className="text-lg font-bold text-primary">
+                      R$ {(parseFloat(valorM3) / parseFloat(totalM3)).toFixed(2)}
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Fórmula: Valor do m³ ÷ Total m³ = {valorM3} ÷ {totalM3} = R$ {(parseFloat(valorM3) / parseFloat(totalM3)).toFixed(2)}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2">

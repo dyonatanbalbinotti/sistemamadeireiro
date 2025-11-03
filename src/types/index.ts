@@ -28,6 +28,10 @@ export interface Tora {
   descricao: string;
   peso: number; // em kg
   toneladas: number;
+  grossura?: number;
+  pesoCarga?: number;
+  quantidadeToras?: number;
+  pesoPorTora?: number;
 }
 
 export interface ToraSerrada {
@@ -36,6 +40,7 @@ export interface ToraSerrada {
   toraId: string;
   peso: number; // em kg
   toneladas: number;
+  quantidadeTorasSerradas?: number;
 }
 
 export interface Venda {

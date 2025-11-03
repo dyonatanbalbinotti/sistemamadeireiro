@@ -187,8 +187,12 @@ export type Database = {
           data: string
           descricao: string
           empresa_id: string | null
+          grossura: number | null
           id: string
           peso: number
+          peso_carga: number | null
+          peso_por_tora: number | null
+          quantidade_toras: number | null
           toneladas: number
           user_id: string
         }
@@ -197,8 +201,12 @@ export type Database = {
           data: string
           descricao: string
           empresa_id?: string | null
+          grossura?: number | null
           id?: string
           peso: number
+          peso_carga?: number | null
+          peso_por_tora?: number | null
+          quantidade_toras?: number | null
           toneladas: number
           user_id: string
         }
@@ -207,8 +215,12 @@ export type Database = {
           data?: string
           descricao?: string
           empresa_id?: string | null
+          grossura?: number | null
           id?: string
           peso?: number
+          peso_carga?: number | null
+          peso_por_tora?: number | null
+          quantidade_toras?: number | null
           toneladas?: number
           user_id?: string
         }
@@ -229,6 +241,7 @@ export type Database = {
           empresa_id: string | null
           id: string
           peso: number
+          quantidade_toras_serradas: number | null
           toneladas: number
           tora_id: string
           user_id: string
@@ -239,6 +252,7 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           peso: number
+          quantidade_toras_serradas?: number | null
           toneladas: number
           tora_id: string
           user_id: string
@@ -249,6 +263,7 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           peso?: number
+          quantidade_toras_serradas?: number | null
           toneladas?: number
           tora_id?: string
           user_id?: string

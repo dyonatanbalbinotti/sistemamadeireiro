@@ -42,10 +42,14 @@ export default function Producao() {
   // Form states - Toras
   const [descricaoTora, setDescricaoTora] = useState("");
   const [pesoTora, setPesoTora] = useState("");
+  const [grossuraTora, setGrossuraTora] = useState("");
+  const [pesoCargaTora, setPesoCargaTora] = useState("");
+  const [quantidadeTorasCarga, setQuantidadeTorasCarga] = useState("");
 
   // Form states - Toras Serradas
   const [toraIdSerrada, setToraIdSerrada] = useState("");
   const [pesoSerrada, setPesoSerrada] = useState("");
+  const [quantidadeTorasSerradas, setQuantidadeTorasSerradas] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -85,6 +89,10 @@ export default function Producao() {
             descricao: t.descricao,
             peso: Number(t.peso),
             toneladas: Number(t.toneladas),
+            grossura: t.grossura ? Number(t.grossura) : undefined,
+            pesoCarga: t.peso_carga ? Number(t.peso_carga) : undefined,
+            quantidadeToras: t.quantidade_toras ? Number(t.quantidade_toras) : undefined,
+            pesoPorTora: t.peso_por_tora ? Number(t.peso_por_tora) : undefined,
           })));
         }
 
@@ -128,6 +136,7 @@ export default function Producao() {
             toraId: ts.tora_id,
             peso: Number(ts.peso),
             toneladas: Number(ts.toneladas),
+            quantidadeTorasSerradas: ts.quantidade_toras_serradas ? Number(ts.quantidade_toras_serradas) : undefined,
           })));
         }
       } catch (error) {
@@ -323,9 +332,11 @@ export default function Producao() {
       return;
     }
     
-    const peso = parseFloat(pesoTora);
+    const grossura = parseFloat(grossuraTora);
+    const pesoCarga = parseFloat(pesoCargaTora);
+    const qtdToras = parseInt(quantidadeTorasCarga);
     
-    if (!descricaoTora || isNaN(peso)) {
+    if (!descricaoTora || isNaN(grossura) || isNaN(pesoCarga) || isNaN(qtdToras) || qtdToras <= 0) {
       toast.error("Preencha todos os campos corretamente");
       return;
     }
@@ -335,14 +346,21 @@ export default function Producao() {
       return;
     }
 
+    // Calcular peso por tora
+    const pesoPorTora = pesoCarga / qtdToras;
+
     try {
       const { data, error } = await supabase
         .from('toras')
         .insert({
           data: new Date().toISOString().split('T')[0],
           descricao: descricaoTora,
-          peso,
-          toneladas: peso / 1000,
+          peso: pesoCarga, // peso da carga
+          toneladas: pesoCarga / 1000,
+          grossura: grossura,
+          peso_carga: pesoCarga,
+          quantidade_toras: qtdToras,
+          peso_por_tora: pesoPorTora,
           user_id: user.id,
           empresa_id: empresaId,
         })
@@ -358,12 +376,19 @@ export default function Producao() {
           descricao: data.descricao,
           peso: Number(data.peso),
           toneladas: Number(data.toneladas),
+          grossura: Number(data.grossura),
+          pesoCarga: Number(data.peso_carga),
+          quantidadeToras: Number(data.quantidade_toras),
+          pesoPorTora: Number(data.peso_por_tora),
         };
 
         setToras([novaTora, ...toras]);
-        toast.success(`Tora adicionada: ${(peso / 1000).toFixed(2)} T`);
+        toast.success(`Tora adicionada: ${qtdToras} toras, ${pesoPorTora.toFixed(2)} kg/tora`);
         setDescricaoTora("");
         setPesoTora("");
+        setGrossuraTora("");
+        setPesoCargaTora("");
+        setQuantidadeTorasCarga("");
       }
     } catch (error) {
       console.error('Erro ao adicionar tora:', error);
@@ -379,9 +404,9 @@ export default function Producao() {
       return;
     }
     
-    const peso = parseFloat(pesoSerrada);
+    const qtdTorasSerradas = parseInt(quantidadeTorasSerradas);
     
-    if (!toraIdSerrada || isNaN(peso)) {
+    if (!toraIdSerrada || isNaN(qtdTorasSerradas) || qtdTorasSerradas <= 0) {
       toast.error("Preencha todos os campos corretamente");
       return;
     }
@@ -391,14 +416,25 @@ export default function Producao() {
       return;
     }
 
+    // Buscar peso por tora da tora selecionada
+    const toraSelecionadaObj = toras.find(t => t.id === toraIdSerrada);
+    if (!toraSelecionadaObj || !toraSelecionadaObj.pesoPorTora) {
+      toast.error("Tora selecionada não possui peso por tora calculado");
+      return;
+    }
+
+    // Calcular peso total serrado: quantidade de toras serradas × peso por tora
+    const pesoTotal = qtdTorasSerradas * toraSelecionadaObj.pesoPorTora;
+
     try {
       const { data, error } = await supabase
         .from('toras_serradas')
         .insert({
           data: new Date().toISOString().split('T')[0],
           tora_id: toraIdSerrada,
-          peso,
-          toneladas: peso / 1000,
+          peso: pesoTotal,
+          toneladas: pesoTotal / 1000,
+          quantidade_toras_serradas: qtdTorasSerradas,
           user_id: user.id,
           empresa_id: empresaId,
         })
@@ -414,12 +450,14 @@ export default function Producao() {
           toraId: data.tora_id,
           peso: Number(data.peso),
           toneladas: Number(data.toneladas),
+          quantidadeTorasSerradas: Number(data.quantidade_toras_serradas),
         };
 
         setTorasSerradas([novaToraSerrada, ...torasSerradas]);
-        toast.success(`Tora serrada registrada: ${(peso / 1000).toFixed(2)} T`);
+        toast.success(`${qtdTorasSerradas} toras serradas: ${(pesoTotal / 1000).toFixed(2)} T`);
         setToraIdSerrada("");
         setPesoSerrada("");
+        setQuantidadeTorasSerradas("");
       }
     } catch (error) {
       console.error('Erro ao registrar tora serrada:', error);
@@ -913,18 +951,50 @@ export default function Producao() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pesoTora">Peso (kg)</Label>
+                    <Label htmlFor="grossuraTora">Grossura da Tora (cm)</Label>
                     <Input
-                      id="pesoTora"
+                      id="grossuraTora"
                       type="number"
                       step="0.01"
-                      value={pesoTora}
-                      onChange={(e) => setPesoTora(e.target.value)}
-                      placeholder="1000"
+                      value={grossuraTora}
+                      onChange={(e) => setGrossuraTora(e.target.value)}
+                      placeholder="30"
+                      className="border-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pesoCargaTora">Peso da Carga (kg)</Label>
+                    <Input
+                      id="pesoCargaTora"
+                      type="number"
+                      step="0.01"
+                      value={pesoCargaTora}
+                      onChange={(e) => setPesoCargaTora(e.target.value)}
+                      placeholder="10000"
+                      className="border-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quantidadeTorasCarga">Quantidade de Toras</Label>
+                    <Input
+                      id="quantidadeTorasCarga"
+                      type="number"
+                      value={quantidadeTorasCarga}
+                      onChange={(e) => setQuantidadeTorasCarga(e.target.value)}
+                      placeholder="10"
                       className="border-input"
                     />
                   </div>
                 </div>
+                {pesoCargaTora && quantidadeTorasCarga && parseFloat(pesoCargaTora) > 0 && parseInt(quantidadeTorasCarga) > 0 && (
+                  <div className="p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      Peso por tora: <span className="text-lg font-bold text-primary">
+                        {(parseFloat(pesoCargaTora) / parseInt(quantidadeTorasCarga)).toFixed(2)} kg
+                      </span>
+                    </p>
+                  </div>
+                )}
                 <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
                   Adicionar Tora
@@ -944,7 +1014,10 @@ export default function Producao() {
                     <TableRow className="bg-muted/50">
                       <TableHead>Data</TableHead>
                       <TableHead>Descrição</TableHead>
-                      <TableHead>Peso (kg)</TableHead>
+                      <TableHead>Grossura</TableHead>
+                      <TableHead>Qtd Toras</TableHead>
+                      <TableHead>Peso Carga</TableHead>
+                      <TableHead>Peso/Tora</TableHead>
                       <TableHead>Toneladas</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -953,7 +1026,10 @@ export default function Producao() {
                       <TableRow key={tora.id}>
                         <TableCell>{new Date(tora.data).toLocaleDateString()}</TableCell>
                         <TableCell className="font-medium">{tora.descricao}</TableCell>
-                        <TableCell>{tora.peso.toFixed(2)}</TableCell>
+                        <TableCell>{tora.grossura ? `${tora.grossura.toFixed(2)} cm` : '-'}</TableCell>
+                        <TableCell>{tora.quantidadeToras || '-'}</TableCell>
+                        <TableCell>{tora.pesoCarga ? `${tora.pesoCarga.toFixed(2)} kg` : '-'}</TableCell>
+                        <TableCell className="font-semibold text-secondary">{tora.pesoPorTora ? `${tora.pesoPorTora.toFixed(2)} kg` : '-'}</TableCell>
                         <TableCell className="font-semibold text-primary">{tora.toneladas.toFixed(2)} T</TableCell>
                       </TableRow>
                     ))}
@@ -981,25 +1057,40 @@ export default function Producao() {
                       <SelectContent>
                         {toras.map((tora) => (
                           <SelectItem key={tora.id} value={tora.id}>
-                            {tora.descricao} - {tora.toneladas.toFixed(2)} T ({new Date(tora.data).toLocaleDateString()})
+                            {tora.descricao} - {tora.pesoPorTora ? `${tora.pesoPorTora.toFixed(2)} kg/tora` : `${tora.toneladas.toFixed(2)} T`} ({new Date(tora.data).toLocaleDateString()})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pesoSerrada">Peso Serrado (kg)</Label>
+                    <Label htmlFor="quantidadeTorasSerradas">Quantidade de Toras Serradas</Label>
                     <Input
-                      id="pesoSerrada"
+                      id="quantidadeTorasSerradas"
                       type="number"
-                      step="0.01"
-                      value={pesoSerrada}
-                      onChange={(e) => setPesoSerrada(e.target.value)}
-                      placeholder="1000"
+                      value={quantidadeTorasSerradas}
+                      onChange={(e) => setQuantidadeTorasSerradas(e.target.value)}
+                      placeholder="5"
                       className="border-input"
                     />
                   </div>
                 </div>
+                {toraIdSerrada && quantidadeTorasSerradas && parseInt(quantidadeTorasSerradas) > 0 && (() => {
+                  const tora = toras.find(t => t.id === toraIdSerrada);
+                  if (tora && tora.pesoPorTora) {
+                    const pesoTotal = parseInt(quantidadeTorasSerradas) * tora.pesoPorTora;
+                    return (
+                      <div className="p-4 bg-muted/50 rounded-lg">
+                        <p className="text-sm text-muted-foreground">
+                          Peso serrado automático: <span className="text-lg font-bold text-secondary">
+                            {pesoTotal.toFixed(2)} kg ({(pesoTotal / 1000).toFixed(2)} T)
+                          </span>
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 <Button type="submit" className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
                   <Plus className="h-4 w-4 mr-2" />
                   Registrar Tora Serrada
@@ -1018,31 +1109,36 @@ export default function Producao() {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead>Data</TableHead>
-                      <TableHead>Tora ID</TableHead>
+                      <TableHead>Tora</TableHead>
+                      <TableHead>Qtd Serradas</TableHead>
                       <TableHead>Peso (kg)</TableHead>
                       <TableHead>Toneladas</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {torasSerradas.map((ts) => (
-                      <TableRow key={ts.id}>
-                        <TableCell>{new Date(ts.data).toLocaleDateString()}</TableCell>
-                        <TableCell className="font-medium">{ts.toraId}</TableCell>
-                        <TableCell>{ts.peso.toFixed(2)}</TableCell>
-                        <TableCell className="font-semibold text-secondary">{ts.toneladas.toFixed(2)} T</TableCell>
-                        <TableCell>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() => handleDeleteToraSerrada(ts.id)}
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {torasSerradas.map((ts) => {
+                      const toraRef = toras.find(t => t.id === ts.toraId);
+                      return (
+                        <TableRow key={ts.id}>
+                          <TableCell>{new Date(ts.data).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-medium">{toraRef?.descricao || ts.toraId}</TableCell>
+                          <TableCell>{ts.quantidadeTorasSerradas || '-'}</TableCell>
+                          <TableCell>{ts.peso.toFixed(2)}</TableCell>
+                          <TableCell className="font-semibold text-secondary">{ts.toneladas.toFixed(2)} T</TableCell>
+                          <TableCell>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleDeleteToraSerrada(ts.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>

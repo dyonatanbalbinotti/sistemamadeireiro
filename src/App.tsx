@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Producao from "./pages/Producao";
 import Vendas from "./pages/Vendas";
 import Estoque from "./pages/Estoque";
+import Cavaco from "./pages/Cavaco";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/hooks/useAuth";
@@ -27,6 +28,7 @@ const AppContent = () => {
       <Route path="/producao" element={<ProtectedRoute><Layout><Producao /></Layout></ProtectedRoute>} />
       <Route path="/vendas" element={<ProtectedRoute><Layout><Vendas /></Layout></ProtectedRoute>} />
       <Route path="/estoque" element={<ProtectedRoute><Layout><Estoque /></Layout></ProtectedRoute>} />
+      <Route path="/cavaco" element={<ProtectedRoute><Layout><Cavaco /></Layout></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

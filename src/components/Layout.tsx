@@ -8,7 +8,8 @@ import {
   Factory,
   LogOut,
   Settings,
-  Users
+  Users,
+  Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -30,6 +31,7 @@ export default function Layout({ children }: LayoutProps) {
     { to: "/producao", icon: Factory, label: "Produção", roles: ['admin', 'empresa', 'funcionario'] },
     { to: "/vendas", icon: ShoppingCart, label: "Vendas", roles: ['admin', 'empresa', 'funcionario'] },
     { to: "/estoque", icon: Package, label: "Estoque", roles: ['admin', 'empresa', 'funcionario'] },
+    { to: "/cavaco", icon: Layers, label: "Cavaco", roles: ['admin', 'empresa', 'funcionario'] },
   ];
 
   const getRoleLabel = () => {
