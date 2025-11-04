@@ -42,9 +42,9 @@ export default function Producao() {
   // Form states - Toras
   const [descricaoTora, setDescricaoTora] = useState("");
   const [pesoTora, setPesoTora] = useState("");
-  const [grossuraTora, setGrossuraTora] = useState("");
   const [pesoCargaTora, setPesoCargaTora] = useState("");
   const [quantidadeTorasCarga, setQuantidadeTorasCarga] = useState("");
+  const [editingToraId, setEditingToraId] = useState<string | null>(null);
 
   // Form states - Toras Serradas
   const [toraIdSerrada, setToraIdSerrada] = useState("");
@@ -332,11 +332,10 @@ export default function Producao() {
       return;
     }
     
-    const grossura = parseFloat(grossuraTora);
     const pesoCarga = parseFloat(pesoCargaTora);
     const qtdToras = parseInt(quantidadeTorasCarga);
     
-    if (!descricaoTora || isNaN(grossura) || isNaN(pesoCarga) || isNaN(qtdToras) || qtdToras <= 0) {
+    if (!descricaoTora || isNaN(pesoCarga) || isNaN(qtdToras) || qtdToras <= 0) {
       toast.error("Preencha todos os campos corretamente");
       return;
     }
@@ -350,49 +349,77 @@ export default function Producao() {
     const pesoPorTora = pesoCarga / qtdToras;
 
     try {
-      const { data, error } = await supabase
-        .from('toras')
-        .insert({
-          data: new Date().toISOString().split('T')[0],
+      if (editingToraId) {
+        const { error } = await supabase
+          .from('toras')
+          .update({
+            descricao: descricaoTora,
+            peso: pesoCarga,
+            toneladas: pesoCarga / 1000,
+            peso_carga: pesoCarga,
+            quantidade_toras: qtdToras,
+            peso_por_tora: pesoPorTora,
+          })
+          .eq('id', editingToraId);
+
+        if (error) throw error;
+
+        setToras(toras.map(t => t.id === editingToraId ? {
+          ...t,
           descricao: descricaoTora,
-          peso: pesoCarga, // peso da carga
+          peso: pesoCarga,
           toneladas: pesoCarga / 1000,
-          grossura: grossura,
-          peso_carga: pesoCarga,
-          quantidade_toras: qtdToras,
-          peso_por_tora: pesoPorTora,
-          user_id: user.id,
-          empresa_id: empresaId,
-        })
-        .select()
-        .single();
+          pesoCarga: pesoCarga,
+          quantidadeToras: qtdToras,
+          pesoPorTora: pesoPorTora,
+        } : t));
+        
+        toast.success("Tora atualizada com sucesso!");
+      } else {
+        const { data, error } = await supabase
+          .from('toras')
+          .insert({
+            data: new Date().toISOString().split('T')[0],
+            descricao: descricaoTora,
+            peso: pesoCarga, // peso da carga
+            toneladas: pesoCarga / 1000,
+            peso_carga: pesoCarga,
+            quantidade_toras: qtdToras,
+            peso_por_tora: pesoPorTora,
+            user_id: user.id,
+            empresa_id: empresaId,
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data) {
-        const novaTora: Tora = {
-          id: data.id,
-          data: data.data,
-          descricao: data.descricao,
-          peso: Number(data.peso),
-          toneladas: Number(data.toneladas),
-          grossura: Number(data.grossura),
-          pesoCarga: Number(data.peso_carga),
-          quantidadeToras: Number(data.quantidade_toras),
-          pesoPorTora: Number(data.peso_por_tora),
-        };
+        if (data) {
+          const novaTora: Tora = {
+            id: data.id,
+            data: data.data,
+            descricao: data.descricao,
+            peso: Number(data.peso),
+            toneladas: Number(data.toneladas),
+            grossura: data.grossura ? Number(data.grossura) : undefined,
+            pesoCarga: Number(data.peso_carga),
+            quantidadeToras: Number(data.quantidade_toras),
+            pesoPorTora: Number(data.peso_por_tora),
+          };
 
-        setToras([novaTora, ...toras]);
-        toast.success(`Tora adicionada: ${qtdToras} toras, ${pesoPorTora.toFixed(2)} kg/tora`);
-        setDescricaoTora("");
-        setPesoTora("");
-        setGrossuraTora("");
-        setPesoCargaTora("");
-        setQuantidadeTorasCarga("");
+          setToras([novaTora, ...toras]);
+          toast.success(`Tora adicionada: ${qtdToras} toras, ${pesoPorTora.toFixed(2)} kg/tora`);
+        }
       }
+      
+      setDescricaoTora("");
+      setPesoTora("");
+      setPesoCargaTora("");
+      setQuantidadeTorasCarga("");
+      setEditingToraId(null);
     } catch (error) {
-      console.error('Erro ao adicionar tora:', error);
-      toast.error('Erro ao adicionar tora');
+      console.error('Erro ao salvar tora:', error);
+      toast.error('Erro ao salvar tora');
     }
   };
 
@@ -531,6 +558,30 @@ export default function Producao() {
     } catch (error) {
       console.error('Erro ao excluir tora serrada:', error);
       toast.error('Erro ao excluir tora serrada');
+    }
+  };
+
+  const handleEditTora = (tora: Tora) => {
+    setDescricaoTora(tora.descricao);
+    setPesoCargaTora(tora.pesoCarga?.toString() || "");
+    setQuantidadeTorasCarga(tora.quantidadeToras?.toString() || "");
+    setEditingToraId(tora.id);
+  };
+
+  const handleDeleteTora = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('toras')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setToras(toras.filter(t => t.id !== id));
+      toast.success("Tora excluída");
+    } catch (error) {
+      console.error('Erro ao excluir tora:', error);
+      toast.error('Erro ao excluir tora');
     }
   };
 
@@ -939,7 +990,7 @@ export default function Producao() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitTora} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="descricaoTora">Descrição</Label>
                     <Input
@@ -947,18 +998,6 @@ export default function Producao() {
                       value={descricaoTora}
                       onChange={(e) => setDescricaoTora(e.target.value)}
                       placeholder="Ex: Pinus, Eucalipto, Lote 001"
-                      className="border-input"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="grossuraTora">Grossura da Tora (cm)</Label>
-                    <Input
-                      id="grossuraTora"
-                      type="number"
-                      step="0.01"
-                      value={grossuraTora}
-                      onChange={(e) => setGrossuraTora(e.target.value)}
-                      placeholder="30"
                       className="border-input"
                     />
                   </div>
@@ -995,10 +1034,26 @@ export default function Producao() {
                     </p>
                   </div>
                 )}
-                <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Adicionar Tora
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    <Plus className="h-4 w-4 mr-2" />
+                    {editingToraId ? "Atualizar" : "Adicionar"} Tora
+                  </Button>
+                  {editingToraId && (
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      onClick={() => {
+                        setDescricaoTora("");
+                        setPesoCargaTora("");
+                        setQuantidadeTorasCarga("");
+                        setEditingToraId(null);
+                      }}
+                    >
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
               </form>
             </CardContent>
           </Card>
@@ -1014,11 +1069,11 @@ export default function Producao() {
                     <TableRow className="bg-muted/50">
                       <TableHead>Data</TableHead>
                       <TableHead>Descrição</TableHead>
-                      <TableHead>Grossura</TableHead>
                       <TableHead>Qtd Toras</TableHead>
                       <TableHead>Peso Carga</TableHead>
                       <TableHead>Peso/Tora</TableHead>
                       <TableHead>Toneladas</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1026,11 +1081,30 @@ export default function Producao() {
                       <TableRow key={tora.id}>
                         <TableCell>{new Date(tora.data).toLocaleDateString()}</TableCell>
                         <TableCell className="font-medium">{tora.descricao}</TableCell>
-                        <TableCell>{tora.grossura ? `${tora.grossura.toFixed(2)} cm` : '-'}</TableCell>
                         <TableCell>{tora.quantidadeToras || '-'}</TableCell>
                         <TableCell>{tora.pesoCarga ? `${tora.pesoCarga.toFixed(2)} kg` : '-'}</TableCell>
                         <TableCell className="font-semibold text-secondary">{tora.pesoPorTora ? `${tora.pesoPorTora.toFixed(2)} kg` : '-'}</TableCell>
                         <TableCell className="font-semibold text-primary">{tora.toneladas.toFixed(2)} T</TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleEditTora(tora)}
+                              className="h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleDeleteTora(tora.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

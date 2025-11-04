@@ -34,6 +34,7 @@ export default function Vendas() {
   const [valorM3, setValorM3] = useState("");
   const [quantidadePecas, setQuantidadePecas] = useState("");
   const [totalM3, setTotalM3] = useState("");
+  const [produtoM3, setProdutoM3] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -210,6 +211,7 @@ export default function Vendas() {
     setValorM3("");
     setQuantidadePecas("");
     setTotalM3("");
+    setProdutoM3("");
   };
 
   const handleEdit = (venda: Venda) => {
@@ -348,7 +350,89 @@ export default function Vendas() {
 
             <div className="p-4 bg-muted/50 rounded-lg space-y-4">
               <h3 className="font-semibold text-sm">Cálculo de Conversão m³ para Valor Unitário</h3>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="produtoM3">Produto</Label>
+                  <Select 
+                    value={produtoM3} 
+                    onValueChange={(value) => {
+                      setProdutoM3(value);
+                      setProdutoId(value); // Sincronizar com produto principal
+                      
+                      // Calcular m³ automaticamente se houver quantidade
+                      const prod = producao.find(p => p.produtoId === value);
+                      const qtd = parseFloat(quantidadePecas);
+                      if (prod && !isNaN(qtd) && qtd > 0) {
+                        // Calcular m³ usando as dimensões do produto
+                        const m3PorPeca = (prod.largura / 100) * (prod.espessura / 100) * (prod.comprimento);
+                        const m3Total = m3PorPeca * qtd;
+                        setTotalM3(m3Total.toFixed(3));
+                        
+                        // Recalcular valor unitário se houver valorM3
+                        const vm3 = parseFloat(valorM3);
+                        if (!isNaN(vm3) && m3Total > 0) {
+                          setValorUnitario((vm3 / m3Total).toFixed(2));
+                        }
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="border-input">
+                      <SelectValue placeholder="Selecione o produto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {producao.map((prod) => (
+                        <SelectItem key={prod.id} value={prod.produtoId}>
+                          {prod.tipo} - {prod.largura}×{prod.espessura}×{prod.comprimento}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantidadePecas">Quantidade Peças</Label>
+                  <Input
+                    id="quantidadePecas"
+                    type="number"
+                    step="1"
+                    value={quantidadePecas}
+                    onChange={(e) => {
+                      setQuantidadePecas(e.target.value);
+                      setQuantidade(e.target.value); // Sincronizar com quantidade principal
+                      
+                      // Recalcular m³ se houver produto selecionado
+                      const prod = producao.find(p => p.produtoId === produtoM3);
+                      const qtd = parseFloat(e.target.value);
+                      if (prod && !isNaN(qtd) && qtd > 0) {
+                        const m3PorPeca = (prod.largura / 100) * (prod.espessura / 100) * (prod.comprimento);
+                        const m3Total = m3PorPeca * qtd;
+                        setTotalM3(m3Total.toFixed(3));
+                        
+                        // Recalcular valor unitário se houver valorM3
+                        const vm3 = parseFloat(valorM3);
+                        if (!isNaN(vm3) && m3Total > 0) {
+                          setValorUnitario((vm3 / m3Total).toFixed(2));
+                        }
+                      }
+                    }}
+                    placeholder="10"
+                    className="border-input"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="totalM3">Total m³ (automático)</Label>
+                  <Input
+                    id="totalM3"
+                    type="number"
+                    step="0.001"
+                    value={totalM3}
+                    readOnly
+                    placeholder="Calculado automaticamente"
+                    className="border-input bg-muted"
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="valorM3">Valor do m³ (R$)</Label>
                   <Input
@@ -366,43 +450,6 @@ export default function Vendas() {
                       }
                     }}
                     placeholder="1000.00"
-                    className="border-input"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="quantidadePecas">Quantidade Peças</Label>
-                  <Input
-                    id="quantidadePecas"
-                    type="number"
-                    step="1"
-                    value={quantidadePecas}
-                    onChange={(e) => {
-                      setQuantidadePecas(e.target.value);
-                      setQuantidade(e.target.value); // Sincronizar com quantidade principal
-                    }}
-                    placeholder="10"
-                    className="border-input"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="totalM3">Total m³</Label>
-                  <Input
-                    id="totalM3"
-                    type="number"
-                    step="0.001"
-                    value={totalM3}
-                    onChange={(e) => {
-                      setTotalM3(e.target.value);
-                      // Recalcular valor unitário se houver valorM3
-                      const vm3 = parseFloat(valorM3);
-                      const tm3 = parseFloat(e.target.value);
-                      if (!isNaN(vm3) && !isNaN(tm3) && tm3 > 0) {
-                        setValorUnitario((vm3 / tm3).toFixed(2));
-                      }
-                    }}
-                    placeholder="5.5"
                     className="border-input"
                   />
                 </div>
