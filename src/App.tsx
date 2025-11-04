@@ -14,7 +14,6 @@ import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Admin from "./pages/Admin";
-import Funcionarios from "./pages/Funcionarios";
 
 const queryClient = new QueryClient();
 
@@ -24,7 +23,6 @@ const AppContent = () => {
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute requireAdmin><Layout><Admin /></Layout></ProtectedRoute>} />
-      <Route path="/funcionarios" element={<ProtectedRoute requireEmpresa><Layout><Funcionarios /></Layout></ProtectedRoute>} />
       <Route path="/producao" element={<ProtectedRoute><Layout><Producao /></Layout></ProtectedRoute>} />
       <Route path="/vendas" element={<ProtectedRoute><Layout><Vendas /></Layout></ProtectedRoute>} />
       <Route path="/estoque" element={<ProtectedRoute><Layout><Estoque /></Layout></ProtectedRoute>} />

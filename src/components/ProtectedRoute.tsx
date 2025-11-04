@@ -7,14 +7,12 @@ interface ProtectedRouteProps {
   children: ReactNode;
   requireAdmin?: boolean;
   requireEmpresa?: boolean;
-  requireFuncionario?: boolean;
 }
 
 export default function ProtectedRoute({
   children,
   requireAdmin = false,
   requireEmpresa = false,
-  requireFuncionario = false,
 }: ProtectedRouteProps) {
   const { user, userRole, loading } = useAuth();
 

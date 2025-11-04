@@ -6,13 +6,12 @@ import { useNavigate } from "react-router-dom";
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  userRole: 'admin' | 'empresa' | 'funcionario' | null;
+  userRole: 'admin' | 'empresa' | null;
   loading: boolean;
   isAdmin: boolean;
   isEmpresa: boolean;
-  isFuncionario: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, nome: string, role: 'admin' | 'empresa' | 'funcionario', nomeEmpresa?: string, cnpj?: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, nome: string, role: 'admin' | 'empresa', nomeEmpresa?: string, cnpj?: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
 }
 
@@ -21,13 +20,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userRole, setUserRole] = useState<'admin' | 'empresa' | 'funcionario' | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'empresa' | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const isAdmin = userRole === 'admin';
   const isEmpresa = userRole === 'empresa';
-  const isFuncionario = userRole === 'funcionario';
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -45,7 +43,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               .eq('user_id', session.user.id)
               .single();
             
-            setUserRole(data?.role ?? null);
+            // Apenas aceitar roles válidos (admin ou empresa)
+            const role = data?.role;
+            if (role === 'admin' || role === 'empresa') {
+              setUserRole(role);
+            } else {
+              setUserRole(null);
+            }
           }, 0);
         } else {
           setUserRole(null);
@@ -67,7 +71,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq('user_id', session.user.id)
           .single()
           .then(({ data }) => {
-            setUserRole(data?.role ?? null);
+            // Apenas aceitar roles válidos (admin ou empresa)
+            const role = data?.role;
+            if (role === 'admin' || role === 'empresa') {
+              setUserRole(role);
+            } else {
+              setUserRole(null);
+            }
             setLoading(false);
           });
       } else {
@@ -91,7 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   };
 
-  const signUp = async (email: string, password: string, nome: string, role: 'admin' | 'empresa' | 'funcionario', nomeEmpresa?: string, cnpj?: string) => {
+  const signUp = async (email: string, password: string, nome: string, role: 'admin' | 'empresa', nomeEmpresa?: string, cnpj?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -145,8 +155,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userRole, 
       loading, 
       isAdmin, 
-      isEmpresa, 
-      isFuncionario,
+      isEmpresa,
       signIn, 
       signUp, 
       signOut 

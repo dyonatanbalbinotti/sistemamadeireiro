@@ -8,7 +8,6 @@ import {
   Factory,
   LogOut,
   Settings,
-  Users,
   Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,19 +24,18 @@ export default function Layout({ children }: LayoutProps) {
   const { signOut, userRole, isAdmin, isEmpresa } = useAuth();
 
   const navItems = [
-    { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'empresa', 'funcionario'] },
+    { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'empresa'] },
     ...(isAdmin ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ['admin'] }] : []),
-    ...(isEmpresa ? [{ to: "/funcionarios", icon: Users, label: "Funcionários", roles: ['empresa'] }] : []),
-    { to: "/producao", icon: Factory, label: "Produção", roles: ['admin', 'empresa', 'funcionario'] },
-    { to: "/vendas", icon: ShoppingCart, label: "Vendas", roles: ['admin', 'empresa', 'funcionario'] },
-    { to: "/estoque", icon: Package, label: "Estoque", roles: ['admin', 'empresa', 'funcionario'] },
-    { to: "/cavaco", icon: Layers, label: "Cavaco", roles: ['admin', 'empresa', 'funcionario'] },
+    { to: "/producao", icon: Factory, label: "Produção", roles: ['admin', 'empresa'] },
+    { to: "/vendas", icon: ShoppingCart, label: "Vendas", roles: ['admin', 'empresa'] },
+    { to: "/estoque", icon: Package, label: "Estoque", roles: ['admin', 'empresa'] },
+    { to: "/cavaco", icon: Layers, label: "Cavaco", roles: ['admin', 'empresa'] },
   ];
 
   const getRoleLabel = () => {
     if (userRole === 'admin') return 'Administrador';
     if (userRole === 'empresa') return 'Empresa';
-    return 'Funcionário';
+    return '';
   };
 
   return (
