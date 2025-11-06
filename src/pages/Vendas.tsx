@@ -24,17 +24,16 @@ export default function Vendas() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [produtoId, setProdutoId] = useState("");
-  const [tipo, setTipo] = useState<'serrada' | 'tora'>('serrada');
-  const [quantidade, setQuantidade] = useState("");
-  const [valorUnitario, setValorUnitario] = useState("");
-  const [dataVenda, setDataVenda] = useState<Date>(new Date());
-  
-  // Campos para cálculo de conversão m³
-  const [valorM3, setValorM3] = useState("");
+  // Campos para cálculo de conversão m³ (primeiro passo)
+  const [produtoM3, setProdutoM3] = useState("");
   const [quantidadePecas, setQuantidadePecas] = useState("");
   const [totalM3, setTotalM3] = useState("");
-  const [produtoM3, setProdutoM3] = useState("");
+  const [valorM3, setValorM3] = useState("");
+  
+  // Campos para registro da venda (segundo passo)
+  const [dataVenda, setDataVenda] = useState<Date>(new Date());
+  const [tipo, setTipo] = useState<'serrada' | 'tora'>('serrada');
+  const [valorUnitario, setValorUnitario] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -101,10 +100,10 @@ export default function Vendas() {
       return;
     }
     
-    const qtd = parseFloat(quantidade);
+    const qtd = parseFloat(quantidadePecas);
     const valor = parseFloat(valorUnitario);
     
-    if (!produtoId || isNaN(qtd) || isNaN(valor)) {
+    if (!produtoM3 || isNaN(qtd) || isNaN(valor)) {
       toast.error("Preencha todos os campos corretamente");
       return;
     }
@@ -116,7 +115,7 @@ export default function Vendas() {
         const { error } = await supabase
           .from('vendas')
           .update({
-            produto_id: produtoId,
+            produto_id: produtoM3,
             tipo,
             quantidade: qtd,
             unidade_medida: 'unidade',
@@ -129,7 +128,7 @@ export default function Vendas() {
 
         setVendas(vendas.map(v => v.id === editingId ? {
           ...v,
-          produtoId,
+          produtoId: produtoM3,
           tipo,
           quantidade: qtd,
           unidadeMedida: 'unidade',
@@ -160,7 +159,7 @@ export default function Vendas() {
           .from('vendas')
           .insert({
             data: dataFormatada,
-            produto_id: produtoId,
+            produto_id: produtoM3,
             tipo,
             quantidade: qtd,
             unidade_medida: 'unidade',
@@ -202,25 +201,32 @@ export default function Vendas() {
   };
 
   const resetForm = () => {
-    setProdutoId("");
-    setTipo('serrada');
-    setQuantidade("");
-    setValorUnitario("");
-    setDataVenda(new Date());
-    setEditingId(null);
-    setValorM3("");
+    setProdutoM3("");
     setQuantidadePecas("");
     setTotalM3("");
-    setProdutoM3("");
+    setValorM3("");
+    setValorUnitario("");
+    setTipo('serrada');
+    setDataVenda(new Date());
+    setEditingId(null);
   };
 
   const handleEdit = (venda: Venda) => {
-    setProdutoId(venda.produtoId);
+    setProdutoM3(venda.produtoId);
+    setQuantidadePecas(venda.quantidade.toString());
     setTipo(venda.tipo);
-    setQuantidade(venda.quantidade.toString());
     setValorUnitario(venda.valorUnitario.toString());
     setDataVenda(new Date(venda.data + 'T00:00:00'));
     setEditingId(venda.id);
+    
+    // Recalcular m³ e valor do m³
+    const prod = producao.find(p => p.produtoId === venda.produtoId);
+    if (prod) {
+      const m3PorPeca = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento;
+      const m3Total = m3PorPeca * venda.quantidade;
+      setTotalM3(m3Total.toFixed(3));
+      setValorM3((venda.valorUnitario * venda.quantidade).toFixed(2));
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -263,115 +269,30 @@ export default function Vendas() {
           <CardTitle className="text-foreground">Nova Venda</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="dataVenda">Data da Venda</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        "w-full justify-start text-left font-normal border-input",
-                        !dataVenda && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {dataVenda ? formatDateBR(dataVenda) : "Selecione a data"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={dataVenda}
-                      onSelect={(date) => date && setDataVenda(date)}
-                      initialFocus
-                      className="pointer-events-auto"
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="tipo">Tipo de Produto</Label>
-                <Select value={tipo} onValueChange={(v) => setTipo(v as 'serrada' | 'tora')}>
-                  <SelectTrigger className="border-input">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="serrada">Madeira Serrada</SelectItem>
-                    <SelectItem value="tora">Tora</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="produtoId">Produto</Label>
-                <Select value={produtoId} onValueChange={setProdutoId}>
-                  <SelectTrigger className="border-input">
-                    <SelectValue placeholder="Selecione o produto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {producao.map((prod) => (
-                      <SelectItem key={prod.id} value={prod.produtoId}>
-                        {prod.tipo} - {prod.largura}×{prod.espessura}×{prod.comprimento}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="quantidade">Quantidade (Unidades)</Label>
-                <Input
-                  id="quantidade"
-                  type="number"
-                  step="1"
-                  value={quantidade}
-                  onChange={(e) => setQuantidade(e.target.value)}
-                  placeholder="10"
-                  className="border-input"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="valorUnitario">Valor Unitário (R$)</Label>
-                <Input
-                  id="valorUnitario"
-                  type="number"
-                  step="0.01"
-                  value={valorUnitario}
-                  onChange={(e) => setValorUnitario(e.target.value)}
-                  placeholder="100.00"
-                  className="border-input"
-                />
-              </div>
-            </div>
-
-            <div className="p-4 bg-muted/50 rounded-lg space-y-4">
-              <h3 className="font-semibold text-sm">Cálculo de Conversão m³ para Valor Unitário</h3>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* PASSO 1: Cálculo de Conversão m³ */}
+            <div className="p-4 bg-muted/50 rounded-lg space-y-4 border-2 border-primary/20">
+              <h3 className="font-semibold text-lg text-primary">Passo 1: Cálculo de Conversão m³ para Valor Unitário</h3>
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="produtoM3">Produto</Label>
+                  <Label htmlFor="produtoM3">Produto *</Label>
                   <Select 
                     value={produtoM3} 
                     onValueChange={(value) => {
                       setProdutoM3(value);
-                      setProdutoId(value); // Sincronizar com produto principal
                       
                       // Calcular m³ automaticamente se houver quantidade
                       const prod = producao.find(p => p.produtoId === value);
                       const qtd = parseFloat(quantidadePecas);
                       if (prod && !isNaN(qtd) && qtd > 0) {
-                        // Calcular m³ usando as dimensões do produto
-                        const m3PorPeca = (prod.largura / 100) * (prod.espessura / 100) * (prod.comprimento);
-                        const m3Total = m3PorPeca * qtd;
+                        // Calcular m³: (largura * espessura * comprimento * quantidade)
+                        const m3Total = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento * qtd;
                         setTotalM3(m3Total.toFixed(3));
                         
                         // Recalcular valor unitário se houver valorM3
                         const vm3 = parseFloat(valorM3);
-                        if (!isNaN(vm3) && m3Total > 0) {
-                          setValorUnitario((vm3 / m3Total).toFixed(2));
+                        if (!isNaN(vm3) && qtd > 0) {
+                          setValorUnitario((vm3 / qtd).toFixed(2));
                         }
                       }
                     }}
@@ -390,7 +311,7 @@ export default function Vendas() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="quantidadePecas">Quantidade Peças</Label>
+                  <Label htmlFor="quantidadePecas">Quantidade de Peças *</Label>
                   <Input
                     id="quantidadePecas"
                     type="number"
@@ -398,20 +319,19 @@ export default function Vendas() {
                     value={quantidadePecas}
                     onChange={(e) => {
                       setQuantidadePecas(e.target.value);
-                      setQuantidade(e.target.value); // Sincronizar com quantidade principal
                       
                       // Recalcular m³ se houver produto selecionado
                       const prod = producao.find(p => p.produtoId === produtoM3);
                       const qtd = parseFloat(e.target.value);
                       if (prod && !isNaN(qtd) && qtd > 0) {
-                        const m3PorPeca = (prod.largura / 100) * (prod.espessura / 100) * (prod.comprimento);
-                        const m3Total = m3PorPeca * qtd;
+                        // Calcular m³: (largura * espessura * comprimento * quantidade)
+                        const m3Total = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento * qtd;
                         setTotalM3(m3Total.toFixed(3));
                         
                         // Recalcular valor unitário se houver valorM3
                         const vm3 = parseFloat(valorM3);
-                        if (!isNaN(vm3) && m3Total > 0) {
-                          setValorUnitario((vm3 / m3Total).toFixed(2));
+                        if (!isNaN(vm3) && qtd > 0) {
+                          setValorUnitario((vm3 / qtd).toFixed(2));
                         }
                       }
                     }}
@@ -421,20 +341,19 @@ export default function Vendas() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="totalM3">Total m³ (automático)</Label>
+                  <Label htmlFor="totalM3">Total m³ (calculado automaticamente)</Label>
                   <Input
                     id="totalM3"
-                    type="number"
-                    step="0.001"
+                    type="text"
                     value={totalM3}
                     readOnly
-                    placeholder="Calculado automaticamente"
-                    className="border-input bg-muted"
+                    placeholder="0.000"
+                    className="border-input bg-muted font-semibold"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="valorM3">Valor do m³ (R$)</Label>
+                  <Label htmlFor="valorM3">Valor do m³ (R$) *</Label>
                   <Input
                     id="valorM3"
                     type="number"
@@ -442,11 +361,11 @@ export default function Vendas() {
                     value={valorM3}
                     onChange={(e) => {
                       setValorM3(e.target.value);
-                      // Calcular valor unitário automaticamente
+                      // Calcular valor unitário: valor do m³ / quantidade de peças
                       const vm3 = parseFloat(e.target.value);
-                      const tm3 = parseFloat(totalM3);
-                      if (!isNaN(vm3) && !isNaN(tm3) && tm3 > 0) {
-                        setValorUnitario((vm3 / tm3).toFixed(2));
+                      const qtd = parseFloat(quantidadePecas);
+                      if (!isNaN(vm3) && !isNaN(qtd) && qtd > 0) {
+                        setValorUnitario((vm3 / qtd).toFixed(2));
                       }
                     }}
                     placeholder="1000.00"
@@ -455,18 +374,115 @@ export default function Vendas() {
                 </div>
               </div>
               
-              {valorM3 && totalM3 && parseFloat(totalM3) > 0 && (
+              {valorM3 && quantidadePecas && parseFloat(quantidadePecas) > 0 && (
                 <div className="p-3 bg-primary/10 rounded-lg">
                   <p className="text-sm text-muted-foreground">
                     Valor unitário calculado: <span className="text-lg font-bold text-primary">
-                      R$ {(parseFloat(valorM3) / parseFloat(totalM3)).toFixed(2)}
+                      R$ {(parseFloat(valorM3) / parseFloat(quantidadePecas)).toFixed(2)}
                     </span>
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Fórmula: Valor do m³ ÷ Total m³ = {valorM3} ÷ {totalM3} = R$ {(parseFloat(valorM3) / parseFloat(totalM3)).toFixed(2)}
+                    Fórmula: Valor do m³ ÷ Quantidade de peças = {valorM3} ÷ {quantidadePecas} = R$ {(parseFloat(valorM3) / parseFloat(quantidadePecas)).toFixed(2)}
                   </p>
                 </div>
               )}
+            </div>
+
+            {/* PASSO 2: Registro da Venda */}
+            <div className="p-4 bg-muted/30 rounded-lg space-y-4 border border-border">
+              <h3 className="font-semibold text-lg">Passo 2: Registro da Nova Venda</h3>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="dataVenda">Data da Venda</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal border-input",
+                          !dataVenda && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataVenda ? formatDateBR(dataVenda) : "Selecione a data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataVenda}
+                        onSelect={(date) => date && setDataVenda(date)}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="tipo">Tipo de Produto</Label>
+                  <Select value={tipo} onValueChange={(v) => setTipo(v as 'serrada' | 'tora')}>
+                    <SelectTrigger className="border-input">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="serrada">Madeira Serrada</SelectItem>
+                      <SelectItem value="tora">Tora</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="produtoDisplay">Produto</Label>
+                  <Input
+                    id="produtoDisplay"
+                    type="text"
+                    value={produtoM3 ? producao.find(p => p.produtoId === produtoM3)?.tipo + ' - ' + 
+                           producao.find(p => p.produtoId === produtoM3)?.largura + '×' + 
+                           producao.find(p => p.produtoId === produtoM3)?.espessura + '×' + 
+                           producao.find(p => p.produtoId === produtoM3)?.comprimento : ''}
+                    readOnly
+                    placeholder="Produto selecionado acima"
+                    className="border-input bg-muted"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="quantidadeDisplay">Quantidade</Label>
+                  <Input
+                    id="quantidadeDisplay"
+                    type="text"
+                    value={quantidadePecas}
+                    readOnly
+                    placeholder="Quantidade informada acima"
+                    className="border-input bg-muted"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="valorUnitario">Valor Unitário (R$)</Label>
+                  <Input
+                    id="valorUnitario"
+                    type="text"
+                    value={valorUnitario}
+                    readOnly
+                    placeholder="Calculado automaticamente"
+                    className="border-input bg-muted font-semibold"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="valorTotal">Valor Total (R$)</Label>
+                  <Input
+                    id="valorTotal"
+                    type="text"
+                    value={valorUnitario && quantidadePecas ? (parseFloat(valorUnitario) * parseFloat(quantidadePecas)).toFixed(2) : ''}
+                    readOnly
+                    placeholder="0.00"
+                    className="border-input bg-muted font-bold text-primary"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-2">
