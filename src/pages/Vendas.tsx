@@ -7,7 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingCart, Edit, Trash2, CalendarIcon, Layers } from "lucide-react";
+import { ShoppingCart, Edit, Trash2, CalendarIcon, Layers, FileText, Download } from "lucide-react";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 import { toast } from "sonner";
 import { Venda } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +47,10 @@ export default function Vendas() {
   const [toraIdCavaco, setToraIdCavaco] = useState("");
   const [toneladasVendidas, setToneladasVendidas] = useState("");
   const [valorTonelada, setValorTonelada] = useState("");
+
+  // Campos para filtros de relatório
+  const [dataInicial, setDataInicial] = useState<Date | undefined>(undefined);
+  const [dataFinal, setDataFinal] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     const loadData = async () => {
@@ -455,6 +462,167 @@ export default function Vendas() {
     }
   };
 
+  // Filtrar vendas por período
+  const getVendasFiltradas = () => {
+    if (tipoVenda === 'madeira') {
+      return vendas.filter(v => {
+        const dataVenda = new Date(v.data);
+        if (dataInicial && dataVenda < dataInicial) return false;
+        if (dataFinal) {
+          const dataFinalAjustada = new Date(dataFinal);
+          dataFinalAjustada.setHours(23, 59, 59, 999);
+          if (dataVenda > dataFinalAjustada) return false;
+        }
+        return true;
+      });
+    } else {
+      return vendasCavaco.filter(v => {
+        const dataVenda = new Date(v.data);
+        if (dataInicial && dataVenda < dataInicial) return false;
+        if (dataFinal) {
+          const dataFinalAjustada = new Date(dataFinal);
+          dataFinalAjustada.setHours(23, 59, 59, 999);
+          if (dataVenda > dataFinalAjustada) return false;
+        }
+        return true;
+      });
+    }
+  };
+
+  // Exportar para PDF
+  const exportarPDF = () => {
+    const vendasFiltradas = getVendasFiltradas();
+    
+    if (vendasFiltradas.length === 0) {
+      toast.error('Nenhuma venda encontrada no período selecionado');
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Título
+    doc.setFontSize(18);
+    doc.text(`Relatório de Vendas - ${tipoVenda === 'madeira' ? 'Madeiras Serradas' : 'Cavaco'}`, pageWidth / 2, 15, { align: 'center' });
+    
+    // Período
+    doc.setFontSize(10);
+    const periodo = `Período: ${dataInicial ? formatDateBR(dataInicial) : 'Início'} até ${dataFinal ? formatDateBR(dataFinal) : 'Hoje'}`;
+    doc.text(periodo, pageWidth / 2, 22, { align: 'center' });
+
+    if (tipoVenda === 'madeira') {
+      const dados = vendasFiltradas.map((v: Venda) => {
+        const prod = produtos.find(p => p.id === v.produtoId);
+        return [
+          formatDateBR(v.data),
+          prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A',
+          `${v.quantidade} un`,
+          `R$ ${v.valorUnitario.toFixed(2)}`,
+          `R$ ${v.valorTotal.toFixed(2)}`
+        ];
+      });
+
+      autoTable(doc, {
+        startY: 28,
+        head: [['Data', 'Produto', 'Quantidade', 'Valor Unit.', 'Total']],
+        body: dados,
+        foot: [[
+          '', '', '', 'Total Geral:',
+          `R$ ${vendasFiltradas.reduce((sum: number, v: any) => sum + v.valorTotal, 0).toFixed(2)}`
+        ]],
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] },
+        footStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0], fontStyle: 'bold' }
+      });
+    } else {
+      const dados = vendasFiltradas.map((v: any) => [
+        formatDateBR(v.data),
+        v.toras?.descricao || 'N/A',
+        `${Number(v.toneladas).toFixed(2)} T`,
+        `R$ ${Number(v.valor_tonelada).toFixed(2)}`,
+        `R$ ${Number(v.valor_total).toFixed(2)}`
+      ]);
+
+      autoTable(doc, {
+        startY: 28,
+        head: [['Data', 'Lote (Tora)', 'Toneladas', 'Valor/Ton', 'Total']],
+        body: dados,
+        foot: [[
+          '', '', '', 'Total Geral:',
+          `R$ ${vendasFiltradas.reduce((sum: number, v: any) => sum + Number(v.valor_total), 0).toFixed(2)}`
+        ]],
+        theme: 'grid',
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] },
+        footStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0], fontStyle: 'bold' }
+      });
+    }
+
+    doc.save(`vendas-${tipoVenda}-${new Date().toISOString().split('T')[0]}.pdf`);
+    toast.success('Relatório PDF gerado com sucesso!');
+  };
+
+  // Exportar para Excel
+  const exportarExcel = () => {
+    const vendasFiltradas = getVendasFiltradas();
+    
+    if (vendasFiltradas.length === 0) {
+      toast.error('Nenhuma venda encontrada no período selecionado');
+      return;
+    }
+
+    let dados: any[] = [];
+    
+    if (tipoVenda === 'madeira') {
+      dados = vendasFiltradas.map((v: Venda) => {
+        const prod = produtos.find(p => p.id === v.produtoId);
+        return {
+          'Data': formatDateBR(v.data),
+          'Produto': prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A',
+          'Quantidade': v.quantidade,
+          'Unidade': 'un',
+          'Valor Unitário': v.valorUnitario,
+          'Valor Total': v.valorTotal
+        };
+      });
+
+      // Adicionar linha de total
+      dados.push({
+        'Data': '',
+        'Produto': '',
+        'Quantidade': '',
+        'Unidade': '',
+        'Valor Unitário': 'TOTAL GERAL:',
+        'Valor Total': vendasFiltradas.reduce((sum: number, v: any) => sum + v.valorTotal, 0)
+      });
+    } else {
+      dados = vendasFiltradas.map((v: any) => ({
+        'Data': formatDateBR(v.data),
+        'Lote (Tora)': v.toras?.descricao || 'N/A',
+        'Toneladas': Number(v.toneladas),
+        'Valor por Tonelada': Number(v.valor_tonelada),
+        'Valor Total': Number(v.valor_total)
+      }));
+
+      // Adicionar linha de total
+      dados.push({
+        'Data': '',
+        'Lote (Tora)': '',
+        'Toneladas': '',
+        'Valor por Tonelada': 'TOTAL GERAL:',
+        'Valor Total': vendasFiltradas.reduce((sum: number, v: any) => sum + Number(v.valor_total), 0)
+      });
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(dados);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, tipoVenda === 'madeira' ? 'Madeiras' : 'Cavaco');
+    
+    XLSX.writeFile(workbook, `vendas-${tipoVenda}-${new Date().toISOString().split('T')[0]}.xlsx`);
+    toast.success('Relatório Excel gerado com sucesso!');
+  };
+
   if (loading || loadingEmpresaId) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -812,6 +980,102 @@ export default function Vendas() {
           </CardTitle>
         </CardHeader>
         <CardContent>
+          {/* Filtros e Exportação */}
+          <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border space-y-4">
+            <div className="flex items-center gap-2 mb-3">
+              <FileText className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-foreground">Filtros e Exportação</h3>
+            </div>
+            
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label>Data Inicial</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dataInicial && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dataInicial ? formatDateBR(dataInicial) : "Selecione"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataInicial}
+                      onSelect={setDataInicial}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Data Final</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !dataFinal && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dataFinal ? formatDateBR(dataFinal) : "Selecione"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={dataFinal}
+                      onSelect={setDataFinal}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ações</Label>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDataInicial(undefined);
+                      setDataFinal(undefined);
+                    }}
+                    className="flex-1"
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                onClick={exportarPDF}
+                className="flex-1"
+                variant="default"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar PDF
+              </Button>
+              <Button
+                onClick={exportarExcel}
+                className="flex-1"
+                variant="default"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Exportar Excel
+              </Button>
+            </div>
+          </div>
           <div className="rounded-lg border border-border overflow-hidden">
             {tipoVenda === 'madeira' ? (
               <Table>
@@ -826,14 +1090,14 @@ export default function Vendas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vendas.length === 0 ? (
+                  {getVendasFiltradas().length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        Nenhuma venda registrada
+                        {vendas.length === 0 ? 'Nenhuma venda registrada' : 'Nenhuma venda encontrada no período selecionado'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    vendas.map((venda) => {
+                    getVendasFiltradas().map((venda: Venda) => {
                       const prod = produtos.find(p => p.id === venda.produtoId);
                       return (
                         <TableRow key={venda.id}>
@@ -885,14 +1149,14 @@ export default function Vendas() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {vendasCavaco.length === 0 ? (
+                  {getVendasFiltradas().length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                        Nenhuma venda de cavaco registrada
+                        {vendasCavaco.length === 0 ? 'Nenhuma venda de cavaco registrada' : 'Nenhuma venda encontrada no período selecionado'}
                       </TableCell>
                     </TableRow>
                   ) : (
-                    vendasCavaco.map((venda) => (
+                    getVendasFiltradas().map((venda: any) => (
                       <TableRow key={venda.id}>
                         <TableCell>{formatDateBR(venda.data)}</TableCell>
                         <TableCell className="font-medium">
