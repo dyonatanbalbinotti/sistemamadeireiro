@@ -92,6 +92,25 @@ export default function Vendas() {
     loadData();
   }, [user]);
 
+  // Calcular automaticamente o Total m³ quando produto ou quantidade mudar
+  useEffect(() => {
+    if (produtoM3 && quantidadePecas && producao.length > 0) {
+      const prod = producao.find(p => p.produtoId === produtoM3);
+      const qtd = parseFloat(quantidadePecas);
+      
+      if (prod && !isNaN(qtd) && qtd > 0) {
+        // Cálculo: largura * espessura * comprimento * quantidade
+        // Largura e espessura são divididos por 100 para converter cm em metros
+        const m3Total = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento * qtd;
+        setTotalM3(m3Total.toFixed(3));
+      } else {
+        setTotalM3("");
+      }
+    } else {
+      setTotalM3("");
+    }
+  }, [produtoM3, quantidadePecas, producao]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
