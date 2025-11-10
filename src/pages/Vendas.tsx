@@ -33,6 +33,7 @@ export default function Vendas() {
   // Campos para registro da venda (segundo passo)
   const [dataVenda, setDataVenda] = useState<Date>(new Date());
   const [tipo, setTipo] = useState<'serrada' | 'tora'>('serrada');
+  const [quantidadeVenda, setQuantidadeVenda] = useState(""); // Quantidade independente para o Passo 2
   const [valorUnitario, setValorUnitario] = useState("");
 
   useEffect(() => {
@@ -132,7 +133,7 @@ export default function Vendas() {
       return;
     }
     
-    const qtd = parseFloat(quantidadePecas);
+    const qtd = parseFloat(quantidadeVenda);
     const valor = parseFloat(valorUnitario);
     
     if (!produtoM3 || isNaN(qtd) || isNaN(valor)) {
@@ -235,6 +236,7 @@ export default function Vendas() {
   const resetForm = () => {
     setProdutoM3("");
     setQuantidadePecas("");
+    setQuantidadeVenda("");
     setTotalM3("");
     setValorM3("");
     setValorUnitario("");
@@ -246,6 +248,7 @@ export default function Vendas() {
   const handleEdit = (venda: Venda) => {
     setProdutoM3(venda.produtoId);
     setQuantidadePecas(venda.quantidade.toString());
+    setQuantidadeVenda(venda.quantidade.toString());
     setTipo(venda.tipo);
     setValorUnitario(venda.valorUnitario.toString());
     setDataVenda(new Date(venda.data + 'T00:00:00'));
@@ -453,14 +456,14 @@ export default function Vendas() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="quantidadeDisplay">Quantidade</Label>
+                  <Label htmlFor="quantidadeVenda">Quantidade</Label>
                   <Input
-                    id="quantidadeDisplay"
-                    type="text"
-                    value={quantidadePecas}
-                    readOnly
-                    placeholder="Quantidade informada acima"
-                    className="border-input bg-muted"
+                    id="quantidadeVenda"
+                    type="number"
+                    value={quantidadeVenda}
+                    onChange={(e) => setQuantidadeVenda(e.target.value)}
+                    placeholder="Digite a quantidade de peças vendidas"
+                    className="border-input"
                   />
                 </div>
 
@@ -481,7 +484,7 @@ export default function Vendas() {
                   <Input
                     id="valorTotal"
                     type="text"
-                    value={valorUnitario && quantidadePecas ? (parseFloat(valorUnitario) * parseFloat(quantidadePecas)).toFixed(2) : ''}
+                    value={valorUnitario && quantidadeVenda ? (parseFloat(valorUnitario) * parseFloat(quantidadeVenda)).toFixed(2) : ''}
                     readOnly
                     placeholder="0.00"
                     className="border-input bg-muted font-bold text-primary"
