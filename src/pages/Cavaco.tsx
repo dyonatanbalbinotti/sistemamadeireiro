@@ -138,7 +138,7 @@ export default function Cavaco() {
                   <TableHead>Data</TableHead>
                   <TableHead>Lote (Tora)</TableHead>
                   <TableHead>TN Carga</TableHead>
-                  <TableHead>Peso por m³</TableHead>
+                  <TableHead>Peso por m³ (T)</TableHead>
                   <TableHead>m³ Serrado</TableHead>
                   <TableHead>TN Madeiras Serradas</TableHead>
                   <TableHead className="font-semibold text-primary">Cavaco Estoque (T)</TableHead>
@@ -158,13 +158,17 @@ export default function Cavaco() {
                       <TableCell className="font-medium">{item.descricao}</TableCell>
                       <TableCell>{item.toneladasCarga.toFixed(2)} T</TableCell>
                       <TableCell>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={item.pesoPorM3}
-                          onChange={(e) => handlePesoPorM3Change(item.id, e.target.value)}
-                          className="w-24 text-center"
-                        />
+                        <div className="flex items-center gap-1">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={item.pesoPorM3}
+                            onChange={(e) => handlePesoPorM3Change(item.id, e.target.value)}
+                            className="w-20 text-center"
+                          />
+                          <span className="text-sm text-muted-foreground">T</span>
+                        </div>
                       </TableCell>
                       <TableCell>{item.m3Serrado.toFixed(2)} m³</TableCell>
                       <TableCell className="font-semibold text-secondary">
