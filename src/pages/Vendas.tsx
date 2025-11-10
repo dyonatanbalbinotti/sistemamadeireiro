@@ -341,13 +341,12 @@ export default function Vendas() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="totalM3">Total m³ (calculado automaticamente)</Label>
+                  <Label htmlFor="totalM3">Total m³</Label>
                   <Input
                     id="totalM3"
                     type="text"
-                    value={totalM3}
+                    value={totalM3 || "0.000"}
                     readOnly
-                    placeholder="0.000"
                     className="border-input bg-muted font-semibold"
                   />
                 </div>
