@@ -20,7 +20,7 @@ export default function Vendas() {
   const { user } = useAuth();
   const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
   const [vendas, setVendas] = useState<Venda[]>([]);
-  const [producao, setProducao] = useState<any[]>([]);
+  const [produtos, setProdutos] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,23 +43,20 @@ export default function Vendas() {
       }
 
       try {
-        // Carregar produção
-        const { data: producaoData } = await supabase
-          .from('producao')
-          .select(`
-            *,
-            produtos (nome, tipo, largura, espessura, comprimento)
-          `)
+        // Carregar produtos
+        const { data: produtosData } = await supabase
+          .from('produtos')
+          .select('*')
           .order('created_at', { ascending: false });
         
-        if (producaoData) {
-          setProducao(producaoData.map(p => ({
+        if (produtosData) {
+          setProdutos(produtosData.map(p => ({
             id: p.id,
-            produtoId: p.produto_id,
-            tipo: p.produtos?.tipo || '',
-            largura: Number(p.produtos?.largura || 0),
-            espessura: Number(p.produtos?.espessura || 0),
-            comprimento: Number(p.produtos?.comprimento || 0),
+            nome: p.nome,
+            tipo: p.tipo,
+            largura: Number(p.largura || 0),
+            espessura: Number(p.espessura || 0),
+            comprimento: Number(p.comprimento || 0),
           })));
         }
 
@@ -94,8 +91,8 @@ export default function Vendas() {
 
   // Calcular automaticamente o Total m³ quando produto ou quantidade mudar
   useEffect(() => {
-    if (produtoM3 && quantidadePecas && producao.length > 0) {
-      const prod = producao.find(p => p.produtoId === produtoM3);
+    if (produtoM3 && quantidadePecas && produtos.length > 0) {
+      const prod = produtos.find(p => p.id === produtoM3);
       const qtd = parseFloat(quantidadePecas);
       
       if (prod && !isNaN(qtd) && qtd > 0) {
@@ -109,7 +106,7 @@ export default function Vendas() {
     } else {
       setTotalM3("");
     }
-  }, [produtoM3, quantidadePecas, producao]);
+  }, [produtoM3, quantidadePecas, produtos]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -239,7 +236,7 @@ export default function Vendas() {
     setEditingId(venda.id);
     
     // Recalcular m³ e valor do m³
-    const prod = producao.find(p => p.produtoId === venda.produtoId);
+    const prod = produtos.find(p => p.id === venda.produtoId);
     if (prod) {
       const m3PorPeca = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento;
       const m3Total = m3PorPeca * venda.quantidade;
@@ -299,29 +296,14 @@ export default function Vendas() {
                     value={produtoM3} 
                     onValueChange={(value) => {
                       setProdutoM3(value);
-                      
-                      // Calcular m³ automaticamente se houver quantidade
-                      const prod = producao.find(p => p.produtoId === value);
-                      const qtd = parseFloat(quantidadePecas);
-                      if (prod && !isNaN(qtd) && qtd > 0) {
-                        // Calcular m³: (largura * espessura * comprimento * quantidade)
-                        const m3Total = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento * qtd;
-                        setTotalM3(m3Total.toFixed(3));
-                        
-                        // Recalcular valor unitário se houver valorM3
-                        const vm3 = parseFloat(valorM3);
-                        if (!isNaN(vm3) && qtd > 0) {
-                          setValorUnitario((vm3 / qtd).toFixed(2));
-                        }
-                      }
                     }}
                   >
                     <SelectTrigger className="border-input">
                       <SelectValue placeholder="Selecione o produto" />
                     </SelectTrigger>
                     <SelectContent>
-                      {producao.map((prod) => (
-                        <SelectItem key={prod.id} value={prod.produtoId}>
+                      {produtos.map((prod) => (
+                        <SelectItem key={prod.id} value={prod.id}>
                           {prod.tipo} - {prod.largura}×{prod.espessura}×{prod.comprimento}
                         </SelectItem>
                       ))}
@@ -338,21 +320,6 @@ export default function Vendas() {
                     value={quantidadePecas}
                     onChange={(e) => {
                       setQuantidadePecas(e.target.value);
-                      
-                      // Recalcular m³ se houver produto selecionado
-                      const prod = producao.find(p => p.produtoId === produtoM3);
-                      const qtd = parseFloat(e.target.value);
-                      if (prod && !isNaN(qtd) && qtd > 0) {
-                        // Calcular m³: (largura * espessura * comprimento * quantidade)
-                        const m3Total = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento * qtd;
-                        setTotalM3(m3Total.toFixed(3));
-                        
-                        // Recalcular valor unitário se houver valorM3
-                        const vm3 = parseFloat(valorM3);
-                        if (!isNaN(vm3) && qtd > 0) {
-                          setValorUnitario((vm3 / qtd).toFixed(2));
-                        }
-                      }
                     }}
                     placeholder="10"
                     className="border-input"
@@ -455,10 +422,10 @@ export default function Vendas() {
                   <Input
                     id="produtoDisplay"
                     type="text"
-                    value={produtoM3 ? producao.find(p => p.produtoId === produtoM3)?.tipo + ' - ' + 
-                           producao.find(p => p.produtoId === produtoM3)?.largura + '×' + 
-                           producao.find(p => p.produtoId === produtoM3)?.espessura + '×' + 
-                           producao.find(p => p.produtoId === produtoM3)?.comprimento : ''}
+                    value={produtoM3 ? produtos.find(p => p.id === produtoM3)?.tipo + ' - ' + 
+                           produtos.find(p => p.id === produtoM3)?.largura + '×' + 
+                           produtos.find(p => p.id === produtoM3)?.espessura + '×' + 
+                           produtos.find(p => p.id === produtoM3)?.comprimento : ''}
                     readOnly
                     placeholder="Produto selecionado acima"
                     className="border-input bg-muted"
@@ -537,7 +504,7 @@ export default function Vendas() {
               </TableHeader>
               <TableBody>
                 {vendas.map((venda) => {
-                  const prod = producao.find(p => p.id === venda.produtoId);
+                  const prod = produtos.find(p => p.id === venda.produtoId);
                   return (
                     <TableRow key={venda.id}>
                       <TableCell>{formatDateBR(venda.data)}</TableCell>
