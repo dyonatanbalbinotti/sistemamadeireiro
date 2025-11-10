@@ -191,6 +191,7 @@ export type Database = {
           id: string
           peso: number
           peso_carga: number | null
+          peso_por_m3: number | null
           peso_por_tora: number | null
           quantidade_toras: number | null
           toneladas: number
@@ -205,6 +206,7 @@ export type Database = {
           id?: string
           peso: number
           peso_carga?: number | null
+          peso_por_m3?: number | null
           peso_por_tora?: number | null
           quantidade_toras?: number | null
           toneladas: number
@@ -219,6 +221,7 @@ export type Database = {
           id?: string
           peso?: number
           peso_carga?: number | null
+          peso_por_m3?: number | null
           peso_por_tora?: number | null
           quantidade_toras?: number | null
           toneladas?: number

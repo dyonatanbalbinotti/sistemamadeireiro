@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
 import { Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 export default function Cavaco() {
   const { user } = useAuth();
@@ -36,8 +38,9 @@ export default function Cavaco() {
             const producoesDaTora = producaoData.filter(p => p.tora_id === tora.id);
             const m3Total = producoesDaTora.reduce((sum, p) => sum + Number(p.m3), 0);
             
-            // Cálculo: peso * m³ serrado = toneladas de madeira serrada
-            const toneladasMadeirasSerradas = Number(tora.toneladas) * m3Total;
+            // Cálculo: peso por m³ × m³ serrado = toneladas de madeira serrada
+            const pesoPorM3 = Number(tora.peso_por_m3) || 0.6;
+            const toneladasMadeirasSerradas = pesoPorM3 * m3Total;
             
             // Cálculo: TN da carga - TN madeiras serradas = cavaco em estoque
             const cavacoEstoque = Number(tora.toneladas) - toneladasMadeirasSerradas;
@@ -47,6 +50,7 @@ export default function Cavaco() {
               descricao: tora.descricao,
               data: tora.data,
               toneladasCarga: Number(tora.toneladas),
+              pesoPorM3,
               m3Serrado: m3Total,
               toneladasMadeirasSerradas,
               cavacoEstoque: Math.max(0, cavacoEstoque), // Não permitir negativos
@@ -64,6 +68,38 @@ export default function Cavaco() {
 
     loadData();
   }, [user]);
+
+  const handlePesoPorM3Change = async (toraId: string, novoPeso: string) => {
+    const peso = parseFloat(novoPeso) || 0.6;
+    
+    try {
+      const { error } = await supabase
+        .from('toras')
+        .update({ peso_por_m3: peso })
+        .eq('id', toraId);
+
+      if (error) throw error;
+
+      // Atualizar dados localmente
+      setDados(prevDados =>
+        prevDados.map(item =>
+          item.id === toraId
+            ? {
+                ...item,
+                pesoPorM3: peso,
+                toneladasMadeirasSerradas: peso * item.m3Serrado,
+                cavacoEstoque: Math.max(0, item.toneladasCarga - (peso * item.m3Serrado))
+              }
+            : item
+        )
+      );
+
+      toast.success("Peso por m³ atualizado com sucesso!");
+    } catch (error) {
+      console.error('Erro ao atualizar peso por m³:', error);
+      toast.error("Erro ao atualizar peso por m³");
+    }
+  };
 
   if (loading) {
     return (
@@ -102,6 +138,7 @@ export default function Cavaco() {
                   <TableHead>Data</TableHead>
                   <TableHead>Lote (Tora)</TableHead>
                   <TableHead>TN Carga</TableHead>
+                  <TableHead>Peso por m³</TableHead>
                   <TableHead>m³ Serrado</TableHead>
                   <TableHead>TN Madeiras Serradas</TableHead>
                   <TableHead className="font-semibold text-primary">Cavaco Estoque (T)</TableHead>
@@ -110,7 +147,7 @@ export default function Cavaco() {
               <TableBody>
                 {dados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                       Nenhum dado disponível
                     </TableCell>
                   </TableRow>
@@ -120,6 +157,15 @@ export default function Cavaco() {
                       <TableCell>{new Date(item.data).toLocaleDateString()}</TableCell>
                       <TableCell className="font-medium">{item.descricao}</TableCell>
                       <TableCell>{item.toneladasCarga.toFixed(2)} T</TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.pesoPorM3}
+                          onChange={(e) => handlePesoPorM3Change(item.id, e.target.value)}
+                          className="w-24 text-center"
+                        />
+                      </TableCell>
                       <TableCell>{item.m3Serrado.toFixed(2)} m³</TableCell>
                       <TableCell className="font-semibold text-secondary">
                         {item.toneladasMadeirasSerradas.toFixed(2)} T
@@ -135,8 +181,9 @@ export default function Cavaco() {
           </div>
 
           <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <h3 className="font-semibold mb-2">Fórmula de Cálculo:</h3>
+            <h3 className="font-semibold mb-2">Fórmulas de Cálculo:</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
+              <li>• <strong>TN Madeiras Serradas</strong> = Peso por m³ × m³ Serrado</li>
               <li>• <strong>Cavaco em Estoque</strong> = TN da Carga - TN Madeiras Serradas</li>
             </ul>
           </div>
