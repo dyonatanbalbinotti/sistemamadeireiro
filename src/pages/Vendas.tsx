@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingCart, Edit, Trash2, CalendarIcon } from "lucide-react";
+import { ShoppingCart, Edit, Trash2, CalendarIcon, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { Venda } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,8 +19,12 @@ import { cn } from "@/lib/utils";
 export default function Vendas() {
   const { user } = useAuth();
   const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
+  const [tipoVenda, setTipoVenda] = useState<'madeira' | 'cavaco'>('madeira');
   const [vendas, setVendas] = useState<Venda[]>([]);
+  const [vendasCavaco, setVendasCavaco] = useState<any[]>([]);
   const [produtos, setProdutos] = useState<any[]>([]);
+  const [toras, setToras] = useState<any[]>([]);
+  const [cavacoDisponivel, setCavacoDisponivel] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,6 +39,11 @@ export default function Vendas() {
   const [tipo, setTipo] = useState<'serrada' | 'tora'>('serrada');
   const [quantidadeVenda, setQuantidadeVenda] = useState(""); // Quantidade independente para o Passo 2
   const [valorUnitario, setValorUnitario] = useState("");
+
+  // Campos para venda de cavaco
+  const [toraIdCavaco, setToraIdCavaco] = useState("");
+  const [toneladasVendidas, setToneladasVendidas] = useState("");
+  const [valorTonelada, setValorTonelada] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -78,6 +87,55 @@ export default function Vendas() {
             valorUnitario: Number(v.valor_unitario),
             valorTotal: Number(v.valor_total),
           })));
+        }
+
+        // Carregar toras
+        const { data: torasData } = await supabase
+          .from('toras')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (torasData) {
+          setToras(torasData);
+        }
+
+        // Carregar vendas de cavaco
+        const { data: vendasCavacoData } = await supabase
+          .from('vendas_cavaco')
+          .select('*, toras(descricao)')
+          .order('created_at', { ascending: false });
+
+        if (vendasCavacoData) {
+          setVendasCavaco(vendasCavacoData);
+        }
+
+        // Calcular cavaco disponível
+        const { data: producaoData } = await supabase
+          .from('producao')
+          .select('*, toras(id)')
+          .order('created_at', { ascending: false });
+
+        if (torasData && producaoData && vendasCavacoData) {
+          const calculoCavaco = torasData.map(tora => {
+            const producoesDaTora = producaoData.filter(p => p.tora_id === tora.id);
+            const m3Total = producoesDaTora.reduce((sum, p) => sum + Number(p.m3), 0);
+            
+            const pesoPorM3 = Number(tora.peso_por_m3) || 0.6;
+            const toneladasMadeirasSerradas = pesoPorM3 * m3Total;
+            const cavacoTotal = Number(tora.toneladas) - toneladasMadeirasSerradas;
+            
+            const vendasDaTora = vendasCavacoData.filter(v => v.tora_id === tora.id);
+            const toneladasVendidas = vendasDaTora.reduce((sum, v) => sum + Number(v.toneladas), 0);
+            const cavacoDisponivel = Math.max(0, cavacoTotal - toneladasVendidas);
+
+            return {
+              id: tora.id,
+              descricao: tora.descricao,
+              cavacoDisponivel,
+            };
+          });
+
+          setCavacoDisponivel(calculoCavaco);
         }
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
@@ -233,6 +291,84 @@ export default function Vendas() {
     }
   };
 
+  const handleSubmitCavaco = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
+    
+    const toneladas = parseFloat(toneladasVendidas);
+    const valor = parseFloat(valorTonelada);
+    
+    if (!toraIdCavaco || isNaN(toneladas) || isNaN(valor)) {
+      toast.error("Preencha todos os campos corretamente");
+      return;
+    }
+
+    const cavacoInfo = cavacoDisponivel.find(c => c.id === toraIdCavaco);
+    if (cavacoInfo && toneladas > cavacoInfo.cavacoDisponivel) {
+      toast.error(`Apenas ${cavacoInfo.cavacoDisponivel.toFixed(2)} T disponível para esta tora`);
+      return;
+    }
+
+    const valorTotal = toneladas * valor;
+
+    try {
+      if (loadingEmpresaId) {
+        toast.error("Aguardando carregamento dos dados da empresa...");
+        return;
+      }
+      
+      if (!empresaId) {
+        toast.error("Erro ao identificar empresa. Entre em contato com o suporte.");
+        return;
+      }
+
+      const year = dataVenda.getFullYear();
+      const month = String(dataVenda.getMonth() + 1).padStart(2, '0');
+      const day = String(dataVenda.getDate()).padStart(2, '0');
+      const dataFormatada = `${year}-${month}-${day}`;
+
+      const { data, error } = await supabase
+        .from('vendas_cavaco')
+        .insert({
+          data: dataFormatada,
+          tora_id: toraIdCavaco,
+          toneladas: toneladas,
+          valor_tonelada: valor,
+          valor_total: valorTotal,
+          user_id: user.id,
+          empresa_id: empresaId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setVendasCavaco([data, ...vendasCavaco]);
+        
+        // Atualizar cavaco disponível
+        setCavacoDisponivel(prev => 
+          prev.map(c => 
+            c.id === toraIdCavaco 
+              ? { ...c, cavacoDisponivel: c.cavacoDisponivel - toneladas }
+              : c
+          )
+        );
+        
+        toast.success(`Venda de cavaco registrada: R$ ${valorTotal.toFixed(2)}`);
+      }
+      
+      resetFormCavaco();
+    } catch (error) {
+      console.error('Erro ao salvar venda de cavaco:', error);
+      toast.error('Erro ao salvar venda de cavaco');
+    }
+  };
+
   const resetForm = () => {
     setProdutoM3("");
     setQuantidadePecas("");
@@ -243,6 +379,13 @@ export default function Vendas() {
     setTipo('serrada');
     setDataVenda(new Date());
     setEditingId(null);
+  };
+
+  const resetFormCavaco = () => {
+    setToraIdCavaco("");
+    setToneladasVendidas("");
+    setValorTonelada("");
+    setDataVenda(new Date());
   };
 
   const handleEdit = (venda: Venda) => {
@@ -281,6 +424,37 @@ export default function Vendas() {
     }
   };
 
+  const handleDeleteCavaco = async (id: string) => {
+    try {
+      const vendaCavaco = vendasCavaco.find(v => v.id === id);
+      
+      const { error } = await supabase
+        .from('vendas_cavaco')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setVendasCavaco(vendasCavaco.filter(v => v.id !== id));
+      
+      // Restaurar cavaco disponível
+      if (vendaCavaco) {
+        setCavacoDisponivel(prev => 
+          prev.map(c => 
+            c.id === vendaCavaco.tora_id 
+              ? { ...c, cavacoDisponivel: c.cavacoDisponivel + Number(vendaCavaco.toneladas) }
+              : c
+          )
+        );
+      }
+      
+      toast.success("Venda de cavaco excluída");
+    } catch (error) {
+      console.error('Erro ao excluir venda de cavaco:', error);
+      toast.error('Erro ao excluir venda de cavaco');
+    }
+  };
+
   if (loading || loadingEmpresaId) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -299,10 +473,31 @@ export default function Vendas() {
         </div>
       </div>
 
-      <Card className="shadow-card border-border/50">
-        <CardHeader>
-          <CardTitle className="text-foreground">Nova Venda</CardTitle>
-        </CardHeader>
+      {/* Botões de seleção de tipo de venda */}
+      <div className="flex gap-3">
+        <Button
+          variant={tipoVenda === 'madeira' ? 'default' : 'outline'}
+          onClick={() => setTipoVenda('madeira')}
+          className="flex-1"
+        >
+          <ShoppingCart className="h-4 w-4 mr-2" />
+          Vendas de Madeiras Serradas
+        </Button>
+        <Button
+          variant={tipoVenda === 'cavaco' ? 'default' : 'outline'}
+          onClick={() => setTipoVenda('cavaco')}
+          className="flex-1"
+        >
+          <Layers className="h-4 w-4 mr-2" />
+          Vendas de Cavaco
+        </Button>
+      </div>
+
+      {tipoVenda === 'madeira' ? (
+        <Card className="shadow-card border-border/50">
+          <CardHeader>
+            <CardTitle className="text-foreground">Nova Venda de Madeira</CardTitle>
+          </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* PASSO 1: Cálculo de Conversão m³ */}
@@ -507,63 +702,221 @@ export default function Vendas() {
           </form>
         </CardContent>
       </Card>
+      ) : (
+        <Card className="shadow-card border-border/50">
+          <CardHeader>
+            <CardTitle className="text-foreground">Nova Venda de Cavaco</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmitCavaco} className="space-y-6">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="dataVendaCavaco">Data da Venda</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal border-input",
+                          !dataVenda && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dataVenda ? formatDateBR(dataVenda) : "Selecione a data"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dataVenda}
+                        onSelect={(date) => date && setDataVenda(date)}
+                        initialFocus
+                        className="pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="toraIdCavaco">Lote (Tora) *</Label>
+                  <Select value={toraIdCavaco} onValueChange={setToraIdCavaco}>
+                    <SelectTrigger className="border-input">
+                      <SelectValue placeholder="Selecione o lote" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {cavacoDisponivel.map((cavaco) => (
+                        <SelectItem key={cavaco.id} value={cavaco.id}>
+                          {cavaco.descricao} - Disponível: {cavaco.cavacoDisponivel.toFixed(2)} T
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="toneladasVendidas">Toneladas Vendidas *</Label>
+                  <Input
+                    id="toneladasVendidas"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={toneladasVendidas}
+                    onChange={(e) => setToneladasVendidas(e.target.value)}
+                    placeholder="0.00"
+                    className="border-input"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="valorTonelada">Valor por Tonelada (R$) *</Label>
+                  <Input
+                    id="valorTonelada"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={valorTonelada}
+                    onChange={(e) => setValorTonelada(e.target.value)}
+                    placeholder="0.00"
+                    className="border-input"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="valorTotalCavaco">Valor Total (R$)</Label>
+                  <Input
+                    id="valorTotalCavaco"
+                    type="text"
+                    value={toneladasVendidas && valorTonelada ? (parseFloat(toneladasVendidas) * parseFloat(valorTonelada)).toFixed(2) : ''}
+                    readOnly
+                    placeholder="0.00"
+                    className="border-input bg-muted font-bold text-primary text-lg"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Layers className="h-4 w-4 mr-2" />
+                  Registrar Venda de Cavaco
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="shadow-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-foreground">Histórico de Vendas</CardTitle>
+          <CardTitle className="text-foreground">
+            Histórico de Vendas {tipoVenda === 'madeira' ? 'de Madeiras' : 'de Cavaco'}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border border-border overflow-hidden">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead>Data</TableHead>
-                  <TableHead>Produto</TableHead>
-                  <TableHead>Quantidade</TableHead>
-                  <TableHead>Valor Unit.</TableHead>
-                  <TableHead>Total</TableHead>
-                  <TableHead>Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {vendas.map((venda) => {
-                  const prod = produtos.find(p => p.id === venda.produtoId);
-                  return (
-                    <TableRow key={venda.id}>
-                      <TableCell>{formatDateBR(venda.data)}</TableCell>
-                      <TableCell className="font-medium">
-                        {prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A'}
+            {tipoVenda === 'madeira' ? (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>Data</TableHead>
+                    <TableHead>Produto</TableHead>
+                    <TableHead>Quantidade</TableHead>
+                    <TableHead>Valor Unit.</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vendas.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        Nenhuma venda registrada
                       </TableCell>
-                      <TableCell>
-                        {venda.quantidade} un
+                    </TableRow>
+                  ) : (
+                    vendas.map((venda) => {
+                      const prod = produtos.find(p => p.id === venda.produtoId);
+                      return (
+                        <TableRow key={venda.id}>
+                          <TableCell>{formatDateBR(venda.data)}</TableCell>
+                          <TableCell className="font-medium">
+                            {prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A'}
+                          </TableCell>
+                          <TableCell>
+                            {venda.quantidade} un
+                          </TableCell>
+                          <TableCell>R$ {venda.valorUnitario.toFixed(2)}</TableCell>
+                          <TableCell className="font-semibold text-primary">R$ {venda.valorTotal.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleEdit(venda)}
+                                className="h-8 w-8"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleDelete(venda.id)}
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>Data</TableHead>
+                    <TableHead>Lote (Tora)</TableHead>
+                    <TableHead>Toneladas</TableHead>
+                    <TableHead>Valor/Ton</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vendasCavaco.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                        Nenhuma venda de cavaco registrada
                       </TableCell>
-                      <TableCell>R$ {venda.valorUnitario.toFixed(2)}</TableCell>
-                      <TableCell className="font-semibold text-primary">R$ {venda.valorTotal.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-2">
+                    </TableRow>
+                  ) : (
+                    vendasCavaco.map((venda) => (
+                      <TableRow key={venda.id}>
+                        <TableCell>{formatDateBR(venda.data)}</TableCell>
+                        <TableCell className="font-medium">
+                          {venda.toras?.descricao || 'N/A'}
+                        </TableCell>
+                        <TableCell>{Number(venda.toneladas).toFixed(2)} T</TableCell>
+                        <TableCell>R$ {Number(venda.valor_tonelada).toFixed(2)}</TableCell>
+                        <TableCell className="font-semibold text-primary">R$ {Number(venda.valor_total).toFixed(2)}</TableCell>
+                        <TableCell>
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() => handleEdit(venda)}
-                            className="h-8 w-8"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() => handleDelete(venda.id)}
+                            onClick={() => handleDeleteCavaco(venda.id)}
                             className="h-8 w-8 text-destructive hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
           </div>
         </CardContent>
       </Card>

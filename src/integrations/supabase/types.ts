@@ -363,6 +363,50 @@ export type Database = {
           },
         ]
       }
+      vendas_cavaco: {
+        Row: {
+          created_at: string
+          data: string
+          empresa_id: string | null
+          id: string
+          toneladas: number
+          tora_id: string
+          user_id: string
+          valor_tonelada: number
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          data: string
+          empresa_id?: string | null
+          id?: string
+          toneladas: number
+          tora_id: string
+          user_id: string
+          valor_tonelada: number
+          valor_total: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          empresa_id?: string | null
+          id?: string
+          toneladas?: number
+          tora_id?: string
+          user_id?: string
+          valor_tonelada?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendas_cavaco_tora_id_fkey"
+            columns: ["tora_id"]
+            isOneToOne: false
+            referencedRelation: "toras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
