@@ -108,6 +108,22 @@ export default function Vendas() {
     }
   }, [produtoM3, quantidadePecas, produtos]);
 
+  // Calcular automaticamente o Valor Unitário quando valorM3 ou quantidadePecas mudar
+  useEffect(() => {
+    if (valorM3 && quantidadePecas) {
+      const vm3 = parseFloat(valorM3);
+      const qtd = parseFloat(quantidadePecas);
+      
+      if (!isNaN(vm3) && !isNaN(qtd) && qtd > 0) {
+        setValorUnitario((vm3 / qtd).toFixed(2));
+      } else {
+        setValorUnitario("");
+      }
+    } else {
+      setValorUnitario("");
+    }
+  }, [valorM3, quantidadePecas]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -356,15 +372,7 @@ export default function Vendas() {
                     type="number"
                     step="0.01"
                     value={valorM3}
-                    onChange={(e) => {
-                      setValorM3(e.target.value);
-                      // Calcular valor unitário: valor do m³ / quantidade de peças
-                      const vm3 = parseFloat(e.target.value);
-                      const qtd = parseFloat(quantidadePecas);
-                      if (!isNaN(vm3) && !isNaN(qtd) && qtd > 0) {
-                        setValorUnitario((vm3 / qtd).toFixed(2));
-                      }
-                    }}
+                    onChange={(e) => setValorM3(e.target.value)}
                     placeholder="1000.00"
                     className="border-input"
                   />
