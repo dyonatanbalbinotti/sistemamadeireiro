@@ -91,19 +91,27 @@ export default function Vendas() {
 
   // Calcular automaticamente o Total m³ quando produto ou quantidade mudar
   useEffect(() => {
+    console.log('🔍 Cálculo m³:', { produtoM3, quantidadePecas, produtosLength: produtos.length });
+    
     if (produtoM3 && quantidadePecas && produtos.length > 0) {
       const prod = produtos.find(p => p.id === produtoM3);
       const qtd = parseFloat(quantidadePecas);
+      
+      console.log('📦 Produto encontrado:', prod);
+      console.log('📊 Quantidade:', qtd);
       
       if (prod && !isNaN(qtd) && qtd > 0) {
         // Cálculo: largura * espessura * comprimento * quantidade
         // Largura e espessura são divididos por 100 para converter cm em metros
         const m3Total = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento * qtd;
+        console.log('✅ M³ calculado:', m3Total.toFixed(3));
         setTotalM3(m3Total.toFixed(3));
       } else {
+        console.log('⚠️ Produto não encontrado ou quantidade inválida');
         setTotalM3("");
       }
     } else {
+      console.log('⚠️ Faltam dados para cálculo');
       setTotalM3("");
     }
   }, [produtoM3, quantidadePecas, produtos]);
@@ -328,13 +336,25 @@ export default function Vendas() {
 
                 <div className="space-y-2">
                   <Label htmlFor="totalM3">Total m³</Label>
-                  <Input
-                    id="totalM3"
-                    type="text"
-                    value={totalM3 || "0.000"}
-                    readOnly
-                    className="border-input bg-muted font-semibold"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="totalM3"
+                      type="text"
+                      value={totalM3 || "0.000"}
+                      readOnly
+                      className="border-input bg-muted/30 font-bold text-lg text-primary"
+                    />
+                    {!totalM3 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Selecione um produto e informe a quantidade para calcular
+                      </p>
+                    )}
+                    {totalM3 && (
+                      <p className="text-xs text-green-600 mt-1">
+                        ✓ Cálculo realizado: {totalM3} m³
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="space-y-2">
