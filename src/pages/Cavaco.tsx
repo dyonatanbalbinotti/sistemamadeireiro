@@ -135,9 +135,8 @@ export default function Cavaco() {
           </div>
 
           <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <h3 className="font-semibold mb-2">Fórmulas de Cálculo:</h3>
+            <h3 className="font-semibold mb-2">Fórmula de Cálculo:</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• <strong>TN Madeiras Serradas</strong> = Peso da Carga (T) × m³ Serrado</li>
               <li>• <strong>Cavaco em Estoque</strong> = TN da Carga - TN Madeiras Serradas</li>
             </ul>
           </div>
