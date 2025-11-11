@@ -125,7 +125,7 @@ export type Database = {
         Row: {
           created_at: string
           data: string
-          empresa_id: string | null
+          empresa_id: string
           id: string
           m3: number
           produto_id: string
@@ -136,7 +136,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data: string
-          empresa_id?: string | null
+          empresa_id: string
           id?: string
           m3: number
           produto_id: string
@@ -147,7 +147,7 @@ export type Database = {
         Update: {
           created_at?: string
           data?: string
-          empresa_id?: string | null
+          empresa_id?: string
           id?: string
           m3?: number
           produto_id?: string
@@ -156,13 +156,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "producao_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "producao_produto_id_fkey"
             columns: ["produto_id"]
@@ -183,7 +176,7 @@ export type Database = {
         Row: {
           comprimento: number
           created_at: string
-          empresa_id: string | null
+          empresa_id: string
           espessura: number
           id: string
           largura: number
@@ -193,7 +186,7 @@ export type Database = {
         Insert: {
           comprimento: number
           created_at?: string
-          empresa_id?: string | null
+          empresa_id: string
           espessura: number
           id?: string
           largura: number
@@ -203,22 +196,14 @@ export type Database = {
         Update: {
           comprimento?: number
           created_at?: string
-          empresa_id?: string | null
+          empresa_id?: string
           espessura?: number
           id?: string
           largura?: number
           nome?: string
           tipo?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "produtos_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -260,7 +245,7 @@ export type Database = {
           created_at: string
           data: string
           descricao: string
-          empresa_id: string | null
+          empresa_id: string
           grossura: number | null
           id: string
           peso: number
@@ -275,7 +260,7 @@ export type Database = {
           created_at?: string
           data: string
           descricao: string
-          empresa_id?: string | null
+          empresa_id: string
           grossura?: number | null
           id?: string
           peso: number
@@ -290,7 +275,7 @@ export type Database = {
           created_at?: string
           data?: string
           descricao?: string
-          empresa_id?: string | null
+          empresa_id?: string
           grossura?: number | null
           id?: string
           peso?: number
@@ -301,21 +286,13 @@ export type Database = {
           toneladas?: number
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "toras_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       toras_serradas: {
         Row: {
           created_at: string
           data: string
-          empresa_id: string | null
+          empresa_id: string
           id: string
           peso: number
           quantidade_toras_serradas: number | null
@@ -326,7 +303,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data: string
-          empresa_id?: string | null
+          empresa_id: string
           id?: string
           peso: number
           quantidade_toras_serradas?: number | null
@@ -337,7 +314,7 @@ export type Database = {
         Update: {
           created_at?: string
           data?: string
-          empresa_id?: string | null
+          empresa_id?: string
           id?: string
           peso?: number
           quantidade_toras_serradas?: number | null
@@ -346,13 +323,6 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "toras_serradas_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "toras_serradas_tora_id_fkey"
             columns: ["tora_id"]
@@ -384,7 +354,7 @@ export type Database = {
         Row: {
           created_at: string
           data: string
-          empresa_id: string | null
+          empresa_id: string
           id: string
           produto_id: string
           quantidade: number
@@ -397,7 +367,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data: string
-          empresa_id?: string | null
+          empresa_id: string
           id?: string
           produto_id: string
           quantidade: number
@@ -410,7 +380,7 @@ export type Database = {
         Update: {
           created_at?: string
           data?: string
-          empresa_id?: string | null
+          empresa_id?: string
           id?: string
           produto_id?: string
           quantidade?: number
@@ -421,13 +391,6 @@ export type Database = {
           valor_unitario?: number
         }
         Relationships: [
-          {
-            foreignKeyName: "vendas_empresa_id_fkey"
-            columns: ["empresa_id"]
-            isOneToOne: false
-            referencedRelation: "empresas"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "vendas_produto_id_fkey"
             columns: ["produto_id"]
@@ -441,7 +404,7 @@ export type Database = {
         Row: {
           created_at: string
           data: string
-          empresa_id: string | null
+          empresa_id: string
           id: string
           toneladas: number
           tora_id: string
@@ -452,7 +415,7 @@ export type Database = {
         Insert: {
           created_at?: string
           data: string
-          empresa_id?: string | null
+          empresa_id: string
           id?: string
           toneladas: number
           tora_id: string
@@ -463,7 +426,7 @@ export type Database = {
         Update: {
           created_at?: string
           data?: string
-          empresa_id?: string | null
+          empresa_id?: string
           id?: string
           toneladas?: number
           tora_id?: string
