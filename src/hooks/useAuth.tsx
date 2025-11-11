@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: 'admin' | 'empresa' | null;
+  userStatus: 'operacional' | 'invalido' | null;
   loading: boolean;
   isAdmin: boolean;
   isEmpresa: boolean;
@@ -21,6 +22,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'empresa' | null>(null);
+  const [userStatus, setUserStatus] = useState<'operacional' | 'invalido' | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -35,24 +37,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role
+          // Fetch user role and status
           setTimeout(async () => {
-            const { data } = await supabase
+            const { data: roleData } = await supabase
               .from('user_roles')
               .select('role')
               .eq('user_id', session.user.id)
               .single();
             
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('status')
+              .eq('id', session.user.id)
+              .single();
+            
             // Apenas aceitar roles válidos (admin ou empresa)
-            const role = data?.role;
+            const role = roleData?.role;
             if (role === 'admin' || role === 'empresa') {
               setUserRole(role);
             } else {
               setUserRole(null);
             }
+            
+            setUserStatus((profileData?.status as 'operacional' | 'invalido') || 'operacional');
           }, 0);
         } else {
           setUserRole(null);
+          setUserStatus(null);
         }
         
         setLoading(false);
@@ -65,21 +76,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            // Apenas aceitar roles válidos (admin ou empresa)
-            const role = data?.role;
-            if (role === 'admin' || role === 'empresa') {
-              setUserRole(role);
-            } else {
-              setUserRole(null);
-            }
-            setLoading(false);
-          });
+        Promise.all([
+          supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single(),
+          supabase
+            .from('profiles')
+            .select('status')
+            .eq('id', session.user.id)
+            .single()
+        ]).then(([{ data: roleData }, { data: profileData }]) => {
+          // Apenas aceitar roles válidos (admin ou empresa)
+          const role = roleData?.role;
+          if (role === 'admin' || role === 'empresa') {
+            setUserRole(role);
+          } else {
+            setUserRole(null);
+          }
+          
+          setUserStatus((profileData?.status as 'operacional' | 'invalido') || 'operacional');
+          setLoading(false);
+        });
       } else {
         setLoading(false);
       }
@@ -165,6 +184,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user, 
       session, 
       userRole, 
+      userStatus,
       loading, 
       isAdmin, 
       isEmpresa,

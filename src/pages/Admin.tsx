@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Building2, Search, DollarSign, Save } from "lucide-react";
+import { Trash2, Building2, Search, DollarSign, Save, RefreshCw, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDateBR } from "@/lib/dateUtils";
 
@@ -16,8 +16,10 @@ interface Usuario {
   status: 'operacional' | 'invalido';
   created_at: string;
   empresa?: {
+    id: string;
     nome_empresa: string;
     cnpj: string | null;
+    data_vencimento_anuidade: string | null;
   };
   role?: 'admin' | 'empresa';
 }
@@ -33,7 +35,33 @@ export default function Admin() {
   useEffect(() => {
     loadUsuarios();
     loadConfiguracoes();
+    verificarAnuidadesVencidas();
   }, []);
+
+  const verificarAnuidadesVencidas = async () => {
+    try {
+      // Buscar empresas com anuidade vencida
+      const hoje = new Date().toISOString().split('T')[0];
+      const { data: empresasVencidas, error } = await supabase
+        .from('empresas')
+        .select('user_id')
+        .lt('data_vencimento_anuidade', hoje);
+
+      if (error) throw error;
+
+      // Atualizar status dos usuários com anuidade vencida
+      if (empresasVencidas && empresasVencidas.length > 0) {
+        for (const empresa of empresasVencidas) {
+          await supabase
+            .from('profiles')
+            .update({ status: 'invalido' })
+            .eq('id', empresa.user_id);
+        }
+      }
+    } catch (error: any) {
+      console.error("Erro ao verificar anuidades:", error);
+    }
+  };
 
   const loadUsuarios = async () => {
     try {
@@ -58,7 +86,7 @@ export default function Admin() {
           // Buscar empresa se existir
           const { data: empresaData } = await supabase
             .from('empresas')
-            .select('nome_empresa, cnpj')
+            .select('id, nome_empresa, cnpj, data_vencimento_anuidade')
             .eq('user_id', profile.id)
             .single();
 
@@ -183,9 +211,82 @@ export default function Admin() {
         .delete()
         .eq('user_id', userId);
 
+      // Remover da lista localmente
+      setUsuarios(prev => prev.filter(u => u.id !== userId));
+
       toast({
         title: "Sucesso!",
         description: "Usuário excluído com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao excluir usuário: " + error.message,
+      });
+    }
+  };
+
+  const handleRenovarAnuidade = async (empresaId: string, usuarioNome: string) => {
+    if (!confirm(`Confirma a renovação da anuidade para ${usuarioNome}?`)) {
+      return;
+    }
+
+    try {
+      // Buscar empresa para obter data de vencimento atual
+      const { data: empresaData, error: empresaError } = await supabase
+        .from('empresas')
+        .select('data_vencimento_anuidade, user_id')
+        .eq('id', empresaId)
+        .single();
+
+      if (empresaError) throw empresaError;
+
+      // Calcular nova data de vencimento (1 ano a partir de hoje ou da data atual de vencimento, o que for maior)
+      const hoje = new Date();
+      const dataVencimentoAtual = empresaData.data_vencimento_anuidade 
+        ? new Date(empresaData.data_vencimento_anuidade) 
+        : new Date();
+      
+      const baseDate = dataVencimentoAtual > hoje ? dataVencimentoAtual : hoje;
+      const novaDataVencimento = new Date(baseDate);
+      novaDataVencimento.setFullYear(novaDataVencimento.getFullYear() + 1);
+
+      // Atualizar data de vencimento na empresa
+      const { error: updateError } = await supabase
+        .from('empresas')
+        .update({ data_vencimento_anuidade: novaDataVencimento.toISOString().split('T')[0] })
+        .eq('id', empresaId);
+
+      if (updateError) throw updateError;
+
+      // Buscar valor da anuidade
+      const { data: configData } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'valor_anuidade')
+        .maybeSingle();
+
+      // Registrar no histórico
+      await supabase
+        .from('historico_anuidades')
+        .insert({
+          empresa_id: empresaId,
+          valor_pago: parseFloat(configData?.valor || valorAnuidade),
+          data_vencimento_anterior: empresaData.data_vencimento_anuidade,
+          data_novo_vencimento: novaDataVencimento.toISOString().split('T')[0],
+          observacao: 'Renovação manual pelo administrador'
+        });
+
+      // Reativar usuário se estava inativo
+      await supabase
+        .from('profiles')
+        .update({ status: 'operacional' })
+        .eq('id', empresaData.user_id);
+
+      toast({
+        title: "Sucesso!",
+        description: `Anuidade renovada até ${formatDateBR(novaDataVencimento.toISOString())}`,
       });
 
       loadUsuarios();
@@ -193,7 +294,7 @@ export default function Admin() {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Erro ao excluir usuário: " + error.message,
+        description: "Erro ao renovar anuidade: " + error.message,
       });
     }
   };
@@ -313,6 +414,7 @@ export default function Admin() {
                   <TableHead>Email</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Empresa</TableHead>
+                  <TableHead>Vencimento</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Cadastro</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -321,7 +423,7 @@ export default function Admin() {
               <TableBody>
                 {filteredUsuarios.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
@@ -341,6 +443,22 @@ export default function Admin() {
                       </TableCell>
                       <TableCell>{usuario.empresa?.nome_empresa || "-"}</TableCell>
                       <TableCell>
+                        {usuario.empresa?.data_vencimento_anuidade ? (
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3 text-muted-foreground" />
+                            <span className={`text-sm ${
+                              new Date(usuario.empresa.data_vencimento_anuidade) < new Date()
+                                ? 'text-destructive font-medium'
+                                : 'text-muted-foreground'
+                            }`}>
+                              {formatDateBR(usuario.empresa.data_vencimento_anuidade)}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Button
                           variant={usuario.status === 'operacional' ? 'default' : 'destructive'}
                           size="sm"
@@ -352,15 +470,28 @@ export default function Admin() {
                       </TableCell>
                       <TableCell>{formatDateBR(usuario.created_at)}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(usuario.id)}
-                          className="hover:bg-destructive/10 hover:text-destructive"
-                          disabled={usuario.role === 'admin'}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-2">
+                          {usuario.empresa && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleRenovarAnuidade(usuario.empresa!.id, usuario.nome)}
+                              className="hover:bg-primary/10 hover:text-primary"
+                              title="Renovar anuidade"
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(usuario.id)}
+                            className="hover:bg-destructive/10 hover:text-destructive"
+                            disabled={usuario.role === 'admin'}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

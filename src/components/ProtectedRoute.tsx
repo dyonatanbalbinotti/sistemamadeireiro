@@ -14,7 +14,7 @@ export default function ProtectedRoute({
   requireAdmin = false,
   requireEmpresa = false,
 }: ProtectedRouteProps) {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, userStatus, loading } = useAuth();
 
   if (loading) {
     return (
@@ -33,6 +33,27 @@ export default function ProtectedRoute({
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  // Verificar se usuário está inativo (exceto admin)
+  if (userRole !== 'admin' && userStatus === 'invalido') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md px-6"
+        >
+          <h2 className="text-2xl font-bold text-destructive mb-4">Conta Inativa</h2>
+          <p className="text-muted-foreground mb-2">
+            Sua conta está temporariamente inativa. Isso pode ter ocorrido devido ao vencimento da anuidade.
+          </p>
+          <p className="text-muted-foreground">
+            Por favor, entre em contato com o administrador do sistema para reativar sua conta.
+          </p>
+        </motion.div>
+      </div>
+    );
   }
 
   // Se é admin tentando acessar área não-admin, redirecionar

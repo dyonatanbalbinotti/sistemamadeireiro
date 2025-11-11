@@ -45,6 +45,7 @@ export type Database = {
         Row: {
           cnpj: string | null
           created_at: string
+          data_vencimento_anuidade: string | null
           endereco: string | null
           id: string
           logo_url: string | null
@@ -56,6 +57,7 @@ export type Database = {
         Insert: {
           cnpj?: string | null
           created_at?: string
+          data_vencimento_anuidade?: string | null
           endereco?: string | null
           id?: string
           logo_url?: string | null
@@ -67,6 +69,7 @@ export type Database = {
         Update: {
           cnpj?: string | null
           created_at?: string
+          data_vencimento_anuidade?: string | null
           endereco?: string | null
           id?: string
           logo_url?: string | null
@@ -76,6 +79,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      historico_anuidades: {
+        Row: {
+          created_at: string
+          data_novo_vencimento: string
+          data_pagamento: string
+          data_vencimento_anterior: string | null
+          empresa_id: string
+          id: string
+          observacao: string | null
+          valor_pago: number
+        }
+        Insert: {
+          created_at?: string
+          data_novo_vencimento: string
+          data_pagamento?: string
+          data_vencimento_anterior?: string | null
+          empresa_id: string
+          id?: string
+          observacao?: string | null
+          valor_pago: number
+        }
+        Update: {
+          created_at?: string
+          data_novo_vencimento?: string
+          data_pagamento?: string
+          data_vencimento_anterior?: string | null
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          valor_pago?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_anuidades_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       producao: {
         Row: {
