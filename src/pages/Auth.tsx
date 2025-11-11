@@ -15,8 +15,6 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
-  const [nomeEmpresa, setNomeEmpresa] = useState("");
-  const [cnpj, setCnpj] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp, user } = useAuth();
@@ -55,17 +53,17 @@ const Auth = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    if (!nome || !nomeEmpresa) {
+    if (!nome) {
       toast({
         variant: "destructive",
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
+        title: "Campo obrigatório",
+        description: "Por favor, preencha seu nome.",
       });
       setIsLoading(false);
       return;
     }
 
-    const { error } = await signUp(email, password, nome, 'empresa', nomeEmpresa, cnpj);
+    const { error } = await signUp(email, password, nome);
 
     if (error) {
       toast({
@@ -76,7 +74,7 @@ const Auth = () => {
     } else {
       toast({
         title: "Conta criada!",
-        description: "Sua empresa foi cadastrada com sucesso.",
+        description: "Sua conta foi cadastrada com sucesso.",
       });
     }
 
@@ -103,7 +101,7 @@ const Auth = () => {
             DwCorporation Sist. Madeireiro
           </CardTitle>
           <CardDescription className="text-center text-muted-foreground">
-            Cadastre sua empresa ou faça login
+            Faça login ou crie sua conta
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -162,7 +160,7 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="nome">Nome do Responsável</Label>
+                  <Label htmlFor="nome">Nome Completo</Label>
                   <Input
                     id="nome"
                     type="text"
@@ -173,32 +171,11 @@ const Auth = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="nomeEmpresa">Nome da Empresa</Label>
-                  <Input
-                    id="nomeEmpresa"
-                    type="text"
-                    placeholder="Nome da sua empresa"
-                    value={nomeEmpresa}
-                    onChange={(e) => setNomeEmpresa(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="cnpj">CNPJ (opcional)</Label>
-                  <Input
-                    id="cnpj"
-                    type="text"
-                    placeholder="00.000.000/0000-00"
-                    value={cnpj}
-                    onChange={(e) => setCnpj(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
                   <Label htmlFor="signup-email">Email</Label>
                   <Input
                     id="signup-email"
                     type="email"
-                    placeholder="empresa@email.com"
+                    placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
@@ -233,7 +210,7 @@ const Auth = () => {
                   </div>
                 </div>
                 <Button type="submit" className="w-full neon-glow" disabled={isLoading}>
-                  {isLoading ? "Criando conta..." : "Cadastrar Empresa"}
+                  {isLoading ? "Criando conta..." : "Criar Conta"}
                 </Button>
               </form>
             </TabsContent>
