@@ -216,30 +216,46 @@ export default function Admin() {
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm("Tem certeza que deseja excluir este usuário? Todos os dados relacionados serão perdidos.")) {
+  const handleDelete = async (userId: string, userName: string) => {
+    if (!confirm(`Tem certeza que deseja excluir o usuário "${userName}"?\n\n⚠️ ATENÇÃO: Esta ação é irreversível!\n\nSerão deletados:\n• Perfil do usuário\n• Dados da empresa (se houver)\n• Todas as produções\n• Todas as vendas\n• Todo o estoque\n• Todos os registros de toras e cavaco\n• Role e permissões`)) {
       return;
     }
 
     try {
-      // Deletar empresa se existir
-      await supabase
-        .from('empresas')
-        .delete()
-        .eq('user_id', userId);
+      // Buscar empresa_id do usuário
+      const usuario = usuarios.find(u => u.id === userId);
+      const empresaId = usuario?.empresa?.id;
 
-      // Deletar role
-      await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
+      // Deletar todos os dados relacionados à empresa
+      if (empresaId) {
+        await Promise.all([
+          supabase.from('producao').delete().eq('empresa_id', empresaId),
+          supabase.from('vendas').delete().eq('empresa_id', empresaId),
+          supabase.from('vendas_cavaco').delete().eq('empresa_id', empresaId),
+          supabase.from('toras').delete().eq('empresa_id', empresaId),
+          supabase.from('toras_serradas').delete().eq('empresa_id', empresaId),
+          supabase.from('produtos').delete().eq('empresa_id', empresaId),
+          supabase.from('historico_anuidades').delete().eq('empresa_id', empresaId),
+          supabase.from('empresas').delete().eq('id', empresaId),
+        ]);
+      }
+
+      // Deletar role e profile
+      await supabase.from('user_roles').delete().eq('user_id', userId);
+      await supabase.from('profiles').delete().eq('id', userId);
+
+      // Deletar usuário do auth (requer permissões de admin)
+      const { error: authError } = await supabase.auth.admin.deleteUser(userId);
+      if (authError) {
+        console.warn("Não foi possível deletar do auth:", authError);
+      }
 
       // Remover da lista localmente
       setUsuarios(prev => prev.filter(u => u.id !== userId));
 
       toast({
         title: "Sucesso!",
-        description: "Usuário excluído com sucesso.",
+        description: `Usuário "${userName}" e todos os dados relacionados foram excluídos.`,
       });
     } catch (error: any) {
       toast({
@@ -251,7 +267,7 @@ export default function Admin() {
   };
 
   const handleRenovarAnuidade = async (empresaId: string, usuarioNome: string) => {
-    if (!confirm(`Confirma a renovação da anuidade para ${usuarioNome}?`)) {
+    if (!confirm(`Confirma a renovação da anuidade para "${usuarioNome}"?\n\nO vencimento será estendido por +1 ano a partir de hoje ou da data atual (o que for maior).\nValor da anuidade: R$ ${parseFloat(valorAnuidade).toFixed(2)}`)) {
       return;
     }
 
@@ -477,10 +493,11 @@ export default function Admin() {
                             <Calendar className="h-3 w-3 text-muted-foreground" />
                             <span className={`text-sm ${
                               new Date(usuario.empresa.data_vencimento_anuidade) < new Date()
-                                ? 'text-destructive font-medium'
+                                ? 'text-destructive font-bold animate-pulse'
                                 : 'text-muted-foreground'
                             }`}>
                               {formatDateBR(usuario.empresa.data_vencimento_anuidade)}
+                              {new Date(usuario.empresa.data_vencimento_anuidade) < new Date() && ' ⚠️'}
                             </span>
                           </div>
                         ) : (
@@ -514,9 +531,10 @@ export default function Admin() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => handleDelete(usuario.id)}
+                            onClick={() => handleDelete(usuario.id, usuario.nome)}
                             className="hover:bg-destructive/10 hover:text-destructive"
                             disabled={usuario.role === 'admin'}
+                            title={usuario.role === 'admin' ? 'Não é possível excluir administradores' : 'Excluir usuário'}
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
