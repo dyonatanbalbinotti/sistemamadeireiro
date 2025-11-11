@@ -44,7 +44,7 @@ export default function Admin() {
       const hoje = new Date().toISOString().split('T')[0];
       const { data: empresasVencidas, error } = await supabase
         .from('empresas')
-        .select('user_id')
+        .select('id, user_id')
         .lt('data_vencimento_anuidade', hoje);
 
       if (error) throw error;
@@ -52,10 +52,17 @@ export default function Admin() {
       // Atualizar status dos usuários com anuidade vencida
       if (empresasVencidas && empresasVencidas.length > 0) {
         for (const empresa of empresasVencidas) {
+          // Atualizar dono da empresa
           await supabase
             .from('profiles')
             .update({ status: 'invalido' })
             .eq('id', empresa.user_id);
+          
+          // Atualizar todos os membros da empresa
+          await supabase
+            .from('profiles')
+            .update({ status: 'invalido' })
+            .eq('empresa_id', empresa.id);
         }
       }
     } catch (error: any) {
@@ -83,12 +90,28 @@ export default function Admin() {
             .eq('user_id', profile.id)
             .maybeSingle();
 
-          // Buscar empresa se existir
-          const { data: empresaData } = await supabase
-            .from('empresas')
-            .select('id, nome_empresa, cnpj, data_vencimento_anuidade')
-            .eq('user_id', profile.id)
-            .maybeSingle();
+          // Buscar empresa se existir (seja como dono ou como membro)
+          let empresaData = null;
+          
+          // Primeiro tenta buscar por empresa_id no profile
+          if (profile.empresa_id) {
+            const { data } = await supabase
+              .from('empresas')
+              .select('id, nome_empresa, cnpj, data_vencimento_anuidade')
+              .eq('id', profile.empresa_id)
+              .maybeSingle();
+            empresaData = data;
+          }
+          
+          // Se não encontrou, tenta buscar onde o usuário é o dono
+          if (!empresaData) {
+            const { data } = await supabase
+              .from('empresas')
+              .select('id, nome_empresa, cnpj, data_vencimento_anuidade')
+              .eq('user_id', profile.id)
+              .maybeSingle();
+            empresaData = data;
+          }
 
           return {
             id: profile.id,
@@ -283,6 +306,12 @@ export default function Admin() {
         .from('profiles')
         .update({ status: 'operacional' })
         .eq('id', empresaData.user_id);
+      
+      // Reativar todos os membros da empresa também
+      await supabase
+        .from('profiles')
+        .update({ status: 'operacional' })
+        .eq('empresa_id', empresaId);
 
       toast({
         title: "Sucesso!",
