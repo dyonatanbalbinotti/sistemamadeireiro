@@ -886,11 +886,16 @@ export default function Producao() {
                       const conversoes = toras.map(tora => {
                         const producoesDoLote = producao.filter(p => p.toraId === tora.id);
                         const m3Total = producoesDoLote.reduce((sum, p) => sum + p.m3, 0);
-                        const conversao = m3Total > 0 ? tora.toneladas / m3Total : 0;
+                        
+                        // Buscar toneladas das toras serradas ao invés do peso total do lote
+                        const torasSerradasDoLote = torasSerradas.filter(ts => ts.toraId === tora.id);
+                        const toneladasSerradas = torasSerradasDoLote.reduce((sum, ts) => sum + ts.toneladas, 0);
+                        
+                        const conversao = m3Total > 0 ? toneladasSerradas / m3Total : 0;
                         
                         return {
                           descricao: tora.descricao,
-                          toneladas: tora.toneladas,
+                          toneladas: toneladasSerradas,
                           m3Total,
                           conversao
                         };
