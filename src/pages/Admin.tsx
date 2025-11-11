@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Building2, Search } from "lucide-react";
+import { Trash2, Building2, Search, DollarSign, Save } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDateBR } from "@/lib/dateUtils";
 
@@ -26,10 +26,13 @@ export default function Admin() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [valorAnuidade, setValorAnuidade] = useState("");
+  const [editandoAnuidade, setEditandoAnuidade] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     loadUsuarios();
+    loadConfiguracoes();
   }, []);
 
   const loadUsuarios = async () => {
@@ -80,6 +83,59 @@ export default function Admin() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadConfiguracoes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('configuracoes')
+        .select('valor')
+        .eq('chave', 'valor_anuidade')
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setValorAnuidade(data?.valor || '1000');
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao carregar configurações: " + error.message,
+      });
+    }
+  };
+
+  const handleSalvarAnuidade = async () => {
+    if (!valorAnuidade || parseFloat(valorAnuidade) <= 0) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Digite um valor válido para a anuidade.",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('configuracoes')
+        .update({ valor: valorAnuidade })
+        .eq('chave', 'valor_anuidade');
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso!",
+        description: "Valor da anuidade atualizado.",
+      });
+
+      setEditandoAnuidade(false);
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao salvar anuidade: " + error.message,
+      });
     }
   };
 
@@ -175,6 +231,63 @@ export default function Admin() {
           Painel Administrativo
         </h1>
       </div>
+
+      <Card className="glass-effect neon-border">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-primary" />
+            Configuração de Anuidade
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <label className="text-sm text-muted-foreground mb-2 block">
+                Valor da Anuidade (R$)
+              </label>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={valorAnuidade}
+                onChange={(e) => setValorAnuidade(e.target.value)}
+                disabled={!editandoAnuidade}
+                className="neon-input"
+                placeholder="0.00"
+              />
+            </div>
+            <div className="flex gap-2 mt-6">
+              {editandoAnuidade ? (
+                <>
+                  <Button
+                    onClick={handleSalvarAnuidade}
+                    className="gap-2"
+                  >
+                    <Save className="h-4 w-4" />
+                    Salvar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditandoAnuidade(false);
+                      loadConfiguracoes();
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => setEditandoAnuidade(true)}
+                  variant="outline"
+                >
+                  Editar
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="glass-effect neon-border">
         <CardHeader>
