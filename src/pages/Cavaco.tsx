@@ -32,24 +32,34 @@ export default function Cavaco() {
           .select('*, toras(id)')
           .order('created_at', { ascending: false });
 
-        if (torasData && producaoData) {
+        // Carregar toras serradas
+        const { data: torasSerradasData } = await supabase
+          .from('toras_serradas')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (torasData && producaoData && torasSerradasData) {
           // Agrupar por tora e calcular
           const calculoPorTora = torasData.map(tora => {
             const producoesDaTora = producaoData.filter(p => p.tora_id === tora.id);
             const m3Total = producoesDaTora.reduce((sum, p) => sum + Number(p.m3), 0);
             
+            // Buscar toneladas das toras serradas ao invés do peso total da carga
+            const torasSerradasDoLote = torasSerradasData.filter(ts => ts.tora_id === tora.id);
+            const toneladasSerradas = torasSerradasDoLote.reduce((sum, ts) => sum + Number(ts.toneladas), 0);
+            
             // Cálculo: peso por m³ × m³ serrado = toneladas de madeira serrada
             const pesoPorM3 = Number(tora.peso_por_m3) || 0.6;
             const toneladasMadeirasSerradas = pesoPorM3 * m3Total;
             
-            // Cálculo: TN da carga - TN madeiras serradas = cavaco em estoque
-            const cavacoEstoque = Number(tora.toneladas) - toneladasMadeirasSerradas;
+            // Cálculo: TN serradas - TN madeiras serradas = cavaco em estoque
+            const cavacoEstoque = toneladasSerradas - toneladasMadeirasSerradas;
 
             return {
               id: tora.id,
               descricao: tora.descricao,
               data: tora.data,
-              toneladasCarga: Number(tora.toneladas),
+              toneladasCarga: toneladasSerradas,
               pesoPorM3,
               m3Serrado: m3Total,
               toneladasMadeirasSerradas,
