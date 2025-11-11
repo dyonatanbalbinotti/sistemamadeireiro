@@ -35,6 +35,11 @@ export default function ProtectedRoute({
     return <Navigate to="/auth" replace />;
   }
 
+  // Se é admin tentando acessar área não-admin, redirecionar
+  if (userRole === 'admin' && !requireAdmin) {
+    return <Navigate to="/admin" replace />;
+  }
+
   // Verificar permissões específicas
   if (requireAdmin && userRole !== 'admin') {
     return (

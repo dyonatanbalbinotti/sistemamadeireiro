@@ -156,6 +156,7 @@ export type Database = {
           empresa_id: string | null
           id: string
           nome: string
+          status: string | null
         }
         Insert: {
           created_at?: string
@@ -163,6 +164,7 @@ export type Database = {
           empresa_id?: string | null
           id: string
           nome: string
+          status?: string | null
         }
         Update: {
           created_at?: string
@@ -170,6 +172,7 @@ export type Database = {
           empresa_id?: string | null
           id?: string
           nome?: string
+          status?: string | null
         }
         Relationships: [
           {

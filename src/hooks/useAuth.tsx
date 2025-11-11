@@ -89,13 +89,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
     
-    if (!error) {
-      navigate('/');
+    if (!error && data.user) {
+      // Buscar role do usuário
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .single();
+      
+      // Redirecionar baseado no role
+      if (roleData?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/');
+      }
     }
     
     return { error };

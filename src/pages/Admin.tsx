@@ -9,106 +9,143 @@ import { Trash2, Building2, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDateBR } from "@/lib/dateUtils";
 
-interface Empresa {
+interface Usuario {
   id: string;
-  nome_empresa: string;
-  cnpj: string | null;
-  user_id: string;
+  nome: string;
+  email: string;
+  status: 'operacional' | 'invalido';
   created_at: string;
-  profiles?: {
-    nome: string;
-    email: string;
+  empresa?: {
+    nome_empresa: string;
+    cnpj: string | null;
   };
+  role?: 'admin' | 'empresa';
 }
 
 export default function Admin() {
-  const [empresas, setEmpresas] = useState<Empresa[]>([]);
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
   useEffect(() => {
-    loadEmpresas();
+    loadUsuarios();
   }, []);
 
-  const loadEmpresas = async () => {
+  const loadUsuarios = async () => {
     try {
-      const { data: empresasData, error } = await supabase
-        .from('empresas')
+      // Carregar todos os perfis
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      // Get profiles for each empresa
-      const empresasWithProfiles = await Promise.all(
-        (empresasData || []).map(async (empresa) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('nome, email')
-            .eq('id', empresa.user_id)
+      // Carregar roles e empresas para cada usuário
+      const usuariosComDetalhes = await Promise.all(
+        (profilesData || []).map(async (profile) => {
+          // Buscar role
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', profile.id)
+            .single();
+
+          // Buscar empresa se existir
+          const { data: empresaData } = await supabase
+            .from('empresas')
+            .select('nome_empresa, cnpj')
+            .eq('user_id', profile.id)
             .single();
 
           return {
-            ...empresa,
-            profiles: profile || undefined
+            id: profile.id,
+            nome: profile.nome,
+            email: profile.email,
+            status: (profile.status as 'operacional' | 'invalido') || 'operacional',
+            created_at: profile.created_at,
+            empresa: empresaData || undefined,
+            role: roleData?.role as 'admin' | 'empresa'
           };
         })
       );
 
-      setEmpresas(empresasWithProfiles);
+      setUsuarios(usuariosComDetalhes);
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Erro ao carregar empresas: " + error.message,
+        description: "Erro ao carregar usuários: " + error.message,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string, userId: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta empresa? Todos os dados relacionados serão perdidos.")) {
-      return;
-    }
-
+  const handleToggleStatus = async (userId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'operacional' ? 'invalido' : 'operacional';
+    
     try {
-      // Delete empresa
-      const { error: empresaError } = await supabase
-        .from('empresas')
-        .delete()
-        .eq('id', id);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: newStatus })
+        .eq('id', userId);
 
-      if (empresaError) throw empresaError;
-
-      // Delete user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId);
-
-      if (roleError) throw roleError;
+      if (error) throw error;
 
       toast({
         title: "Sucesso!",
-        description: "Empresa excluída com sucesso.",
+        description: `Status alterado para ${newStatus}.`,
       });
 
-      loadEmpresas();
+      loadUsuarios();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Erro ao excluir empresa: " + error.message,
+        description: "Erro ao alterar status: " + error.message,
       });
     }
   };
 
-  const filteredEmpresas = empresas.filter(empresa =>
-    empresa.nome_empresa.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    empresa.cnpj?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    empresa.profiles?.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleDelete = async (userId: string) => {
+    if (!confirm("Tem certeza que deseja excluir este usuário? Todos os dados relacionados serão perdidos.")) {
+      return;
+    }
+
+    try {
+      // Deletar empresa se existir
+      await supabase
+        .from('empresas')
+        .delete()
+        .eq('user_id', userId);
+
+      // Deletar role
+      await supabase
+        .from('user_roles')
+        .delete()
+        .eq('user_id', userId);
+
+      toast({
+        title: "Sucesso!",
+        description: "Usuário excluído com sucesso.",
+      });
+
+      loadUsuarios();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao excluir usuário: " + error.message,
+      });
+    }
+  };
+
+  const filteredUsuarios = usuarios.filter(usuario =>
+    usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    usuario.empresa?.nome_empresa.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -142,11 +179,11 @@ export default function Admin() {
       <Card className="glass-effect neon-border">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>Empresas Cadastradas</span>
+            <span>Gerenciamento de Usuários</span>
             <div className="relative w-64">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
-                placeholder="Buscar empresa..."
+                placeholder="Buscar usuário..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 neon-input"
@@ -159,35 +196,55 @@ export default function Admin() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>CNPJ</TableHead>
-                  <TableHead>Responsável</TableHead>
+                  <TableHead>Nome</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Empresa</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Cadastro</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredEmpresas.length === 0 ? (
+                {filteredUsuarios.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                      Nenhuma empresa encontrada
+                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                      Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredEmpresas.map((empresa) => (
-                    <TableRow key={empresa.id}>
-                      <TableCell className="font-medium">{empresa.nome_empresa}</TableCell>
-                      <TableCell>{empresa.cnpj || "-"}</TableCell>
-                      <TableCell>{empresa.profiles?.nome || "-"}</TableCell>
-                      <TableCell>{empresa.profiles?.email || "-"}</TableCell>
-                      <TableCell>{formatDateBR(empresa.created_at)}</TableCell>
+                  filteredUsuarios.map((usuario) => (
+                    <TableRow key={usuario.id}>
+                      <TableCell className="font-medium">{usuario.nome}</TableCell>
+                      <TableCell>{usuario.email}</TableCell>
+                      <TableCell>
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          usuario.role === 'admin' 
+                            ? 'bg-purple-500/20 text-purple-400' 
+                            : 'bg-blue-500/20 text-blue-400'
+                        }`}>
+                          {usuario.role === 'admin' ? 'Admin' : 'Empresa'}
+                        </span>
+                      </TableCell>
+                      <TableCell>{usuario.empresa?.nome_empresa || "-"}</TableCell>
+                      <TableCell>
+                        <Button
+                          variant={usuario.status === 'operacional' ? 'default' : 'destructive'}
+                          size="sm"
+                          onClick={() => handleToggleStatus(usuario.id, usuario.status)}
+                          className="font-medium"
+                        >
+                          {usuario.status === 'operacional' ? 'Operacional' : 'Inválido'}
+                        </Button>
+                      </TableCell>
+                      <TableCell>{formatDateBR(usuario.created_at)}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleDelete(empresa.id, empresa.user_id)}
+                          onClick={() => handleDelete(usuario.id)}
                           className="hover:bg-destructive/10 hover:text-destructive"
+                          disabled={usuario.role === 'admin'}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
