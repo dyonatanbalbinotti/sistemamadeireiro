@@ -23,27 +23,42 @@ export const useEmpresaId = () => {
       }
 
       try {
-        // Primeiro tenta buscar do profile (para funcionários)
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('empresa_id')
-          .eq('id', user.id)
-          .maybeSingle();
-
-        if (profile?.empresa_id) {
-          setEmpresaId(profile.empresa_id);
-          setLoading(false);
-          return;
-        }
-
-        // Se não encontrou, busca na tabela empresas (para donos de empresa)
-        const { data: empresa } = await supabase
+        // Busca na tabela empresas primeiro (para donos de empresa)
+        const { data: empresa, error: empresaError } = await supabase
           .from('empresas')
           .select('id')
           .eq('user_id', user.id)
           .maybeSingle();
 
-        setEmpresaId(empresa?.id || null);
+        if (empresaError) {
+          console.error('Erro ao buscar empresa:', empresaError);
+        }
+
+        if (empresa?.id) {
+          console.log('Empresa encontrada como dono:', empresa.id);
+          setEmpresaId(empresa.id);
+          setLoading(false);
+          return;
+        }
+
+        // Se não encontrou, busca no profile (para funcionários)
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('empresa_id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error('Erro ao buscar profile:', profileError);
+        }
+
+        if (profile?.empresa_id) {
+          console.log('Empresa encontrada no profile:', profile.empresa_id);
+          setEmpresaId(profile.empresa_id);
+        } else {
+          console.log('Nenhuma empresa encontrada para o usuário:', user.id);
+          setEmpresaId(null);
+        }
       } catch (error) {
         console.error('Erro ao buscar empresa_id:', error);
         setEmpresaId(null);
