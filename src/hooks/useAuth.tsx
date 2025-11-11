@@ -43,13 +43,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               .from('user_roles')
               .select('role')
               .eq('user_id', session.user.id)
-              .single();
+              .maybeSingle();
             
             const { data: profileData } = await supabase
               .from('profiles')
               .select('status')
               .eq('id', session.user.id)
-              .single();
+              .maybeSingle();
             
             // Apenas aceitar roles válidos (admin ou empresa)
             const role = roleData?.role;
@@ -81,12 +81,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .from('user_roles')
             .select('role')
             .eq('user_id', session.user.id)
-            .single(),
+            .maybeSingle(),
           supabase
             .from('profiles')
             .select('status')
             .eq('id', session.user.id)
-            .single()
+            .maybeSingle()
         ]).then(([{ data: roleData }, { data: profileData }]) => {
           // Apenas aceitar roles válidos (admin ou empresa)
           const role = roleData?.role;
@@ -119,7 +119,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .from('user_roles')
         .select('role')
         .eq('user_id', data.user.id)
-        .single();
+        .maybeSingle();
       
       // Redirecionar baseado no role
       if (roleData?.role === 'admin') {

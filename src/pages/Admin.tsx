@@ -81,14 +81,14 @@ export default function Admin() {
             .from('user_roles')
             .select('role')
             .eq('user_id', profile.id)
-            .single();
+            .maybeSingle();
 
           // Buscar empresa se existir
           const { data: empresaData } = await supabase
             .from('empresas')
             .select('id, nome_empresa, cnpj, data_vencimento_anuidade')
             .eq('user_id', profile.id)
-            .single();
+            .maybeSingle();
 
           return {
             id: profile.id,
