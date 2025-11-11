@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Index from "./pages/Index";
+import Toras from "./pages/Toras";
 import Producao from "./pages/Producao";
 import Vendas from "./pages/Vendas";
 import Estoque from "./pages/Estoque";
@@ -23,10 +24,11 @@ const AppContent = () => {
       <Route path="/auth" element={<Auth />} />
       <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute requireAdmin><Layout><Admin /></Layout></ProtectedRoute>} />
+      <Route path="/toras" element={<ProtectedRoute><Layout><Toras /></Layout></ProtectedRoute>} />
       <Route path="/producao" element={<ProtectedRoute><Layout><Producao /></Layout></ProtectedRoute>} />
       <Route path="/vendas" element={<ProtectedRoute><Layout><Vendas /></Layout></ProtectedRoute>} />
       <Route path="/estoque" element={<ProtectedRoute><Layout><Estoque /></Layout></ProtectedRoute>} />
-      <Route path="/cavaco" element={<ProtectedRoute><Layout><Cavaco /></Layout></ProtectedRoute>} />
+      <Route path="/residuos" element={<ProtectedRoute><Layout><Cavaco /></Layout></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

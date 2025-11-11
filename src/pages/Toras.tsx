@@ -1,0 +1,535 @@
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Edit, Trash2, TreeDeciduous } from "lucide-react";
+import { toast } from "sonner";
+import { Tora, ToraSerrada } from "@/types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useEmpresaId } from "@/hooks/useEmpresaId";
+
+export default function Toras() {
+  const { user } = useAuth();
+  const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
+  const [toras, setToras] = useState<Tora[]>([]);
+  const [torasSerradas, setTorasSerradas] = useState<ToraSerrada[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Form states - Toras
+  const [descricaoTora, setDescricaoTora] = useState("");
+  const [pesoCargaTora, setPesoCargaTora] = useState("");
+  const [quantidadeTorasCarga, setQuantidadeTorasCarga] = useState("");
+  const [editingToraId, setEditingToraId] = useState<string | null>(null);
+
+  // Form states - Toras Serradas
+  const [toraIdSerrada, setToraIdSerrada] = useState("");
+  const [quantidadeTorasSerradas, setQuantidadeTorasSerradas] = useState("");
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // Carregar toras
+        const { data: torasData } = await supabase
+          .from('toras')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (torasData) {
+          setToras(torasData.map(t => ({
+            id: t.id,
+            data: t.data,
+            descricao: t.descricao,
+            peso: Number(t.peso),
+            toneladas: Number(t.toneladas),
+            grossura: t.grossura ? Number(t.grossura) : undefined,
+            pesoCarga: t.peso_carga ? Number(t.peso_carga) : undefined,
+            quantidadeToras: t.quantidade_toras ? Number(t.quantidade_toras) : undefined,
+            pesoPorTora: t.peso_por_tora ? Number(t.peso_por_tora) : undefined,
+          })));
+        }
+
+        // Carregar toras serradas
+        const { data: torasSerradasData } = await supabase
+          .from('toras_serradas')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (torasSerradasData) {
+          setTorasSerradas(torasSerradasData.map(ts => ({
+            id: ts.id,
+            data: ts.data,
+            toraId: ts.tora_id,
+            peso: Number(ts.peso),
+            toneladas: Number(ts.toneladas),
+            quantidadeTorasSerradas: ts.quantidade_toras_serradas ? Number(ts.quantidade_toras_serradas) : undefined,
+          })));
+        }
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        toast.error('Erro ao carregar dados');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
+
+  const handleSubmitTora = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
+    
+    const pesoCarga = parseFloat(pesoCargaTora);
+    const qtdToras = parseInt(quantidadeTorasCarga);
+    
+    if (!descricaoTora || isNaN(pesoCarga) || isNaN(qtdToras) || qtdToras <= 0) {
+      toast.error("Preencha todos os campos corretamente");
+      return;
+    }
+
+    if (!empresaId) {
+      toast.error("Erro ao identificar empresa");
+      return;
+    }
+
+    const pesoPorTora = pesoCarga / qtdToras;
+
+    try {
+      if (editingToraId) {
+        const { error } = await supabase
+          .from('toras')
+          .update({
+            descricao: descricaoTora,
+            peso: pesoCarga,
+            toneladas: pesoCarga / 1000,
+            peso_carga: pesoCarga,
+            quantidade_toras: qtdToras,
+            peso_por_tora: pesoPorTora,
+          })
+          .eq('id', editingToraId);
+
+        if (error) throw error;
+
+        setToras(toras.map(t => t.id === editingToraId ? {
+          ...t,
+          descricao: descricaoTora,
+          peso: pesoCarga,
+          toneladas: pesoCarga / 1000,
+          pesoCarga: pesoCarga,
+          quantidadeToras: qtdToras,
+          pesoPorTora: pesoPorTora,
+        } : t));
+        
+        toast.success("Tora atualizada com sucesso!");
+      } else {
+        const { data, error } = await supabase
+          .from('toras')
+          .insert({
+            data: new Date().toISOString().split('T')[0],
+            descricao: descricaoTora,
+            peso: pesoCarga,
+            toneladas: pesoCarga / 1000,
+            peso_carga: pesoCarga,
+            quantidade_toras: qtdToras,
+            peso_por_tora: pesoPorTora,
+            user_id: user.id,
+            empresa_id: empresaId,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        if (data) {
+          const novaTora: Tora = {
+            id: data.id,
+            data: data.data,
+            descricao: data.descricao,
+            peso: Number(data.peso),
+            toneladas: Number(data.toneladas),
+            grossura: data.grossura ? Number(data.grossura) : undefined,
+            pesoCarga: Number(data.peso_carga),
+            quantidadeToras: Number(data.quantidade_toras),
+            pesoPorTora: Number(data.peso_por_tora),
+          };
+
+          setToras([novaTora, ...toras]);
+          toast.success(`Tora adicionada: ${qtdToras} toras, ${pesoPorTora.toFixed(2)} kg/tora`);
+        }
+      }
+      
+      setDescricaoTora("");
+      setPesoCargaTora("");
+      setQuantidadeTorasCarga("");
+      setEditingToraId(null);
+    } catch (error) {
+      console.error('Erro ao salvar tora:', error);
+      toast.error('Erro ao salvar tora');
+    }
+  };
+
+  const handleSubmitToraSerrada = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
+    
+    const qtdTorasSerradas = parseInt(quantidadeTorasSerradas);
+    
+    if (!toraIdSerrada || isNaN(qtdTorasSerradas) || qtdTorasSerradas <= 0) {
+      toast.error("Preencha todos os campos corretamente");
+      return;
+    }
+
+    if (!empresaId) {
+      toast.error("Erro ao identificar empresa");
+      return;
+    }
+
+    const toraSelecionadaObj = toras.find(t => t.id === toraIdSerrada);
+    if (!toraSelecionadaObj || !toraSelecionadaObj.pesoPorTora) {
+      toast.error("Tora selecionada não possui peso por tora calculado");
+      return;
+    }
+
+    const pesoTotal = qtdTorasSerradas * toraSelecionadaObj.pesoPorTora;
+
+    try {
+      const { data, error } = await supabase
+        .from('toras_serradas')
+        .insert({
+          data: new Date().toISOString().split('T')[0],
+          tora_id: toraIdSerrada,
+          peso: pesoTotal,
+          toneladas: pesoTotal / 1000,
+          quantidade_toras_serradas: qtdTorasSerradas,
+          user_id: user.id,
+          empresa_id: empresaId,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        const novaToraSerrada: ToraSerrada = {
+          id: data.id,
+          data: data.data,
+          toraId: data.tora_id,
+          peso: Number(data.peso),
+          toneladas: Number(data.toneladas),
+          quantidadeTorasSerradas: Number(data.quantidade_toras_serradas),
+        };
+
+        setTorasSerradas([novaToraSerrada, ...torasSerradas]);
+        toast.success(`${qtdTorasSerradas} toras serradas: ${(pesoTotal / 1000).toFixed(2)} T`);
+        setToraIdSerrada("");
+        setQuantidadeTorasSerradas("");
+      }
+    } catch (error) {
+      console.error('Erro ao registrar tora serrada:', error);
+      toast.error('Erro ao registrar tora serrada');
+    }
+  };
+
+  const handleEditTora = (tora: Tora) => {
+    setDescricaoTora(tora.descricao);
+    setPesoCargaTora(tora.pesoCarga?.toString() || "");
+    setQuantidadeTorasCarga(tora.quantidadeToras?.toString() || "");
+    setEditingToraId(tora.id);
+  };
+
+  const handleDeleteTora = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('toras')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setToras(toras.filter(t => t.id !== id));
+      toast.success("Tora excluída");
+    } catch (error) {
+      console.error('Erro ao excluir tora:', error);
+      toast.error('Erro ao excluir tora');
+    }
+  };
+
+  const handleDeleteToraSerrada = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('toras_serradas')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setTorasSerradas(torasSerradas.filter(ts => ts.id !== id));
+      toast.success("Registro excluído");
+    } catch (error) {
+      console.error('Erro ao excluir tora serrada:', error);
+      toast.error('Erro ao excluir tora serrada');
+    }
+  };
+
+  if (loading || loadingEmpresaId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Carregando dados...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-3">
+        <TreeDeciduous className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Cadastro de Toras</h1>
+          <p className="text-muted-foreground">Entrada de toras e registro de toras serradas</p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="entrada-toras" className="w-full">
+        <TabsList className="grid w-full max-w-2xl grid-cols-2">
+          <TabsTrigger value="entrada-toras">Entrada de Toras</TabsTrigger>
+          <TabsTrigger value="toras-serradas">Toras Serradas</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="entrada-toras" className="space-y-6">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-foreground">
+                {editingToraId ? "Editar Entrada de Tora" : "Nova Entrada de Tora"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmitTora} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="descricaoTora">Descrição/Lote</Label>
+                    <Input
+                      id="descricaoTora"
+                      value={descricaoTora}
+                      onChange={(e) => setDescricaoTora(e.target.value)}
+                      placeholder="Ex: Lote 001"
+                      className="border-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pesoCargaTora">Peso Total da Carga (kg)</Label>
+                    <Input
+                      id="pesoCargaTora"
+                      type="number"
+                      step="0.01"
+                      value={pesoCargaTora}
+                      onChange={(e) => setPesoCargaTora(e.target.value)}
+                      placeholder="10000"
+                      className="border-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quantidadeTorasCarga">Quantidade de Toras</Label>
+                    <Input
+                      id="quantidadeTorasCarga"
+                      type="number"
+                      value={quantidadeTorasCarga}
+                      onChange={(e) => setQuantidadeTorasCarga(e.target.value)}
+                      placeholder="100"
+                      className="border-input"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {editingToraId ? "Atualizar Tora" : "Adicionar Tora"}
+                </Button>
+                {editingToraId && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditingToraId(null);
+                      setDescricaoTora("");
+                      setPesoCargaTora("");
+                      setQuantidadeTorasCarga("");
+                    }}
+                    className="ml-2"
+                  >
+                    Cancelar
+                  </Button>
+                )}
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-foreground">Histórico de Entrada de Toras</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Data</TableHead>
+                      <TableHead>Descrição/Lote</TableHead>
+                      <TableHead>Peso Carga (kg)</TableHead>
+                      <TableHead>Qtd Toras</TableHead>
+                      <TableHead>Peso/Tora (kg)</TableHead>
+                      <TableHead>Toneladas</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {toras.map((tora) => (
+                      <TableRow key={tora.id}>
+                        <TableCell>{new Date(tora.data).toLocaleDateString()}</TableCell>
+                        <TableCell className="font-medium">{tora.descricao}</TableCell>
+                        <TableCell>{tora.pesoCarga?.toFixed(2)} kg</TableCell>
+                        <TableCell>{tora.quantidadeToras}</TableCell>
+                        <TableCell>{tora.pesoPorTora?.toFixed(2)} kg</TableCell>
+                        <TableCell className="font-semibold text-primary">
+                          {tora.toneladas.toFixed(2)} T
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleEditTora(tora)}
+                              className="h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleDeleteTora(tora.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="toras-serradas" className="space-y-6">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-foreground">Registrar Toras Serradas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmitToraSerrada} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="toraSerrada">Selecione o Lote</Label>
+                    <Select value={toraIdSerrada} onValueChange={setToraIdSerrada}>
+                      <SelectTrigger className="border-input">
+                        <SelectValue placeholder="Selecione um lote de toras" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {toras.map((tora) => (
+                          <SelectItem key={tora.id} value={tora.id}>
+                            {tora.descricao} - {tora.toneladas.toFixed(2)} T
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="quantidadeTorasSerradas">Quantidade de Toras Serradas</Label>
+                    <Input
+                      id="quantidadeTorasSerradas"
+                      type="number"
+                      value={quantidadeTorasSerradas}
+                      onChange={(e) => setQuantidadeTorasSerradas(e.target.value)}
+                      placeholder="10"
+                      className="border-input"
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Registrar Toras Serradas
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-foreground">Histórico de Toras Serradas</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-lg border border-border overflow-hidden">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/50">
+                      <TableHead>Data</TableHead>
+                      <TableHead>Lote</TableHead>
+                      <TableHead>Qtd Toras Serradas</TableHead>
+                      <TableHead>Peso (kg)</TableHead>
+                      <TableHead>Toneladas</TableHead>
+                      <TableHead>Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {torasSerradas.map((ts) => {
+                      const tora = toras.find(t => t.id === ts.toraId);
+                      return (
+                        <TableRow key={ts.id}>
+                          <TableCell>{new Date(ts.data).toLocaleDateString()}</TableCell>
+                          <TableCell className="font-medium">{tora?.descricao || 'N/A'}</TableCell>
+                          <TableCell>{ts.quantidadeTorasSerradas}</TableCell>
+                          <TableCell>{ts.peso.toFixed(2)} kg</TableCell>
+                          <TableCell className="font-semibold text-secondary">
+                            {ts.toneladas.toFixed(2)} T
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleDeleteToraSerrada(ts.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}

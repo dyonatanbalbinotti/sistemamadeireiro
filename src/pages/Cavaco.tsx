@@ -38,6 +38,12 @@ export default function Cavaco() {
           .select('*')
           .order('created_at', { ascending: false });
 
+        // Carregar vendas de cavaco
+        const { data: vendasCavacoData } = await supabase
+          .from('vendas_cavaco')
+          .select('*')
+          .order('created_at', { ascending: false });
+
         if (torasData && producaoData && torasSerradasData) {
           // Agrupar por tora e calcular
           const calculoPorTora = torasData.map(tora => {
@@ -52,8 +58,12 @@ export default function Cavaco() {
             const pesoPorM3 = Number(tora.peso_por_m3) || 0.6;
             const toneladasMadeirasSerradas = pesoPorM3 * m3Total;
             
-            // Cálculo: TN serradas - TN madeiras serradas = cavaco em estoque
-            const cavacoEstoque = toneladasSerradas - toneladasMadeirasSerradas;
+            // Buscar vendas de cavaco do lote
+            const vendasCavacoDoLote = vendasCavacoData?.filter(vc => vc.tora_id === tora.id) || [];
+            const toneladasVendidasCavaco = vendasCavacoDoLote.reduce((sum, vc) => sum + Number(vc.toneladas), 0);
+            
+            // Cálculo: TN serradas - TN madeiras serradas - TN vendidas de cavaco = cavaco em estoque
+            const cavacoEstoque = toneladasSerradas - toneladasMadeirasSerradas - toneladasVendidasCavaco;
 
             // Calcular porcentagens de aproveitamento
             const percentualMadeiraSerrada = toneladasSerradas > 0 
@@ -144,8 +154,8 @@ export default function Cavaco() {
       <div className="flex items-center gap-3">
         <Layers className="h-8 w-8 text-primary" />
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Cavaco</h1>
-          <p className="text-muted-foreground">Controle de cavaco em estoque</p>
+          <h1 className="text-3xl font-bold text-foreground">Resíduos</h1>
+          <p className="text-muted-foreground">Controle de resíduos em estoque</p>
         </div>
       </div>
 
@@ -285,7 +295,7 @@ export default function Cavaco() {
             <h3 className="font-semibold mb-2">Fórmulas de Cálculo:</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <strong>TN Madeiras Serradas</strong> = Peso por m³ × m³ Serrado</li>
-              <li>• <strong>Cavaco em Estoque</strong> = TN Serradas - TN Madeiras Serradas</li>
+              <li>• <strong>Cavaco em Estoque</strong> = TN Serradas - TN Madeiras Serradas - TN Vendidas Cavaco</li>
               <li>• <strong>% Madeira</strong> = (TN Madeiras Serradas / TN Serradas) × 100</li>
               <li>• <strong>% Cavaco</strong> = (Cavaco em Estoque / TN Serradas) × 100</li>
             </ul>
