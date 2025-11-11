@@ -158,15 +158,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       // If empresa, create empresa record
       if (role === 'empresa' && nomeEmpresa) {
-        const { error: empresaError } = await supabase
+        const { data: empresaData, error: empresaError } = await supabase
           .from('empresas')
           .insert({ 
             user_id: data.user.id, 
             nome_empresa: nomeEmpresa,
             cnpj: cnpj || null
-          });
+          })
+          .select('id')
+          .single();
         
         if (empresaError) return { error: empresaError };
+
+        // Atualizar profile com empresa_id
+        if (empresaData) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ empresa_id: empresaData.id })
+            .eq('id', data.user.id);
+          
+          if (profileError) return { error: profileError };
+        }
       }
     }
 
