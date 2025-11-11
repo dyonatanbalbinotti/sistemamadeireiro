@@ -55,6 +55,14 @@ export default function Cavaco() {
             // Cálculo: TN serradas - TN madeiras serradas = cavaco em estoque
             const cavacoEstoque = toneladasSerradas - toneladasMadeirasSerradas;
 
+            // Calcular porcentagens de aproveitamento
+            const percentualMadeiraSerrada = toneladasSerradas > 0 
+              ? (toneladasMadeirasSerradas / toneladasSerradas) * 100 
+              : 0;
+            const percentualCavaco = toneladasSerradas > 0 
+              ? (Math.max(0, cavacoEstoque) / toneladasSerradas) * 100 
+              : 0;
+
             return {
               id: tora.id,
               descricao: tora.descricao,
@@ -63,7 +71,9 @@ export default function Cavaco() {
               pesoPorM3,
               m3Serrado: m3Total,
               toneladasMadeirasSerradas,
-              cavacoEstoque: Math.max(0, cavacoEstoque), // Não permitir negativos
+              cavacoEstoque: Math.max(0, cavacoEstoque),
+              percentualMadeiraSerrada,
+              percentualCavaco,
             };
           });
 
@@ -120,6 +130,14 @@ export default function Cavaco() {
   }
 
   const totalCavacoEstoque = dados.reduce((sum, d) => sum + d.cavacoEstoque, 0);
+  const totalToneladasCarga = dados.reduce((sum, d) => sum + d.toneladasCarga, 0);
+  const totalMadeiraSerrada = dados.reduce((sum, d) => sum + d.toneladasMadeirasSerradas, 0);
+  const percentualMedioMadeira = totalToneladasCarga > 0 
+    ? (totalMadeiraSerrada / totalToneladasCarga) * 100 
+    : 0;
+  const percentualMedioCavaco = totalToneladasCarga > 0 
+    ? (totalCavacoEstoque / totalToneladasCarga) * 100 
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -131,13 +149,74 @@ export default function Cavaco() {
         </div>
       </div>
 
+      {/* Card de Eficiência Geral */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="shadow-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Total Processado
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {totalToneladasCarga.toFixed(2)} T
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Madeira Serrada
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-secondary">
+              {totalMadeiraSerrada.toFixed(2)} T
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {percentualMedioMadeira.toFixed(1)}% do total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card border-border/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Cavaco em Estoque
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              {totalCavacoEstoque.toFixed(2)} T
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {percentualMedioCavaco.toFixed(1)}% do total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card border-border/50 bg-muted/30">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Eficiência Média
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-foreground">
+              {percentualMedioMadeira.toFixed(1)}%
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Aproveitamento em madeira
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card className="shadow-card border-border/50">
         <CardHeader>
-          <CardTitle className="text-foreground flex items-center justify-between">
-            <span>Resumo de Cavaco por Lote</span>
-            <span className="text-2xl text-primary">
-              Total em Estoque: {totalCavacoEstoque.toFixed(2)} T
-            </span>
+          <CardTitle className="text-foreground">
+            Resumo de Cavaco por Lote
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -151,13 +230,15 @@ export default function Cavaco() {
                   <TableHead>Peso por m³ (T)</TableHead>
                   <TableHead>m³ Serrado</TableHead>
                   <TableHead>TN Madeiras Serradas</TableHead>
-                  <TableHead className="font-semibold text-primary">Cavaco Estoque (T)</TableHead>
+                  <TableHead>% Madeira</TableHead>
+                  <TableHead>Cavaco Estoque (T)</TableHead>
+                  <TableHead>% Cavaco</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {dados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       Nenhum dado disponível
                     </TableCell>
                   </TableRow>
@@ -184,8 +265,14 @@ export default function Cavaco() {
                       <TableCell className="font-semibold text-secondary">
                         {item.toneladasMadeirasSerradas.toFixed(2)} T
                       </TableCell>
+                      <TableCell className="font-semibold text-secondary">
+                        {item.percentualMadeiraSerrada.toFixed(1)}%
+                      </TableCell>
                       <TableCell className="font-bold text-primary text-lg">
                         {item.cavacoEstoque.toFixed(2)} T
+                      </TableCell>
+                      <TableCell className="font-semibold text-primary">
+                        {item.percentualCavaco.toFixed(1)}%
                       </TableCell>
                     </TableRow>
                   ))
@@ -198,7 +285,9 @@ export default function Cavaco() {
             <h3 className="font-semibold mb-2">Fórmulas de Cálculo:</h3>
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <strong>TN Madeiras Serradas</strong> = Peso por m³ × m³ Serrado</li>
-              <li>• <strong>Cavaco em Estoque</strong> = TN da Carga - TN Madeiras Serradas</li>
+              <li>• <strong>Cavaco em Estoque</strong> = TN Serradas - TN Madeiras Serradas</li>
+              <li>• <strong>% Madeira</strong> = (TN Madeiras Serradas / TN Serradas) × 100</li>
+              <li>• <strong>% Cavaco</strong> = (Cavaco em Estoque / TN Serradas) × 100</li>
             </ul>
           </div>
         </CardContent>
