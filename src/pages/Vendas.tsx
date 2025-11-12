@@ -1084,6 +1084,7 @@ export default function Vendas() {
                     <TableHead>Data</TableHead>
                     <TableHead>Produto</TableHead>
                     <TableHead>Quantidade</TableHead>
+                    <TableHead>m³</TableHead>
                     <TableHead>Valor Unit.</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Ações</TableHead>
@@ -1092,13 +1093,14 @@ export default function Vendas() {
                 <TableBody>
                   {getVendasFiltradas().length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                      <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                         {vendas.length === 0 ? 'Nenhuma venda registrada' : 'Nenhuma venda encontrada no período selecionado'}
                       </TableCell>
                     </TableRow>
                   ) : (
                     getVendasFiltradas().map((venda: Venda) => {
                       const prod = produtos.find(p => p.id === venda.produtoId);
+                      const m3Vendido = prod ? (prod.largura * prod.espessura * prod.comprimento * venda.quantidade) : 0;
                       return (
                         <TableRow key={venda.id}>
                           <TableCell>{formatDateBR(venda.data)}</TableCell>
@@ -1107,6 +1109,9 @@ export default function Vendas() {
                           </TableCell>
                           <TableCell>
                             {venda.quantidade} un
+                          </TableCell>
+                          <TableCell className="font-medium text-primary">
+                            {m3Vendido.toFixed(3)} m³
                           </TableCell>
                           <TableCell>R$ {venda.valorUnitario.toFixed(2)}</TableCell>
                           <TableCell className="font-semibold text-primary">R$ {venda.valorTotal.toFixed(2)}</TableCell>

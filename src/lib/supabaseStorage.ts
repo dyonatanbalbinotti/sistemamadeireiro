@@ -62,7 +62,8 @@ export const calcularEstoqueSerradoSupabase = async (): Promise<EstoqueSerrado[]
           if (v.unidade_medida === 'unidade') {
             const qtd = parseFloat(v.quantidade.toString());
             item.quantidadeUnidades -= qtd;
-            item.m3Total -= (produto.largura * produto.espessura * produto.comprimento * qtd) / 1000000;
+            // Valores já estão em metros no banco, apenas multiplicar
+            item.m3Total -= (produto.largura * produto.espessura * produto.comprimento * qtd);
           } else if (v.unidade_medida === 'm3') {
             item.m3Total -= parseFloat(v.quantidade.toString());
           }
