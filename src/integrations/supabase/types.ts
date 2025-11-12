@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      alertas_estoque: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          empresa_id: string
+          id: string
+          m3_minimo: number | null
+          produto_id: string | null
+          quantidade_minima: number | null
+          tipo: string
+          toneladas_minima: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id: string
+          id?: string
+          m3_minimo?: number | null
+          produto_id?: string | null
+          quantidade_minima?: number | null
+          tipo: string
+          toneladas_minima?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          empresa_id?: string
+          id?: string
+          m3_minimo?: number | null
+          produto_id?: string | null
+          quantidade_minima?: number | null
+          tipo?: string
+          toneladas_minima?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       configuracoes: {
         Row: {
           chave: string

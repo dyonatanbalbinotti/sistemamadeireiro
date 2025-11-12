@@ -1,27 +1,54 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Weight, PieChart as PieChartIcon } from "lucide-react";
+import { Package, Weight, PieChart as PieChartIcon, AlertTriangle } from "lucide-react";
 import { calcularEstoqueSerradoSupabase, calcularEstoqueTorasSupabase } from "@/lib/supabaseStorage";
 import { EstoqueSerrado, EstoqueToras } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertasEstoqueDialog } from "@/components/AlertasEstoqueDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { useEmpresaId } from "@/hooks/useEmpresaId";
+import { toast } from "@/hooks/use-toast";
+
+interface AlertaEstoque {
+  id: string;
+  tipo: 'serrado' | 'tora';
+  quantidade_minima?: number;
+  m3_minimo?: number;
+  toneladas_minima?: number;
+  ativo: boolean;
+}
 
 export default function Estoque() {
+  const { empresaId } = useEmpresaId();
   const [estoqueSerrado, setEstoqueSerrado] = useState<EstoqueSerrado[]>([]);
   const [estoqueToras, setEstoqueToras] = useState<EstoqueToras | null>(null);
+  const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
+  const [alertasAtivos, setAlertasAtivos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [serrado, toras] = await Promise.all([
+        const [serrado, toras, alertasData] = await Promise.all([
           calcularEstoqueSerradoSupabase(),
-          calcularEstoqueTorasSupabase()
+          calcularEstoqueTorasSupabase(),
+          empresaId ? supabase
+            .from('alertas_estoque')
+            .select('*')
+            .eq('empresa_id', empresaId)
+            .eq('ativo', true) : Promise.resolve({ data: [] })
         ]);
+        
         setEstoqueSerrado(serrado);
         setEstoqueToras(toras);
+        setAlertas((alertasData.data as AlertaEstoque[]) || []);
+
+        // Verificar alertas
+        verificarAlertas(serrado, toras, (alertasData.data as AlertaEstoque[]) || []);
       } catch (error) {
         console.error('Erro ao carregar estoque:', error);
       } finally {
@@ -29,8 +56,53 @@ export default function Estoque() {
       }
     };
 
-    fetchData();
-  }, []);
+    if (empresaId) {
+      fetchData();
+    }
+  }, [empresaId]);
+
+  const verificarAlertas = (
+    serrado: EstoqueSerrado[], 
+    toras: EstoqueToras | null, 
+    alertasConfig: AlertaEstoque[]
+  ) => {
+    const alertasDispararados: string[] = [];
+
+    alertasConfig.forEach(alerta => {
+      if (!alerta.ativo) return;
+
+      if (alerta.tipo === 'serrado') {
+        const totalM3 = serrado.reduce((acc, item) => acc + item.m3Total, 0);
+        const totalUnidades = serrado.reduce((acc, item) => acc + item.quantidadeUnidades, 0);
+
+        if (
+          (alerta.quantidade_minima && totalUnidades < alerta.quantidade_minima) ||
+          (alerta.m3_minimo && totalM3 < alerta.m3_minimo)
+        ) {
+          alertasDispararados.push(
+            `⚠️ Estoque de madeira serrada abaixo do mínimo: ${totalUnidades} un / ${totalM3.toFixed(2)} m³`
+          );
+        }
+      } else if (alerta.tipo === 'tora') {
+        if (toras && alerta.toneladas_minima && toras.toneladas < alerta.toneladas_minima) {
+          alertasDispararados.push(
+            `⚠️ Estoque de toras abaixo do mínimo: ${toras.toneladas.toFixed(2)} T`
+          );
+        }
+      }
+    });
+
+    setAlertasAtivos(alertasDispararados);
+
+    // Mostrar toast apenas se houver alertas
+    if (alertasDispararados.length > 0) {
+      toast({
+        title: "⚠️ Alertas de Estoque",
+        description: `${alertasDispararados.length} alerta(s) de estoque mínimo ativo(s)`,
+        variant: "destructive",
+      });
+    }
+  };
 
   const totalM3 = estoqueSerrado.reduce((acc, item) => acc + item.m3Total, 0);
   const totalUnidades = estoqueSerrado.reduce((acc, item) => acc + item.quantidadeUnidades, 0);
@@ -57,13 +129,29 @@ export default function Estoque() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Package className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Estoque</h1>
-          <p className="text-muted-foreground">Visualização completa do estoque</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Package className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Estoque</h1>
+            <p className="text-muted-foreground">Visualização completa do estoque</p>
+          </div>
         </div>
+        <AlertasEstoqueDialog />
       </div>
+
+      {/* Alertas ativos */}
+      {alertasAtivos.length > 0 && (
+        <div className="space-y-3">
+          {alertasAtivos.map((alerta, index) => (
+            <Alert key={index} variant="destructive" className="border-destructive/50">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Alerta de Estoque Mínimo</AlertTitle>
+              <AlertDescription>{alerta}</AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-border/50 shadow-card">
