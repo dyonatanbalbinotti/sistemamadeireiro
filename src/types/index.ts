@@ -67,4 +67,5 @@ export interface EstoqueSerrado {
 export interface EstoqueToras {
   descricao: string;
   toneladas: number;
+  quantidadeToras: number;
 }

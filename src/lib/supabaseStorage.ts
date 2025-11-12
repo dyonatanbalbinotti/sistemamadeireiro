@@ -83,14 +83,14 @@ export const calcularEstoqueTorasSupabase = async (): Promise<EstoqueToras> => {
     // Buscar todas as toras
     const { data: toras, error: torasError } = await supabase
       .from('toras')
-      .select('toneladas');
+      .select('toneladas, quantidade_toras');
 
     if (torasError) throw torasError;
 
     // Buscar todas as toras serradas
     const { data: torasSerradas, error: torasSerradasError } = await supabase
       .from('toras_serradas')
-      .select('toneladas');
+      .select('toneladas, quantidade_toras_serradas');
 
     if (torasSerradasError) throw torasSerradasError;
 
@@ -103,15 +103,18 @@ export const calcularEstoqueTorasSupabase = async (): Promise<EstoqueToras> => {
     if (vendasError) throw vendasError;
 
     let totalToneladas = 0;
+    let totalQuantidadeToras = 0;
 
     // Adicionar toras
     toras?.forEach(t => {
       totalToneladas += parseFloat(t.toneladas.toString());
+      totalQuantidadeToras += t.quantidade_toras || 0;
     });
 
     // Subtrair toras serradas
     torasSerradas?.forEach(ts => {
       totalToneladas -= parseFloat(ts.toneladas.toString());
+      totalQuantidadeToras -= ts.quantidade_toras_serradas || 0;
     });
 
     // Subtrair vendas de toras
@@ -122,12 +125,14 @@ export const calcularEstoqueTorasSupabase = async (): Promise<EstoqueToras> => {
     return {
       descricao: 'Toras',
       toneladas: Math.max(0, totalToneladas),
+      quantidadeToras: Math.max(0, totalQuantidadeToras),
     };
   } catch (error) {
     console.error('Erro ao calcular estoque de toras:', error);
     return {
       descricao: 'Toras',
       toneladas: 0,
+      quantidadeToras: 0,
     };
   }
 };

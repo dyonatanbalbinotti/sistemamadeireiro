@@ -91,7 +91,7 @@ export default function Estoque() {
               {estoqueToras?.toneladas.toFixed(2) || '0.00'} T
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {((estoqueToras?.toneladas || 0) * 1000).toFixed(0)} kg
+              {estoqueToras?.quantidadeToras || 0} toras • {((estoqueToras?.toneladas || 0) * 1000).toFixed(0)} kg
             </p>
           </CardContent>
         </Card>
@@ -201,6 +201,7 @@ export default function Estoque() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Quantidade</TableHead>
                   <TableHead>Toneladas</TableHead>
                   <TableHead>Quilogramas</TableHead>
                 </TableRow>
@@ -208,6 +209,9 @@ export default function Estoque() {
               <TableBody>
                 <TableRow>
                   <TableCell className="font-medium">{estoqueToras?.descricao || 'Toras'}</TableCell>
+                  <TableCell className="font-semibold text-primary">
+                    {estoqueToras?.quantidadeToras || 0} toras
+                  </TableCell>
                   <TableCell className="font-semibold text-secondary">
                     {estoqueToras?.toneladas.toFixed(2) || '0.00'} T
                   </TableCell>

@@ -118,15 +118,18 @@ export const calcularEstoqueToras = (): EstoqueToras => {
   const vendas = getVendas();
   
   let totalToneladas = 0;
+  let totalQuantidadeToras = 0;
   
   // Adicionar toras
   toras.forEach(t => {
     totalToneladas += t.toneladas;
+    totalQuantidadeToras += t.quantidadeToras || 0;
   });
   
   // Subtrair toras serradas
   torasSerradas.forEach(ts => {
     totalToneladas -= ts.toneladas;
+    totalQuantidadeToras -= ts.quantidadeTorasSerradas || 0;
   });
   
   // Subtrair vendas de toras
@@ -137,6 +140,7 @@ export const calcularEstoqueToras = (): EstoqueToras => {
   return {
     descricao: 'Toras',
     toneladas: Math.max(0, totalToneladas),
+    quantidadeToras: Math.max(0, totalQuantidadeToras),
   };
 };
 
