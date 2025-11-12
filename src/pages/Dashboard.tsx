@@ -11,6 +11,7 @@ import type { EstoqueSerrado, EstoqueToras } from "@/types";
 import { getTodayBR, formatInBrazilTimezone } from "@/lib/dateUtils";
 import { subDays, subMonths, format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { ptBR } from "date-fns/locale";
 
 export default function Dashboard() {
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
@@ -117,7 +118,7 @@ export default function Dashboard() {
             });
             const total = monthProduction.reduce((sum, p) => sum + parseFloat(p.m3.toString()), 0);
             return {
-              mes: format(new Date(year, month - 1), 'MMM', { locale: require('date-fns/locale/pt-BR').ptBR }),
+              mes: format(new Date(year, month - 1), 'MMM', { locale: ptBR }),
               total: parseFloat(total.toFixed(2))
             };
           });
