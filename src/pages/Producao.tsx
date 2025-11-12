@@ -524,12 +524,14 @@ export default function Producao() {
                   });
                   
                   return last7Days.map(date => {
-                    const dayProduction = producao.filter(p => 
-                      p.data.split('T')[0] === date
-                    );
+                    const dayProduction = producao.filter(p => {
+                      // Extrair apenas a parte da data (YYYY-MM-DD) sem considerar timezone
+                      const prodDate = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+                      return prodDate === date;
+                    });
                     const total = dayProduction.reduce((sum, p) => sum + p.m3, 0);
                     return {
-                      data: format(new Date(date), 'dd/MM'),
+                      data: format(new Date(date + 'T12:00:00'), 'dd/MM'),
                       total: parseFloat(total.toFixed(2))
                     };
                   });
