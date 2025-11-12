@@ -547,7 +547,7 @@ export default function Producao() {
                     }}
                     formatter={(value: number) => [`${value} m³`, 'Produção']}
                   />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="total" fill="hsl(var(--chart-purple))" radius={[8, 8, 0, 0]} className="dark:fill-[hsl(var(--primary))]" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>

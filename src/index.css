@@ -40,10 +40,22 @@ All colors MUST be HSL.
     --neon: 195 100% 50%;
     --neon-glow: 180 100% 50%;
 
+    /* Cores para gráficos - Modo Claro */
+    --chart-brown: 28 45% 42%;
+    --chart-green: 120 50% 40%;
+    --chart-blue: 210 70% 50%;
+    --chart-orange: 30 85% 55%;
+    --chart-purple: 270 50% 55%;
+    --chart-teal: 180 50% 45%;
+
     --radius: 0.75rem;
 
     --gradient-primary: linear-gradient(135deg, hsl(28 45% 42%), hsl(28 40% 52%));
-    --gradient-secondary: linear-gradient(135deg, hsl(120 35% 45%), hsl(120 30% 55%));
+    --gradient-secondary: linear-gradient(135deg, hsl(120 50% 40%), hsl(120 45% 50%));
+    --gradient-blue: linear-gradient(135deg, hsl(210 70% 50%), hsl(210 65% 60%));
+    --gradient-orange: linear-gradient(135deg, hsl(30 85% 55%), hsl(30 80% 65%));
+    --gradient-purple: linear-gradient(135deg, hsl(270 50% 55%), hsl(270 45% 65%));
+    --gradient-teal: linear-gradient(135deg, hsl(180 50% 45%), hsl(180 45% 55%));
     --gradient-wood: linear-gradient(180deg, hsl(32 20% 97%), hsl(28 25% 93%));
     --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.3));
     

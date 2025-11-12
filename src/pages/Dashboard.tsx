@@ -345,15 +345,15 @@ export default function Dashboard() {
                 <Line 
                   type="monotone" 
                   dataKey="valor" 
-                  stroke="hsl(var(--primary))" 
+                  stroke="hsl(var(--chart-blue))" 
                   strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--primary))', r: 4 }}
+                  dot={{ fill: 'hsl(var(--chart-blue))', r: 4 }}
                 />
               </LineChart>
             </ResponsiveContainer>
             <div className="mt-4 p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Total vendido: <span className="text-lg font-bold text-primary">
+                Total vendido: <span className="text-lg font-bold text-chart-blue">
                   R$ {vendasData.reduce((sum, d) => sum + d.valor, 0).toFixed(2)}
                 </span>
               </p>
@@ -381,12 +381,21 @@ export default function Dashboard() {
                   outerRadius={100}
                   label={(entry) => `${entry.valor} m³`}
                 >
-                  {estoqueData.map((_, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={`hsl(var(--primary) / ${1 - index * 0.15})`}
-                    />
-                  ))}
+                  {estoqueData.map((_, index) => {
+                    const colors = [
+                      'hsl(var(--chart-brown))',
+                      'hsl(var(--chart-green))',
+                      'hsl(var(--chart-blue))',
+                      'hsl(var(--chart-orange))',
+                      'hsl(var(--chart-purple))'
+                    ];
+                    return (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={colors[index % colors.length]}
+                      />
+                    );
+                  })}
                 </Pie>
                 <Tooltip 
                   contentStyle={{ 
@@ -426,12 +435,12 @@ export default function Dashboard() {
                   }}
                   formatter={(value: number) => [`${value} m³`, 'Produção']}
                 />
-                <Bar dataKey="total" fill="hsl(var(--neon-lime))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="total" fill="hsl(var(--chart-green))" radius={[8, 8, 0, 0]} className="dark:fill-[hsl(var(--neon-lime))]" />
               </BarChart>
             </ResponsiveContainer>
             <div className="mt-4 p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Total produzido: <span className="text-lg font-bold text-[hsl(var(--neon-lime))]">
+                Total produzido: <span className="text-lg font-bold text-chart-green dark:text-[hsl(var(--neon-lime))]">
                   {producaoDiariaData.reduce((sum, d) => sum + d.total, 0).toFixed(2)} m³
                 </span>
               </p>
@@ -461,12 +470,12 @@ export default function Dashboard() {
                   }}
                   formatter={(value: number) => [`${value} m³`, 'Produção']}
                 />
-                <Bar dataKey="total" fill="hsl(var(--neon-magenta))" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="total" fill="hsl(var(--chart-orange))" radius={[8, 8, 0, 0]} className="dark:fill-[hsl(var(--neon-magenta))]" />
               </BarChart>
             </ResponsiveContainer>
             <div className="mt-4 p-4 bg-muted/50 rounded-lg">
               <p className="text-sm text-muted-foreground">
-                Crescimento: <span className="text-lg font-bold text-[hsl(var(--neon-magenta))]">
+                Crescimento: <span className="text-lg font-bold text-chart-orange dark:text-[hsl(var(--neon-magenta))]">
                   {producaoMensalData.length > 1 ? 
                     `${((producaoMensalData[producaoMensalData.length - 1]?.total || 0) / (producaoMensalData[producaoMensalData.length - 2]?.total || 1) * 100 - 100).toFixed(1)}%` : 
                     '0%'}
