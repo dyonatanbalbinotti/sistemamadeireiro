@@ -249,17 +249,25 @@ export default function Estoque() {
                   label={(entry) => `${entry.valor} m³`}
                 >
                   {estoqueSerrado.slice(0, 5).map((_, index) => {
-                    const neonColors = [
+                    const colors = [
+                      'hsl(var(--chart-brown))',
+                      'hsl(var(--chart-green))',
+                      'hsl(var(--chart-blue))',
+                      'hsl(var(--chart-orange))',
+                      'hsl(var(--chart-purple))'
+                    ];
+                    const darkColors = [
                       'hsl(var(--neon-cyan))',
                       'hsl(var(--neon-lime))',
                       'hsl(var(--neon-magenta))',
                       'hsl(var(--neon-purple))',
-                      '#FF6B6B',
+                      'hsl(var(--neon-yellow))'
                     ];
+                    const isDark = document.documentElement.classList.contains('dark');
                     return (
                       <Cell 
                         key={`cell-${index}`} 
-                        fill={neonColors[index % neonColors.length]}
+                        fill={isDark ? darkColors[index % darkColors.length] : colors[index % colors.length]}
                       />
                     );
                   })}
