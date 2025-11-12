@@ -8,6 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import type { EstoqueSerrado, EstoqueToras } from "@/types";
+import { getTodayBR, formatInBrazilTimezone } from "@/lib/dateUtils";
+import { subDays, subMonths, format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 export default function Dashboard() {
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
@@ -40,18 +43,18 @@ export default function Dashboard() {
         // Verificar alertas de estoque
         await verificarAlertas(serrado, toras, totalQuantidade, totalM3);
 
-        // Dados de vendas dos últimos 7 dias
+        // Dados de vendas dos últimos 7 dias (GMT-3)
+        const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
         const last7Days = Array.from({ length: 7 }, (_, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() - (6 - i));
-          return date.toISOString().split('T')[0];
+          const date = subDays(nowBR, 6 - i);
+          return format(date, 'yyyy-MM-dd');
         });
 
         const vendasPorDia = last7Days.map(date => {
           const dayVendas = vendas.filter(v => v.data.split('T')[0] === date);
           const total = dayVendas.reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0);
           return {
-            data: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+            data: format(new Date(date), 'dd/MM'),
             valor: parseFloat(total.toFixed(2))
           };
         });
@@ -74,27 +77,25 @@ export default function Dashboard() {
           .order('data', { ascending: true });
 
         if (producaoData) {
-          // Produção diária - últimos 7 dias
-          const last7Days = Array.from({ length: 7 }, (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - (6 - i));
-            return date.toISOString().split('T')[0];
+          // Produção diária - últimos 7 dias (GMT-3)
+          const last7DaysProd = Array.from({ length: 7 }, (_, i) => {
+            const date = subDays(nowBR, 6 - i);
+            return format(date, 'yyyy-MM-dd');
           });
 
-          const producaoPorDia = last7Days.map(date => {
+          const producaoPorDia = last7DaysProd.map(date => {
             const dayProduction = producaoData.filter(p => p.data.split('T')[0] === date);
             const total = dayProduction.reduce((sum, p) => sum + parseFloat(p.m3.toString()), 0);
             return {
-              data: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+              data: format(new Date(date), 'dd/MM'),
               total: parseFloat(total.toFixed(2))
             };
           });
           setProducaoDiariaData(producaoPorDia);
 
-          // Produção mensal - últimos 6 meses
+          // Produção mensal - últimos 6 meses (GMT-3)
           const last6Months = Array.from({ length: 6 }, (_, i) => {
-            const date = new Date();
-            date.setMonth(date.getMonth() - (5 - i));
+            const date = subMonths(nowBR, 5 - i);
             return {
               year: date.getFullYear(),
               month: date.getMonth() + 1
@@ -103,12 +104,12 @@ export default function Dashboard() {
 
           const producaoPorMes = last6Months.map(({ year, month }) => {
             const monthProduction = producaoData.filter(p => {
-              const pDate = new Date(p.data);
+              const pDate = toZonedTime(new Date(p.data), 'America/Sao_Paulo');
               return pDate.getFullYear() === year && pDate.getMonth() + 1 === month;
             });
             const total = monthProduction.reduce((sum, p) => sum + parseFloat(p.m3.toString()), 0);
             return {
-              mes: new Date(year, month - 1).toLocaleDateString('pt-BR', { month: 'short' }),
+              mes: format(new Date(year, month - 1), 'MMM', { locale: require('date-fns/locale/pt-BR').ptBR }),
               total: parseFloat(total.toFixed(2))
             };
           });

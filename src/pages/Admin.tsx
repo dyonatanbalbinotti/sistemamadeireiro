@@ -7,7 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Building2, Search, DollarSign, Save, RefreshCw, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
-import { formatDateBR } from "@/lib/dateUtils";
+import { formatDateBR, getTodayBR } from "@/lib/dateUtils";
+import { addYears, format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 interface Usuario {
   id: string;
@@ -40,8 +42,8 @@ export default function Admin() {
 
   const verificarAnuidadesVencidas = async () => {
     try {
-      // Buscar empresas com anuidade vencida
-      const hoje = new Date().toISOString().split('T')[0];
+      // Buscar empresas com anuidade vencida (GMT-3)
+      const hoje = getTodayBR();
       const { data: empresasVencidas, error } = await supabase
         .from('empresas')
         .select('id, user_id')
@@ -281,20 +283,20 @@ export default function Admin() {
 
       if (empresaError) throw empresaError;
 
-      // Calcular nova data de vencimento (1 ano a partir de hoje ou da data atual de vencimento, o que for maior)
-      const hoje = new Date();
+      // Calcular nova data de vencimento (1 ano a partir de hoje ou da data atual de vencimento, o que for maior) - GMT-3
+      const hojeBR = toZonedTime(new Date(), 'America/Sao_Paulo');
       const dataVencimentoAtual = empresaData.data_vencimento_anuidade 
-        ? new Date(empresaData.data_vencimento_anuidade) 
-        : new Date();
+        ? toZonedTime(new Date(empresaData.data_vencimento_anuidade), 'America/Sao_Paulo')
+        : hojeBR;
       
-      const baseDate = dataVencimentoAtual > hoje ? dataVencimentoAtual : hoje;
-      const novaDataVencimento = new Date(baseDate);
-      novaDataVencimento.setFullYear(novaDataVencimento.getFullYear() + 1);
+      const baseDate = dataVencimentoAtual > hojeBR ? dataVencimentoAtual : hojeBR;
+      const novaDataVencimento = addYears(baseDate, 1);
+      const novaDataFormatada = format(novaDataVencimento, 'yyyy-MM-dd');
 
       // Atualizar data de vencimento na empresa
       const { error: updateError } = await supabase
         .from('empresas')
-        .update({ data_vencimento_anuidade: novaDataVencimento.toISOString().split('T')[0] })
+        .update({ data_vencimento_anuidade: novaDataFormatada })
         .eq('id', empresaId);
 
       if (updateError) throw updateError;
@@ -313,7 +315,7 @@ export default function Admin() {
           empresa_id: empresaId,
           valor_pago: parseFloat(configData?.valor || valorAnuidade),
           data_vencimento_anterior: empresaData.data_vencimento_anuidade,
-          data_novo_vencimento: novaDataVencimento.toISOString().split('T')[0],
+          data_novo_vencimento: novaDataFormatada,
           observacao: 'Renovação manual pelo administrador'
         });
 

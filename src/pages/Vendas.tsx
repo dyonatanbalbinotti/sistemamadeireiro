@@ -559,7 +559,7 @@ export default function Vendas() {
       });
     }
 
-    doc.save(`vendas-${tipoVenda}-${new Date().toISOString().split('T')[0]}.pdf`);
+    doc.save(`vendas-${tipoVenda}-${getTodayBR()}.pdf`);
     toast.success('Relatório PDF gerado com sucesso!');
   };
 
@@ -619,7 +619,7 @@ export default function Vendas() {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, tipoVenda === 'madeira' ? 'Madeiras' : 'Cavaco');
     
-    XLSX.writeFile(workbook, `vendas-${tipoVenda}-${new Date().toISOString().split('T')[0]}.xlsx`);
+    XLSX.writeFile(workbook, `vendas-${tipoVenda}-${getTodayBR()}.xlsx`);
     toast.success('Relatório Excel gerado com sucesso!');
   };
 

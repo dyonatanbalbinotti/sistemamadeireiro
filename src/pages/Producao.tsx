@@ -15,6 +15,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresaId } from "@/hooks/useEmpresaId";
+import { getTodayBR, formatDateBR } from "@/lib/dateUtils";
+import { subDays, format } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 
 export default function Producao() {
   const { user } = useAuth();
@@ -225,8 +228,8 @@ export default function Producao() {
     const m3 = calcularCubagem(produto.largura, produto.espessura, produto.comprimento, q);
 
     try {
-      // Garantir que a data seja salva no formato correto YYYY-MM-DD
-      const dataSalvar = dataProducao || new Date().toISOString().split('T')[0];
+      // Garantir que a data seja salva no formato correto YYYY-MM-DD (GMT-3)
+      const dataSalvar = dataProducao || getTodayBR();
       
       if (editingId) {
         const { error } = await supabase
@@ -514,10 +517,10 @@ export default function Producao() {
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={(() => {
+                  const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
                   const last7Days = Array.from({ length: 7 }, (_, i) => {
-                    const date = new Date();
-                    date.setDate(date.getDate() - (6 - i));
-                    return date.toISOString().split('T')[0];
+                    const date = subDays(nowBR, 6 - i);
+                    return format(date, 'yyyy-MM-dd');
                   });
                   
                   return last7Days.map(date => {
@@ -526,7 +529,7 @@ export default function Producao() {
                     );
                     const total = dayProduction.reduce((sum, p) => sum + p.m3, 0);
                     return {
-                      data: new Date(date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+                      data: format(new Date(date), 'dd/MM'),
                       total: parseFloat(total.toFixed(2))
                     };
                   });
@@ -726,7 +729,7 @@ export default function Producao() {
                   <TableBody>
                     {producao.map((prod) => (
                       <TableRow key={prod.id}>
-                        <TableCell>{new Date(prod.data).toLocaleDateString()}</TableCell>
+                        <TableCell>{formatDateBR(prod.data)}</TableCell>
                         <TableCell className="font-medium">{prod.produtoNome}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {prod.largura}×{prod.espessura}×{prod.comprimento}

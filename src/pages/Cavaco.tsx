@@ -6,6 +6,7 @@ import { Layers } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { formatDateBR } from "@/lib/dateUtils";
 
 export default function Cavaco() {
   const { user } = useAuth();
@@ -255,7 +256,7 @@ export default function Cavaco() {
                 ) : (
                   dados.map((item) => (
                     <TableRow key={item.id}>
-                      <TableCell>{new Date(item.data).toLocaleDateString()}</TableCell>
+                      <TableCell>{formatDateBR(item.data)}</TableCell>
                       <TableCell className="font-medium">{item.descricao}</TableCell>
                       <TableCell>{item.toneladasCarga.toFixed(2)} T</TableCell>
                       <TableCell>

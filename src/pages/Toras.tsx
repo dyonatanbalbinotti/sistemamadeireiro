@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresaId } from "@/hooks/useEmpresaId";
+import { getTodayBR, formatDateBR } from "@/lib/dateUtils";
 
 export default function Toras() {
   const { user } = useAuth();
@@ -139,7 +140,7 @@ export default function Toras() {
         const { data, error } = await supabase
           .from('toras')
           .insert({
-            data: new Date().toISOString().split('T')[0],
+            data: getTodayBR(),
             descricao: descricaoTora,
             peso: pesoCarga,
             toneladas: pesoCarga / 1000,
@@ -214,7 +215,7 @@ export default function Toras() {
       const { data, error } = await supabase
         .from('toras_serradas')
         .insert({
-          data: new Date().toISOString().split('T')[0],
+          data: getTodayBR(),
           tora_id: toraIdSerrada,
           peso: pesoTotal,
           toneladas: pesoTotal / 1000,
@@ -401,7 +402,7 @@ export default function Toras() {
                   <TableBody>
                     {toras.map((tora) => (
                       <TableRow key={tora.id}>
-                        <TableCell>{new Date(tora.data).toLocaleDateString()}</TableCell>
+                        <TableCell>{formatDateBR(tora.data)}</TableCell>
                         <TableCell className="font-medium">{tora.descricao}</TableCell>
                         <TableCell>{tora.pesoCarga?.toFixed(2)} kg</TableCell>
                         <TableCell>{tora.quantidadeToras}</TableCell>
@@ -503,7 +504,7 @@ export default function Toras() {
                       const tora = toras.find(t => t.id === ts.toraId);
                       return (
                         <TableRow key={ts.id}>
-                          <TableCell>{new Date(ts.data).toLocaleDateString()}</TableCell>
+                          <TableCell>{formatDateBR(ts.data)}</TableCell>
                           <TableCell className="font-medium">{tora?.descricao || 'N/A'}</TableCell>
                           <TableCell>{ts.quantidadeTorasSerradas}</TableCell>
                           <TableCell>{ts.peso.toFixed(2)} kg</TableCell>
