@@ -51,10 +51,14 @@ export default function Dashboard() {
         });
 
         const vendasPorDia = last7Days.map(date => {
-          const dayVendas = vendas.filter(v => v.data.split('T')[0] === date);
+          const dayVendas = vendas.filter(v => {
+            // Extrair apenas a parte da data (YYYY-MM-DD) sem considerar timezone
+            const vendaDate = v.data.includes('T') ? v.data.split('T')[0] : v.data;
+            return vendaDate === date;
+          });
           const total = dayVendas.reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0);
           return {
-            data: format(new Date(date), 'dd/MM'),
+            data: format(new Date(date + 'T12:00:00'), 'dd/MM'),
             valor: parseFloat(total.toFixed(2))
           };
         });
@@ -84,10 +88,14 @@ export default function Dashboard() {
           });
 
           const producaoPorDia = last7DaysProd.map(date => {
-            const dayProduction = producaoData.filter(p => p.data.split('T')[0] === date);
+            const dayProduction = producaoData.filter(p => {
+              // Extrair apenas a parte da data (YYYY-MM-DD) sem considerar timezone
+              const prodDate = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+              return prodDate === date;
+            });
             const total = dayProduction.reduce((sum, p) => sum + parseFloat(p.m3.toString()), 0);
             return {
-              data: format(new Date(date), 'dd/MM'),
+              data: format(new Date(date + 'T12:00:00'), 'dd/MM'),
               total: parseFloat(total.toFixed(2))
             };
           });
