@@ -1,10 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Factory, TrendingUp, Weight, TreeDeciduous, DollarSign, PieChart as PieChartIcon, BarChart3 } from "lucide-react";
+import { Package, Factory, TrendingUp, Weight, TreeDeciduous, DollarSign, PieChart as PieChartIcon, BarChart3, AlertTriangle } from "lucide-react";
 import { calcularEstoqueSerradoSupabase, calcularEstoqueTorasSupabase, getVendasSupabase } from "@/lib/supabaseStorage";
 import { useEffect, useState } from "react";
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Bar, BarChart } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
+import type { EstoqueSerrado, EstoqueToras } from "@/types";
 
 export default function Dashboard() {
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
@@ -15,6 +18,8 @@ export default function Dashboard() {
   const [producaoDiariaData, setProducaoDiariaData] = useState<any[]>([]);
   const [producaoMensalData, setProducaoMensalData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [alertasAtivos, setAlertasAtivos] = useState<any[]>([]);
+  const { toast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,9 +32,13 @@ export default function Dashboard() {
         ]);
         
         const totalM3 = serrado.reduce((acc, item) => acc + item.m3Total, 0);
+        const totalQuantidade = serrado.reduce((acc, item) => acc + item.quantidadeUnidades, 0);
         setEstoqueSerrado(totalM3);
         setEstoqueToras(toras.toneladas);
         setTotalItens(serrado.length);
+
+        // Verificar alertas de estoque
+        await verificarAlertas(serrado, toras, totalQuantidade, totalM3);
 
         // Dados de vendas dos últimos 7 dias
         const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -115,6 +124,83 @@ export default function Dashboard() {
     fetchData();
   }, []);
 
+  const verificarAlertas = async (
+    serrado: EstoqueSerrado[], 
+    toras: EstoqueToras,
+    totalQuantidade: number,
+    totalM3: number
+  ) => {
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      if (!user.user) return;
+
+      const { data: alertas } = await supabase
+        .from('alertas_estoque')
+        .select('*')
+        .eq('empresa_id', user.user.id)
+        .eq('ativo', true);
+
+      if (!alertas || alertas.length === 0) return;
+
+      const alertasAtivados: any[] = [];
+
+      alertas.forEach((alerta) => {
+        if (alerta.tipo === 'serrado') {
+          // Verificar quantidade mínima
+          if (alerta.quantidade_minima && totalQuantidade < alerta.quantidade_minima) {
+            alertasAtivados.push({
+              tipo: 'serrado',
+              mensagem: `Estoque de madeira serrada abaixo do mínimo: ${totalQuantidade} peças (mínimo: ${alerta.quantidade_minima})`,
+              severity: 'error'
+            });
+          }
+          
+          // Verificar m³ mínimo
+          if (alerta.m3_minimo && totalM3 < alerta.m3_minimo) {
+            alertasAtivados.push({
+              tipo: 'serrado',
+              mensagem: `Volume de madeira serrada abaixo do mínimo: ${totalM3.toFixed(2)} m³ (mínimo: ${alerta.m3_minimo})`,
+              severity: 'error'
+            });
+          }
+        }
+
+        if (alerta.tipo === 'tora') {
+          // Verificar toneladas mínima
+          if (alerta.toneladas_minima && toras.toneladas < alerta.toneladas_minima) {
+            alertasAtivados.push({
+              tipo: 'tora',
+              mensagem: `Estoque de toras abaixo do mínimo: ${toras.toneladas.toFixed(2)} T (mínimo: ${alerta.toneladas_minima})`,
+              severity: 'error'
+            });
+          }
+
+          // Verificar quantidade de toras
+          if (alerta.quantidade_minima && toras.quantidadeToras < alerta.quantidade_minima) {
+            alertasAtivados.push({
+              tipo: 'tora',
+              mensagem: `Quantidade de toras abaixo do mínimo: ${toras.quantidadeToras} toras (mínimo: ${alerta.quantidade_minima})`,
+              severity: 'error'
+            });
+          }
+        }
+      });
+
+      setAlertasAtivos(alertasAtivados);
+
+      // Mostrar toast para cada alerta
+      alertasAtivados.forEach((alerta) => {
+        toast({
+          title: "⚠️ Alerta de Estoque Baixo",
+          description: alerta.mensagem,
+          variant: "destructive",
+        });
+      });
+    } catch (error) {
+      console.error('Erro ao verificar alertas:', error);
+    }
+  };
+
   const cards = [
     {
       title: "Estoque Serrado",
@@ -171,6 +257,20 @@ export default function Dashboard() {
         </h1>
         <p className="text-muted-foreground text-lg">Visão geral do controle de estoque em tempo real</p>
       </div>
+
+      {alertasAtivos.length > 0 && (
+        <div className="space-y-3">
+          {alertasAtivos.map((alerta, index) => (
+            <Alert key={index} variant="destructive" className="border-destructive/50 bg-destructive/10">
+              <AlertTriangle className="h-5 w-5" />
+              <AlertTitle className="font-bold">Alerta de Estoque Baixo</AlertTitle>
+              <AlertDescription className="text-sm">
+                {alerta.mensagem}
+              </AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {cards.map((card, index) => {
