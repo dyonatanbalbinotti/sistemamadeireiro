@@ -62,10 +62,16 @@ export const calcularEstoqueSerradoSupabase = async (): Promise<EstoqueSerrado[]
           if (v.unidade_medida === 'unidade') {
             const qtd = parseFloat(v.quantidade.toString());
             item.quantidadeUnidades -= qtd;
-            // Valores já estão em metros no banco, apenas multiplicar
-            item.m3Total -= (produto.largura * produto.espessura * produto.comprimento * qtd);
+            // Calcular m³ com base nas dimensões
+            const m3PorPeca = (produto.largura * produto.espessura * produto.comprimento) / 1000000;
+            item.m3Total -= (m3PorPeca * qtd);
           } else if (v.unidade_medida === 'm3') {
-            item.m3Total -= parseFloat(v.quantidade.toString());
+            const qtdM3 = parseFloat(v.quantidade.toString());
+            item.m3Total -= qtdM3;
+            // Calcular quantas peças equivalem ao m³ vendido
+            const m3PorPeca = (produto.largura * produto.espessura * produto.comprimento) / 1000000;
+            const qtdPecas = qtdM3 / m3PorPeca;
+            item.quantidadeUnidades -= qtdPecas;
           }
         }
       }
