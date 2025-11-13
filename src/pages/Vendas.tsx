@@ -51,6 +51,7 @@ export default function Vendas() {
 
   // Campos para venda direta por m³
   const [produtoM3Direto, setProdutoM3Direto] = useState("");
+  const [quantidadePecasM3Direto, setQuantidadePecasM3Direto] = useState("");
   const [quantidadeM3Direto, setQuantidadeM3Direto] = useState("");
   const [valorM3Direto, setValorM3Direto] = useState("");
   const [dataVendaM3, setDataVendaM3] = useState<Date>(new Date());
@@ -58,6 +59,24 @@ export default function Vendas() {
   // Campos para filtros de relatório
   const [dataInicial, setDataInicial] = useState<Date | undefined>(undefined);
   const [dataFinal, setDataFinal] = useState<Date | undefined>(undefined);
+
+  // Calcular m³ automaticamente quando produto e quantidade de peças são informados (venda por m³)
+  useEffect(() => {
+    if (produtoM3Direto && quantidadePecasM3Direto) {
+      const produto = produtos.find(p => p.id === produtoM3Direto);
+      if (produto) {
+        const qtdPecas = parseFloat(quantidadePecasM3Direto);
+        if (!isNaN(qtdPecas) && qtdPecas > 0) {
+          const m3 = (produto.largura * produto.espessura * produto.comprimento * qtdPecas) / 1000000;
+          setQuantidadeM3Direto(m3.toFixed(3));
+        } else {
+          setQuantidadeM3Direto("");
+        }
+      }
+    } else {
+      setQuantidadeM3Direto("");
+    }
+  }, [produtoM3Direto, quantidadePecasM3Direto, produtos]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -380,6 +399,7 @@ export default function Vendas() {
       
       // Limpar formulário
       setProdutoM3Direto("");
+      setQuantidadePecasM3Direto("");
       setQuantidadeM3Direto("");
       setValorM3Direto("");
       setDataVendaM3(new Date());
@@ -1032,17 +1052,38 @@ export default function Vendas() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="quantidadeM3Direto">Quantidade de m³ *</Label>
+                      <Label htmlFor="quantidadePecasM3Direto">Quantidade de Peças *</Label>
                       <Input
-                        id="quantidadeM3Direto"
+                        id="quantidadePecasM3Direto"
                         type="number"
-                        step="0.001"
-                        value={quantidadeM3Direto}
-                        onChange={(e) => setQuantidadeM3Direto(e.target.value)}
-                        placeholder="0.000"
+                        step="1"
+                        value={quantidadePecasM3Direto}
+                        onChange={(e) => setQuantidadePecasM3Direto(e.target.value)}
+                        placeholder="10"
                         className="border-input"
                         required
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="quantidadeM3Direto">Quantidade de m³</Label>
+                      <Input
+                        id="quantidadeM3Direto"
+                        type="text"
+                        value={quantidadeM3Direto || "0.000"}
+                        readOnly
+                        className="border-input bg-muted/30 font-bold text-primary"
+                      />
+                      {!quantidadeM3Direto && (
+                        <p className="text-xs text-muted-foreground">
+                          Selecione um produto e informe a quantidade de peças para calcular
+                        </p>
+                      )}
+                      {quantidadeM3Direto && (
+                        <p className="text-xs text-green-600">
+                          ✓ Cálculo automático: {quantidadeM3Direto} m³
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">
