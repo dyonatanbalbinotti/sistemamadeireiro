@@ -1036,7 +1036,10 @@ export default function Vendas() {
                       <Label htmlFor="produtoM3Direto">Produto *</Label>
                       <Select 
                         value={produtoM3Direto} 
-                        onValueChange={(value) => setProdutoM3Direto(value)}
+                        onValueChange={(value) => {
+                          console.log('Produto selecionado:', value);
+                          setProdutoM3Direto(value);
+                        }}
                       >
                         <SelectTrigger className="border-input">
                           <SelectValue placeholder="Selecione o produto" />
@@ -1058,7 +1061,10 @@ export default function Vendas() {
                         type="number"
                         step="1"
                         value={quantidadePecasM3Direto}
-                        onChange={(e) => setQuantidadePecasM3Direto(e.target.value)}
+                        onChange={(e) => {
+                          console.log('Quantidade digitada:', e.target.value);
+                          setQuantidadePecasM3Direto(e.target.value);
+                        }}
                         placeholder="10"
                         className="border-input"
                         required
