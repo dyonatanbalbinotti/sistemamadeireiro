@@ -52,7 +52,7 @@ export default function Vendas() {
   // Campos para venda direta por m³
   const [produtoM3Direto, setProdutoM3Direto] = useState("");
   const [quantidadePecasM3Direto, setQuantidadePecasM3Direto] = useState("");
-  const [quantidadeM3Direto, setQuantidadeM3Direto] = useState("");
+  const [quantidadeM3Direto, setQuantidadeM3Direto] = useState("0.000");
   const [valorM3Direto, setValorM3Direto] = useState("");
   const [dataVendaM3, setDataVendaM3] = useState<Date>(new Date());
 
@@ -62,28 +62,13 @@ export default function Vendas() {
 
   // Calcular m³ automaticamente quando produto e quantidade de peças são informados (venda por m³)
   useEffect(() => {
-    console.log('DEBUG - Calculando m³:', { 
-      produtoM3Direto, 
-      quantidadePecasM3Direto, 
-      produtosLength: produtos.length,
-      produtos: produtos
-    });
-    
     if (produtoM3Direto && quantidadePecasM3Direto && produtos.length > 0) {
       const produto = produtos.find(p => p.id === produtoM3Direto);
-      console.log('DEBUG - Produto encontrado:', produto);
       
       if (produto) {
         const qtdPecas = parseFloat(quantidadePecasM3Direto);
         if (!isNaN(qtdPecas) && qtdPecas > 0) {
           const m3 = (produto.largura * produto.espessura * produto.comprimento * qtdPecas) / 1000000;
-          console.log('DEBUG - Cálculo:', {
-            largura: produto.largura,
-            espessura: produto.espessura,
-            comprimento: produto.comprimento,
-            qtdPecas,
-            m3
-          });
           setQuantidadeM3Direto(m3.toFixed(3));
           return;
         }
@@ -1081,24 +1066,26 @@ export default function Vendas() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="quantidadeM3Direto">Quantidade de m³</Label>
-                      <Input
-                        id="quantidadeM3Direto"
-                        type="text"
-                        value={quantidadeM3Direto}
-                        readOnly
-                        className="border-input bg-muted/30 font-bold text-primary"
-                      />
-                      {quantidadeM3Direto === "0.000" && (
-                        <p className="text-xs text-muted-foreground">
-                          Selecione um produto e informe a quantidade de peças para calcular
-                        </p>
-                      )}
-                      {quantidadeM3Direto && parseFloat(quantidadeM3Direto) > 0 && (
-                        <p className="text-xs text-green-600">
-                          ✓ Cálculo automático: {quantidadeM3Direto} m³
-                        </p>
-                      )}
+                      <Label htmlFor="quantidadeM3Direto">Total m³</Label>
+                      <div className="relative">
+                        <Input
+                          id="quantidadeM3Direto"
+                          type="text"
+                          value={quantidadeM3Direto || "0.000"}
+                          readOnly
+                          className="border-input bg-muted/30 font-bold text-lg text-primary"
+                        />
+                        {quantidadeM3Direto === "0.000" && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Selecione um produto e informe a quantidade para calcular
+                          </p>
+                        )}
+                        {quantidadeM3Direto && parseFloat(quantidadeM3Direto) > 0 && (
+                          <p className="text-xs text-green-600 mt-1">
+                            ✓ Cálculo realizado: {quantidadeM3Direto} m³
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     <div className="space-y-2">
