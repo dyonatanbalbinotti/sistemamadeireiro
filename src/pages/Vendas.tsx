@@ -332,10 +332,11 @@ export default function Vendas() {
       return;
     }
     
+    const qtdPecas = parseFloat(quantidadePecasM3Direto);
     const qtdM3 = parseFloat(quantidadeM3Direto);
     const valorM3 = parseFloat(valorM3Direto);
     
-    if (!produtoM3Direto || isNaN(qtdM3) || isNaN(valorM3)) {
+    if (!produtoM3Direto || isNaN(qtdPecas) || isNaN(qtdM3) || isNaN(valorM3) || qtdPecas <= 0) {
       toast.error("Preencha todos os campos corretamente");
       return;
     }
@@ -1102,13 +1103,20 @@ export default function Vendas() {
 
                     <div className="space-y-2 md:col-span-2">
                       <Label htmlFor="valorTotalM3">Valor Total (R$)</Label>
-                      <Input
-                        id="valorTotalM3"
-                        type="text"
-                        value={quantidadeM3Direto && valorM3Direto ? (parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2) : '0.00'}
-                        readOnly
-                        className="border-input bg-muted font-bold text-primary text-xl"
-                      />
+                      <div className="relative">
+                        <Input
+                          id="valorTotalM3"
+                          type="text"
+                          value={quantidadeM3Direto && valorM3Direto ? (parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2) : '0.00'}
+                          readOnly
+                          className="border-input bg-muted/30 font-bold text-primary text-xl"
+                        />
+                        {quantidadeM3Direto && valorM3Direto && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            {quantidadeM3Direto} m³ × R$ {parseFloat(valorM3Direto).toFixed(2)} = R$ {(parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
