@@ -62,20 +62,18 @@ export default function Vendas() {
 
   // Calcular m³ automaticamente quando produto e quantidade de peças são informados (venda por m³)
   useEffect(() => {
-    if (produtoM3Direto && quantidadePecasM3Direto) {
+    if (produtoM3Direto && quantidadePecasM3Direto && produtos.length > 0) {
       const produto = produtos.find(p => p.id === produtoM3Direto);
       if (produto) {
         const qtdPecas = parseFloat(quantidadePecasM3Direto);
         if (!isNaN(qtdPecas) && qtdPecas > 0) {
           const m3 = (produto.largura * produto.espessura * produto.comprimento * qtdPecas) / 1000000;
           setQuantidadeM3Direto(m3.toFixed(3));
-        } else {
-          setQuantidadeM3Direto("");
+          return;
         }
       }
-    } else {
-      setQuantidadeM3Direto("");
     }
+    setQuantidadeM3Direto("0.000");
   }, [produtoM3Direto, quantidadePecasM3Direto, produtos]);
 
   useEffect(() => {
@@ -1071,16 +1069,16 @@ export default function Vendas() {
                       <Input
                         id="quantidadeM3Direto"
                         type="text"
-                        value={quantidadeM3Direto || "0.000"}
+                        value={quantidadeM3Direto}
                         readOnly
                         className="border-input bg-muted/30 font-bold text-primary"
                       />
-                      {!quantidadeM3Direto && (
+                      {quantidadeM3Direto === "0.000" && (
                         <p className="text-xs text-muted-foreground">
                           Selecione um produto e informe a quantidade de peças para calcular
                         </p>
                       )}
-                      {quantidadeM3Direto && (
+                      {quantidadeM3Direto && parseFloat(quantidadeM3Direto) > 0 && (
                         <p className="text-xs text-green-600">
                           ✓ Cálculo automático: {quantidadeM3Direto} m³
                         </p>
@@ -1107,11 +1105,15 @@ export default function Vendas() {
                         <Input
                           id="valorTotalM3"
                           type="text"
-                          value={quantidadeM3Direto && valorM3Direto ? (parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2) : '0.00'}
+                          value={
+                            quantidadeM3Direto && valorM3Direto && parseFloat(quantidadeM3Direto) > 0 && parseFloat(valorM3Direto) > 0
+                              ? (parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2) 
+                              : '0.00'
+                          }
                           readOnly
                           className="border-input bg-muted/30 font-bold text-primary text-xl"
                         />
-                        {quantidadeM3Direto && valorM3Direto && (
+                        {quantidadeM3Direto && valorM3Direto && parseFloat(quantidadeM3Direto) > 0 && parseFloat(valorM3Direto) > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">
                             {quantidadeM3Direto} m³ × R$ {parseFloat(valorM3Direto).toFixed(2)} = R$ {(parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2)}
                           </p>
