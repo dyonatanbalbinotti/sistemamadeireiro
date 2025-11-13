@@ -23,6 +23,7 @@ export default function Vendas() {
   const { user } = useAuth();
   const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
   const [tipoVenda, setTipoVenda] = useState<'madeira' | 'cavaco'>('madeira');
+  const [modoVendaMadeira, setModoVendaMadeira] = useState<'unidades' | 'm3'>('unidades');
   const [vendas, setVendas] = useState<Venda[]>([]);
   const [vendasCavaco, setVendasCavaco] = useState<any[]>([]);
   const [produtos, setProdutos] = useState<any[]>([]);
@@ -47,6 +48,12 @@ export default function Vendas() {
   const [toraIdCavaco, setToraIdCavaco] = useState("");
   const [toneladasVendidas, setToneladasVendidas] = useState("");
   const [valorTonelada, setValorTonelada] = useState("");
+
+  // Campos para venda direta por m³
+  const [produtoM3Direto, setProdutoM3Direto] = useState("");
+  const [quantidadeM3Direto, setQuantidadeM3Direto] = useState("");
+  const [valorM3Direto, setValorM3Direto] = useState("");
+  const [dataVendaM3, setDataVendaM3] = useState<Date>(new Date());
 
   // Campos para filtros de relatório
   const [dataInicial, setDataInicial] = useState<Date | undefined>(undefined);
@@ -292,6 +299,90 @@ export default function Vendas() {
       }
       
       resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar venda:', error);
+      toast.error('Erro ao salvar venda');
+    }
+  };
+
+  const handleSubmitM3 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      toast.error("Você precisa estar logado");
+      return;
+    }
+    
+    const qtdM3 = parseFloat(quantidadeM3Direto);
+    const valorM3 = parseFloat(valorM3Direto);
+    
+    if (!produtoM3Direto || isNaN(qtdM3) || isNaN(valorM3)) {
+      toast.error("Preencha todos os campos corretamente");
+      return;
+    }
+
+    const valorTotal = qtdM3 * valorM3;
+
+    try {
+      if (loadingEmpresaId) {
+        toast.error("Aguardando carregamento dos dados da empresa...");
+        return;
+      }
+      
+      if (!empresaId) {
+        toast.error("Erro ao identificar empresa. Entre em contato com o suporte.");
+        console.error('empresaId não disponível:', { user: user?.id, empresaId });
+        return;
+      }
+
+      // Formatar data como YYYY-MM-DD para evitar problemas de fuso horário
+      const year = dataVendaM3.getFullYear();
+      const month = String(dataVendaM3.getMonth() + 1).padStart(2, '0');
+      const day = String(dataVendaM3.getDate()).padStart(2, '0');
+      const dataFormatada = `${year}-${month}-${day}`;
+
+      const { data, error } = await supabase
+        .from('vendas')
+        .insert({
+          data: dataFormatada,
+          produto_id: produtoM3Direto,
+          tipo: 'serrada',
+          quantidade: qtdM3,
+          unidade_medida: 'm3',
+          valor_unitario: valorM3,
+          valor_total: valorTotal,
+          user_id: user.id,
+          empresa_id: empresaId,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Erro ao inserir venda:', error);
+        throw error;
+      }
+
+      if (data) {
+        const novaVenda: Venda = {
+          id: data.id,
+          data: data.data,
+          produtoId: data.produto_id,
+          tipo: data.tipo as 'serrada' | 'tora',
+          quantidade: Number(data.quantidade),
+          unidadeMedida: 'm3',
+          valorUnitario: Number(data.valor_unitario),
+          valorTotal: Number(data.valor_total),
+        };
+
+        setVendas([novaVenda, ...vendas]);
+        toast.success(`Venda registrada: R$ ${valorTotal.toFixed(2)}`);
+      }
+      
+      // Limpar formulário
+      setProdutoM3Direto("");
+      setQuantidadeM3Direto("");
+      setValorM3Direto("");
+      setDataVendaM3(new Date());
     } catch (error) {
       console.error('Erro ao salvar venda:', error);
       toast.error('Erro ao salvar venda');
@@ -666,8 +757,29 @@ export default function Vendas() {
           <CardHeader>
             <CardTitle className="text-foreground">Nova Venda de Madeira</CardTitle>
           </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <CardContent>
+            {/* Seleção do modo de venda */}
+            <div className="flex gap-3 mb-6">
+              <Button
+                type="button"
+                variant={modoVendaMadeira === 'unidades' ? 'default' : 'outline'}
+                onClick={() => setModoVendaMadeira('unidades')}
+                className="flex-1"
+              >
+                Vender por Unidades
+              </Button>
+              <Button
+                type="button"
+                variant={modoVendaMadeira === 'm3' ? 'default' : 'outline'}
+                onClick={() => setModoVendaMadeira('m3')}
+                className="flex-1"
+              >
+                Vender por m³
+              </Button>
+            </div>
+
+            {modoVendaMadeira === 'unidades' ? (
+              <form onSubmit={handleSubmit} className="space-y-6">
             {/* PASSO 1: Cálculo de Conversão m³ */}
             <div className="p-4 bg-muted/50 rounded-lg space-y-4 border-2 border-primary/20">
               <h3 className="font-semibold text-lg text-primary">Passo 1: Cálculo de Conversão m³ para Valor Unitário</h3>
@@ -868,6 +980,106 @@ export default function Vendas() {
               )}
             </div>
           </form>
+            ) : (
+              <form onSubmit={handleSubmitM3} className="space-y-6">
+                <div className="p-4 bg-muted/50 rounded-lg space-y-4 border-2 border-primary/20">
+                  <h3 className="font-semibold text-lg text-primary">Venda por m³</h3>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="dataVendaM3">Data da Venda</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={cn(
+                              "w-full justify-start text-left font-normal border-input",
+                              !dataVendaM3 && "text-muted-foreground"
+                            )}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {dataVendaM3 ? formatDateBR(dataVendaM3) : "Selecione a data"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={dataVendaM3}
+                            onSelect={(date) => date && setDataVendaM3(date)}
+                            initialFocus
+                            className="pointer-events-auto"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="produtoM3Direto">Produto *</Label>
+                      <Select 
+                        value={produtoM3Direto} 
+                        onValueChange={(value) => setProdutoM3Direto(value)}
+                      >
+                        <SelectTrigger className="border-input">
+                          <SelectValue placeholder="Selecione o produto" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {produtos.map((prod) => (
+                            <SelectItem key={prod.id} value={prod.id}>
+                              {prod.tipo} - {prod.largura}×{prod.espessura}×{prod.comprimento}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="quantidadeM3Direto">Quantidade de m³ *</Label>
+                      <Input
+                        id="quantidadeM3Direto"
+                        type="number"
+                        step="0.001"
+                        value={quantidadeM3Direto}
+                        onChange={(e) => setQuantidadeM3Direto(e.target.value)}
+                        placeholder="0.000"
+                        className="border-input"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="valorM3Direto">Valor do m³ (R$) *</Label>
+                      <Input
+                        id="valorM3Direto"
+                        type="number"
+                        step="0.01"
+                        value={valorM3Direto}
+                        onChange={(e) => setValorM3Direto(e.target.value)}
+                        placeholder="1000.00"
+                        className="border-input"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="valorTotalM3">Valor Total (R$)</Label>
+                      <Input
+                        id="valorTotalM3"
+                        type="text"
+                        value={quantidadeM3Direto && valorM3Direto ? (parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2) : '0.00'}
+                        readOnly
+                        className="border-input bg-muted font-bold text-primary text-xl"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    Registrar Venda
+                  </Button>
+                </div>
+              </form>
+            )}
         </CardContent>
       </Card>
       ) : (
