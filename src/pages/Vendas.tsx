@@ -62,18 +62,28 @@ export default function Vendas() {
 
   // Calcular m³ automaticamente quando produto e quantidade de peças são informados (venda por m³)
   useEffect(() => {
+    console.log('=== CALCULANDO M³ ===');
+    console.log('produtoM3Direto:', produtoM3Direto);
+    console.log('quantidadePecasM3Direto:', quantidadePecasM3Direto);
+    console.log('produtos.length:', produtos.length);
+    
     if (produtoM3Direto && quantidadePecasM3Direto && produtos.length > 0) {
       const produto = produtos.find(p => p.id === produtoM3Direto);
+      console.log('Produto encontrado:', produto);
       
       if (produto) {
         const qtdPecas = parseFloat(quantidadePecasM3Direto);
+        console.log('Quantidade de peças (número):', qtdPecas);
+        
         if (!isNaN(qtdPecas) && qtdPecas > 0) {
           const m3 = (produto.largura * produto.espessura * produto.comprimento * qtdPecas) / 1000000;
+          console.log('Cálculo:', produto.largura, '*', produto.espessura, '*', produto.comprimento, '*', qtdPecas, '/ 1000000 =', m3);
           setQuantidadeM3Direto(m3.toFixed(3));
           return;
         }
       }
     }
+    console.log('Resetando para 0.000');
     setQuantidadeM3Direto("0.000");
   }, [produtoM3Direto, quantidadePecasM3Direto, produtos]);
 
