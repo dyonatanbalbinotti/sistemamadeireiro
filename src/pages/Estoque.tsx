@@ -246,7 +246,7 @@ export default function Estoque() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  label={(entry) => `${entry.valor} m³`}
+                  label={(entry) => `${entry.valor.toFixed(2)} m³`}
                 >
                   {estoqueSerrado.slice(0, 5).map((_, index) => {
                     const colors = [
@@ -278,7 +278,7 @@ export default function Estoque() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }}
-                  formatter={(value: number) => [`${value} m³`, 'Estoque']}
+                  formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Estoque']}
                 />
                 <Legend />
               </PieChart>

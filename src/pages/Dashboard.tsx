@@ -379,7 +379,7 @@ export default function Dashboard() {
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
-                  label={(entry) => `${entry.valor} m³`}
+                  label={(entry) => `${entry.valor.toFixed(2)} m³`}
                 >
                   {estoqueData.map((_, index) => {
                     const colors = [
@@ -403,7 +403,7 @@ export default function Dashboard() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }}
-                  formatter={(value: number) => [`${value} m³`, 'Estoque']}
+                  formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Estoque']}
                 />
                 <Legend />
               </PieChart>
@@ -433,7 +433,7 @@ export default function Dashboard() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }}
-                  formatter={(value: number) => [`${value} m³`, 'Produção']}
+                  formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
                 />
                 <Bar dataKey="total" fill="hsl(var(--chart-green))" radius={[8, 8, 0, 0]} className="dark:fill-[hsl(var(--neon-lime))]" />
               </BarChart>
@@ -468,7 +468,7 @@ export default function Dashboard() {
                     border: '1px solid hsl(var(--border))',
                     borderRadius: '8px'
                   }}
-                  formatter={(value: number) => [`${value} m³`, 'Produção']}
+                  formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
                 />
                 <Bar dataKey="total" fill="hsl(var(--chart-orange))" radius={[8, 8, 0, 0]} className="dark:fill-[hsl(var(--neon-magenta))]" />
               </BarChart>

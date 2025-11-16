@@ -545,7 +545,7 @@ export default function Producao() {
                       border: '1px solid hsl(var(--border))',
                       borderRadius: '8px'
                     }}
-                    formatter={(value: number) => [`${value} m³`, 'Produção']}
+                    formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
                   />
                   <Bar dataKey="total" fill="hsl(var(--chart-purple))" radius={[8, 8, 0, 0]} className="dark:fill-[hsl(var(--primary))]" />
                 </BarChart>
