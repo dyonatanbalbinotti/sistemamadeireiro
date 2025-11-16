@@ -1419,7 +1419,19 @@ export default function Vendas() {
                   ) : (
                     getVendasFiltradas().map((venda: Venda) => {
                       const prod = produtos.find(p => p.id === venda.produtoId);
-                      const m3Vendido = prod ? (prod.largura * prod.espessura * prod.comprimento * venda.quantidade) : 0;
+                      
+                      // Calcular valores baseado na unidade de medida
+                      let quantidadePecas = 0;
+                      let m3Vendido = 0;
+                      
+                      if (venda.unidadeMedida === 'unidade') {
+                        quantidadePecas = venda.quantidade;
+                        m3Vendido = prod ? (prod.largura * prod.espessura * prod.comprimento * venda.quantidade) : 0;
+                      } else if (venda.unidadeMedida === 'm3') {
+                        m3Vendido = venda.quantidade;
+                        quantidadePecas = prod ? venda.quantidade / (prod.largura * prod.espessura * prod.comprimento) : 0;
+                      }
+                      
                       return (
                         <TableRow key={venda.id}>
                           <TableCell>{formatDateBR(venda.data)}</TableCell>
@@ -1427,7 +1439,7 @@ export default function Vendas() {
                             {prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {venda.quantidade} un
+                            {venda.unidadeMedida === 'unidade' ? `${quantidadePecas} un` : `${quantidadePecas.toFixed(0)} un`}
                           </TableCell>
                           <TableCell className="font-medium text-primary">
                             {m3Vendido.toFixed(3)} m³
