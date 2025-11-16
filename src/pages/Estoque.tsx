@@ -80,7 +80,7 @@ export default function Estoque() {
           (alerta.m3_minimo && totalM3 < alerta.m3_minimo)
         ) {
           alertasDispararados.push(
-            `⚠️ Estoque de madeira serrada abaixo do mínimo: ${totalUnidades} un / ${totalM3.toFixed(2)} m³`
+            `⚠️ Estoque de madeira serrada abaixo do mínimo: ${totalUnidades.toFixed(0)} un / ${totalM3.toFixed(2)} m³`
           );
         }
       } else if (alerta.tipo === 'tora') {
@@ -163,7 +163,7 @@ export default function Estoque() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-foreground">{totalM3.toFixed(2)} m³</div>
-            <p className="text-sm text-muted-foreground mt-1">{totalUnidades} unidades</p>
+            <p className="text-sm text-muted-foreground mt-1">{totalUnidades.toFixed(0)} unidades</p>
           </CardContent>
         </Card>
 
@@ -179,7 +179,7 @@ export default function Estoque() {
               {estoqueToras?.toneladas.toFixed(2) || '0.00'} T
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              {estoqueToras?.quantidadeToras || 0} toras • {((estoqueToras?.toneladas || 0) * 1000).toFixed(0)} kg
+              {estoqueToras?.quantidadeToras.toFixed(0) || 0} toras • {((estoqueToras?.toneladas || 0) * 1000).toFixed(2)} kg
             </p>
           </CardContent>
         </Card>
@@ -208,7 +208,7 @@ export default function Estoque() {
                       <TableCell className="font-medium">{item.tipo}</TableCell>
                       <TableCell>{item.largura} × {item.espessura}</TableCell>
                       <TableCell>{item.comprimento}</TableCell>
-                      <TableCell>{item.quantidadeUnidades} un</TableCell>
+                      <TableCell>{item.quantidadeUnidades.toFixed(0)} un</TableCell>
                       <TableCell className="font-semibold text-primary">{item.m3Total.toFixed(2)} m³</TableCell>
                     </TableRow>
                   ))}
@@ -306,7 +306,7 @@ export default function Estoque() {
                 <TableRow>
                   <TableCell className="font-medium">{estoqueToras?.descricao || 'Toras'}</TableCell>
                   <TableCell className="font-semibold text-primary">
-                    {estoqueToras?.quantidadeToras || 0} toras
+                    {estoqueToras?.quantidadeToras.toFixed(0) || 0} toras
                   </TableCell>
                   <TableCell className="font-semibold text-secondary">
                     {estoqueToras?.toneladas.toFixed(2) || '0.00'} T

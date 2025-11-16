@@ -53,7 +53,7 @@ export default function Vendas() {
   // Campos para venda direta por m³
   const [produtoM3Direto, setProdutoM3Direto] = useState("");
   const [quantidadePecasM3Direto, setQuantidadePecasM3Direto] = useState("");
-  const [quantidadeM3Direto, setQuantidadeM3Direto] = useState("0.000");
+  const [quantidadeM3Direto, setQuantidadeM3Direto] = useState("0.00");
   const [valorM3Direto, setValorM3Direto] = useState("");
   const [valorTotalM3Direto, setValorTotalM3Direto] = useState("");
   const [dataVendaM3, setDataVendaM3] = useState<Date>(new Date());
@@ -72,12 +72,12 @@ export default function Vendas() {
         
         if (!isNaN(qtdPecas) && qtdPecas > 0) {
           const m3 = produto.largura * produto.espessura * produto.comprimento * qtdPecas;
-          setQuantidadeM3Direto(m3.toFixed(3));
+          setQuantidadeM3Direto(m3.toFixed(2));
           return;
         }
       }
     }
-    setQuantidadeM3Direto("0.000");
+    setQuantidadeM3Direto("0.00");
   }, [produtoM3Direto, quantidadePecasM3Direto, produtos]);
 
   // Calcular valor total automaticamente (m³ × valor do m³)
@@ -206,7 +206,7 @@ export default function Vendas() {
         // Cálculo: largura * espessura * comprimento * quantidade
         // Os valores já estão em metros no banco de dados
         const m3Total = prod.largura * prod.espessura * prod.comprimento * qtd;
-        setTotalM3(m3Total.toFixed(3));
+        setTotalM3(m3Total.toFixed(2));
       } else {
         setTotalM3("");
       }
@@ -391,7 +391,7 @@ export default function Vendas() {
       const estoqueDisponivel = estoqueItem?.m3Total || 0;
       
       if (qtdM3 > estoqueDisponivel) {
-        toast.error(`Estoque insuficiente! Disponível: ${estoqueDisponivel.toFixed(3)} m³`);
+        toast.error(`Estoque insuficiente! Disponível: ${estoqueDisponivel.toFixed(2)} m³`);
         return;
       }
     }
@@ -456,7 +456,7 @@ export default function Vendas() {
       // Limpar formulário
       setProdutoM3Direto("");
       setQuantidadePecasM3Direto("");
-      setQuantidadeM3Direto("0.000");
+      setQuantidadeM3Direto("0.00");
       setValorM3Direto("");
       setValorTotalM3Direto("");
       setDataVendaM3(new Date());
@@ -577,7 +577,7 @@ export default function Vendas() {
     if (prod) {
       const m3PorPeca = (prod.largura / 100) * (prod.espessura / 100) * prod.comprimento;
       const m3Total = m3PorPeca * venda.quantidade;
-      setTotalM3(m3Total.toFixed(3));
+      setTotalM3(m3Total.toFixed(2));
       setValorM3((venda.valorUnitario * venda.quantidade).toFixed(2));
     }
   };
@@ -1128,11 +1128,11 @@ export default function Vendas() {
                         <Input
                           id="quantidadeM3Direto"
                           type="text"
-                          value={quantidadeM3Direto || "0.000"}
+                          value={quantidadeM3Direto || "0.00"}
                           readOnly
                           className="border-input bg-muted/30 font-bold text-lg text-primary"
                         />
-                        {quantidadeM3Direto === "0.000" && (
+                        {quantidadeM3Direto === "0.00" && (
                           <p className="text-xs text-muted-foreground mt-1">
                             Selecione um produto e informe a quantidade para calcular
                           </p>
@@ -1442,7 +1442,7 @@ export default function Vendas() {
                             {venda.unidadeMedida === 'unidade' ? `${quantidadePecas} un` : `${quantidadePecas.toFixed(0)} un`}
                           </TableCell>
                           <TableCell className="font-medium text-primary">
-                            {m3Vendido.toFixed(3)} m³
+                            {m3Vendido.toFixed(2)} m³
                           </TableCell>
                           <TableCell>R$ {venda.valorUnitario.toFixed(2)}</TableCell>
                           <TableCell className="font-semibold text-primary">R$ {venda.valorTotal.toFixed(2)}</TableCell>
