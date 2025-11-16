@@ -1065,7 +1065,7 @@ export default function Vendas() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="quantidadePecasM3Direto">Quantidade de Peças *</Label>
+                      <Label htmlFor="quantidadePecasM3Direto">Total de peças vendidas *</Label>
                       <Input
                         id="quantidadePecasM3Direto"
                         type="number"
@@ -1082,7 +1082,7 @@ export default function Vendas() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="quantidadeM3Direto">Total m³</Label>
+                      <Label htmlFor="quantidadeM3Direto">Total de m³ vendidos</Label>
                       <div className="relative">
                         <Input
                           id="quantidadeM3Direto"
@@ -1119,7 +1119,7 @@ export default function Vendas() {
                     </div>
 
                     <div className="space-y-2 md:col-span-2">
-                      <Label htmlFor="valorTotalM3">Valor Total (R$)</Label>
+                      <Label htmlFor="valorTotalM3">Valor total vendido</Label>
                       <div className="relative">
                         <Input
                           id="valorTotalM3"
