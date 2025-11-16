@@ -101,9 +101,14 @@ export const calcularEstoqueSerrado = (): EstoqueSerrado[] => {
       if (item) {
         if (v.unidadeMedida === 'unidade') {
           item.quantidadeUnidades -= v.quantidade;
-          item.m3Total -= (prod.largura * prod.espessura * prod.comprimento * v.quantidade) / 1000000;
+          // As dimensões já estão em metros, multiplicar diretamente
+          item.m3Total -= (prod.largura * prod.espessura * prod.comprimento * v.quantidade);
         } else if (v.unidadeMedida === 'm3') {
           item.m3Total -= v.quantidade;
+          // Calcular quantas peças equivalem ao m³ vendido
+          const m3PorPeca = prod.largura * prod.espessura * prod.comprimento;
+          const qtdPecas = v.quantidade / m3PorPeca;
+          item.quantidadeUnidades -= qtdPecas;
         }
       }
     }
