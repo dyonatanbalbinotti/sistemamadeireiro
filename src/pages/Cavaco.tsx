@@ -186,7 +186,7 @@ export default function Cavaco() {
               {totalMadeiraSerrada.toFixed(2)} T
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {percentualMedioMadeira.toFixed(1)}% do total
+              {percentualMedioMadeira.toFixed(2)}% do total
             </p>
           </CardContent>
         </Card>
@@ -202,7 +202,7 @@ export default function Cavaco() {
               {totalCavacoEstoque.toFixed(2)} T
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {percentualMedioCavaco.toFixed(1)}% do total
+              {percentualMedioCavaco.toFixed(2)}% do total
             </p>
           </CardContent>
         </Card>
@@ -215,7 +215,7 @@ export default function Cavaco() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-foreground">
-              {percentualMedioMadeira.toFixed(1)}%
+              {percentualMedioMadeira.toFixed(2)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Aproveitamento em madeira
@@ -277,13 +277,13 @@ export default function Cavaco() {
                         {item.toneladasMadeirasSerradas.toFixed(2)} T
                       </TableCell>
                       <TableCell className="font-semibold text-secondary">
-                        {item.percentualMadeiraSerrada.toFixed(1)}%
+                        {item.percentualMadeiraSerrada.toFixed(2)}%
                       </TableCell>
                       <TableCell className="font-bold text-primary text-lg">
                         {item.cavacoEstoque.toFixed(2)} T
                       </TableCell>
                       <TableCell className="font-semibold text-primary">
-                        {item.percentualCavaco.toFixed(1)}%
+                        {item.percentualCavaco.toFixed(2)}%
                       </TableCell>
                     </TableRow>
                   ))

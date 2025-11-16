@@ -477,8 +477,8 @@ export default function Dashboard() {
               <p className="text-sm text-muted-foreground">
                 Crescimento: <span className="text-lg font-bold text-chart-orange dark:text-[hsl(var(--neon-magenta))]">
                   {producaoMensalData.length > 1 ? 
-                    `${((producaoMensalData[producaoMensalData.length - 1]?.total || 0) / (producaoMensalData[producaoMensalData.length - 2]?.total || 1) * 100 - 100).toFixed(1)}%` : 
-                    '0%'}
+                    `${((producaoMensalData[producaoMensalData.length - 1]?.total || 0) / (producaoMensalData[producaoMensalData.length - 2]?.total || 1) * 100 - 100).toFixed(2)}%` : 
+                    '0.00%'}
                 </span>
               </p>
             </div>
