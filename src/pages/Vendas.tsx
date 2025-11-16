@@ -18,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresaId } from "@/hooks/useEmpresaId";
 import { formatDateBR, getTodayBR } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
+import { calcularEstoqueSerradoSupabase } from "@/lib/supabaseStorage";
 
 export default function Vendas() {
   const { user } = useAuth();
@@ -246,6 +247,26 @@ export default function Vendas() {
       return;
     }
 
+    // Validar estoque disponível
+    const estoqueSerrado = await calcularEstoqueSerradoSupabase();
+    const produtoSelecionado = produtos.find(p => p.id === produtoM3);
+    
+    if (produtoSelecionado && !editingId) {
+      const estoqueItem = estoqueSerrado.find(e => 
+        e.tipo === produtoSelecionado.tipo &&
+        e.largura === produtoSelecionado.largura &&
+        e.espessura === produtoSelecionado.espessura &&
+        e.comprimento === produtoSelecionado.comprimento
+      );
+
+      const estoqueDisponivel = estoqueItem?.quantidadeUnidades || 0;
+      
+      if (qtd > estoqueDisponivel) {
+        toast.error(`Estoque insuficiente! Disponível: ${estoqueDisponivel.toFixed(0)} unidades`);
+        return;
+      }
+    }
+
     const valorTotal = qtd * valor;
 
     try {
@@ -353,6 +374,26 @@ export default function Vendas() {
     if (!produtoM3Direto || isNaN(qtdPecas) || isNaN(qtdM3) || isNaN(valorM3) || qtdPecas <= 0) {
       toast.error("Preencha todos os campos corretamente");
       return;
+    }
+
+    // Validar estoque disponível
+    const estoqueSerrado = await calcularEstoqueSerradoSupabase();
+    const produtoSelecionado = produtos.find(p => p.id === produtoM3Direto);
+    
+    if (produtoSelecionado) {
+      const estoqueItem = estoqueSerrado.find(e => 
+        e.tipo === produtoSelecionado.tipo &&
+        e.largura === produtoSelecionado.largura &&
+        e.espessura === produtoSelecionado.espessura &&
+        e.comprimento === produtoSelecionado.comprimento
+      );
+
+      const estoqueDisponivel = estoqueItem?.m3Total || 0;
+      
+      if (qtdM3 > estoqueDisponivel) {
+        toast.error(`Estoque insuficiente! Disponível: ${estoqueDisponivel.toFixed(3)} m³`);
+        return;
+      }
     }
 
     const valorTotal = qtdM3 * valorM3;
