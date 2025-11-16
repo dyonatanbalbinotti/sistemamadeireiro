@@ -54,6 +54,7 @@ export default function Vendas() {
   const [quantidadePecasM3Direto, setQuantidadePecasM3Direto] = useState("");
   const [quantidadeM3Direto, setQuantidadeM3Direto] = useState("0.000");
   const [valorM3Direto, setValorM3Direto] = useState("");
+  const [valorTotalM3Direto, setValorTotalM3Direto] = useState("");
   const [dataVendaM3, setDataVendaM3] = useState<Date>(new Date());
 
   // Campos para filtros de relatório
@@ -62,30 +63,34 @@ export default function Vendas() {
 
   // Calcular m³ automaticamente quando produto e quantidade de peças são informados (venda por m³)
   useEffect(() => {
-    console.log('🔵 useEffect CHAMADO');
-    console.log('produtoM3Direto:', produtoM3Direto);
-    console.log('quantidadePecasM3Direto:', quantidadePecasM3Direto);
-    console.log('produtos:', produtos);
-    
     if (produtoM3Direto && quantidadePecasM3Direto && produtos.length > 0) {
       const produto = produtos.find(p => p.id === produtoM3Direto);
-      console.log('✅ Produto encontrado:', produto);
       
       if (produto) {
         const qtdPecas = parseFloat(quantidadePecasM3Direto);
-        console.log('✅ Qtd peças:', qtdPecas);
         
         if (!isNaN(qtdPecas) && qtdPecas > 0) {
-          const m3 = (produto.largura * produto.espessura * produto.comprimento * qtdPecas) / 1000000;
-          console.log('✅ CÁLCULO:', `${produto.largura} * ${produto.espessura} * ${produto.comprimento} * ${qtdPecas} / 1000000 = ${m3}`);
+          const m3 = produto.largura * produto.espessura * produto.comprimento * qtdPecas;
           setQuantidadeM3Direto(m3.toFixed(3));
           return;
         }
       }
     }
-    console.log('❌ Resetando para 0.000');
     setQuantidadeM3Direto("0.000");
   }, [produtoM3Direto, quantidadePecasM3Direto, produtos]);
+
+  // Calcular valor total automaticamente (m³ × valor do m³)
+  useEffect(() => {
+    const m3 = parseFloat(quantidadeM3Direto);
+    const valorM3 = parseFloat(valorM3Direto);
+    
+    if (!isNaN(m3) && !isNaN(valorM3) && m3 > 0 && valorM3 > 0) {
+      const total = m3 * valorM3;
+      setValorTotalM3Direto(total.toFixed(2));
+    } else {
+      setValorTotalM3Direto("");
+    }
+  }, [quantidadeM3Direto, valorM3Direto]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -410,8 +415,9 @@ export default function Vendas() {
       // Limpar formulário
       setProdutoM3Direto("");
       setQuantidadePecasM3Direto("");
-      setQuantidadeM3Direto("");
+      setQuantidadeM3Direto("0.000");
       setValorM3Direto("");
+      setValorTotalM3Direto("");
       setDataVendaM3(new Date());
     } catch (error) {
       console.error('Erro ao salvar venda:', error);
@@ -1118,17 +1124,13 @@ export default function Vendas() {
                         <Input
                           id="valorTotalM3"
                           type="text"
-                          value={
-                            quantidadeM3Direto && valorM3Direto && parseFloat(quantidadeM3Direto) > 0 && parseFloat(valorM3Direto) > 0
-                              ? (parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2) 
-                              : '0.00'
-                          }
+                          value={valorTotalM3Direto || '0.00'}
                           readOnly
                           className="border-input bg-muted/30 font-bold text-primary text-xl"
                         />
-                        {quantidadeM3Direto && valorM3Direto && parseFloat(quantidadeM3Direto) > 0 && parseFloat(valorM3Direto) > 0 && (
+                        {valorTotalM3Direto && parseFloat(valorTotalM3Direto) > 0 && (
                           <p className="text-xs text-muted-foreground mt-1">
-                            {quantidadeM3Direto} m³ × R$ {parseFloat(valorM3Direto).toFixed(2)} = R$ {(parseFloat(quantidadeM3Direto) * parseFloat(valorM3Direto)).toFixed(2)}
+                            {quantidadeM3Direto} m³ × R$ {parseFloat(valorM3Direto).toFixed(2)} = R$ {valorTotalM3Direto}
                           </p>
                         )}
                       </div>
