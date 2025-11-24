@@ -15,7 +15,8 @@ interface ItemPedido {
   id: string;
   descricao: string;
   quantidade_m3: number;
-  quantidade_produzida: number;
+  quantidade_pecas: number;
+  quantidade_pecas_produzidas: number;
   concluido: boolean;
   produto_id?: string;
 }
@@ -40,8 +41,8 @@ export default function Pedidos() {
   const [numeroPedido, setNumeroPedido] = useState("");
   const [dataPedido, setDataPedido] = useState(new Date().toISOString().split('T')[0]);
   const [observacao, setObservacao] = useState("");
-  const [itens, setItens] = useState<Array<{ descricao: string; quantidade_m3: string; produto_id?: string }>>([
-    { descricao: "", quantidade_m3: "", produto_id: "" }
+  const [itens, setItens] = useState<Array<{ descricao: string; quantidade_m3: string; quantidade_pecas: string; produto_id?: string }>>([
+    { descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }
   ]);
 
   useEffect(() => {
@@ -114,7 +115,7 @@ export default function Pedidos() {
   };
 
   const handleAddItem = () => {
-    setItens([...itens, { descricao: "", quantidade_m3: "", produto_id: "" }]);
+    setItens([...itens, { descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -130,10 +131,10 @@ export default function Pedidos() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!numeroPedido || itens.length === 0 || itens.some(item => !item.descricao || !item.quantidade_m3)) {
+    if (!numeroPedido || itens.length === 0 || itens.some(item => !item.descricao || !item.quantidade_m3 || !item.quantidade_pecas)) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha o número do pedido e todos os itens.",
+        description: "Preencha o número do pedido e todos os itens com quantidade em m³ e peças.",
         variant: "destructive",
       });
       return;
@@ -160,6 +161,7 @@ export default function Pedidos() {
         pedido_id: pedido.id,
         descricao: item.descricao,
         quantidade_m3: parseFloat(item.quantidade_m3),
+        quantidade_pecas: parseInt(item.quantidade_pecas),
         produto_id: item.produto_id || null,
       }));
 
@@ -178,7 +180,7 @@ export default function Pedidos() {
       setNumeroPedido("");
       setDataPedido(new Date().toISOString().split('T')[0]);
       setObservacao("");
-      setItens([{ descricao: "", quantidade_m3: "", produto_id: "" }]);
+      setItens([{ descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
       fetchPedidos();
     } catch (error) {
       console.error('Erro ao criar pedido:', error);
@@ -190,26 +192,26 @@ export default function Pedidos() {
     }
   };
 
-  const updateQuantidadeProduzida = async (pedidoId: string, itemId: string, quantidade: number) => {
+  const updateQuantidadePecasProduzidas = async (pedidoId: string, itemId: string, quantidadePecas: number) => {
     try {
       const item = pedidos.find(p => p.id === pedidoId)?.itens.find(i => i.id === itemId);
       if (!item) return;
 
-      if (quantidade < 0 || quantidade > item.quantidade_m3) {
+      if (quantidadePecas < 0 || quantidadePecas > item.quantidade_pecas) {
         toast({
           title: "Quantidade inválida",
-          description: `A quantidade produzida deve estar entre 0 e ${item.quantidade_m3.toFixed(2)} m³.`,
+          description: `A quantidade produzida deve estar entre 0 e ${item.quantidade_pecas} peças.`,
           variant: "destructive",
         });
         return;
       }
 
-      const concluido = quantidade >= item.quantidade_m3;
+      const concluido = quantidadePecas >= item.quantidade_pecas;
 
       const { error } = await supabase
         .from('itens_pedido')
         .update({ 
-          quantidade_produzida: quantidade,
+          quantidade_pecas_produzidas: quantidadePecas,
           concluido: concluido
         })
         .eq('id', itemId);
@@ -220,7 +222,7 @@ export default function Pedidos() {
 
       toast({
         title: "Quantidade atualizada",
-        description: "A quantidade produzida foi atualizada com sucesso.",
+        description: "A quantidade de peças produzidas foi atualizada com sucesso.",
       });
     } catch (error) {
       console.error('Erro ao atualizar quantidade produzida:', error);
@@ -238,13 +240,13 @@ export default function Pedidos() {
       if (!item) return;
 
       const novosConcluido = !concluido;
-      const novaQuantidade = novosConcluido ? item.quantidade_m3 : 0;
+      const novaQuantidadePecas = novosConcluido ? item.quantidade_pecas : 0;
 
       const { error } = await supabase
         .from('itens_pedido')
         .update({ 
           concluido: novosConcluido,
-          quantidade_produzida: novaQuantidade
+          quantidade_pecas_produzidas: novaQuantidadePecas
         })
         .eq('id', itemId);
 
@@ -256,7 +258,7 @@ export default function Pedidos() {
           return {
             ...pedido,
             itens: pedido.itens.map(i =>
-              i.id === itemId ? { ...i, concluido: novosConcluido, quantidade_produzida: novaQuantidade } : i
+              i.id === itemId ? { ...i, concluido: novosConcluido, quantidade_pecas_produzidas: novaQuantidadePecas } : i
             )
           };
         }
@@ -451,16 +453,28 @@ export default function Pedidos() {
                       />
                     </div>
                     
-                    <div className="space-y-2">
-                      <Label>Quantidade (m³)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.quantidade_m3}
-                        onChange={(e) => handleItemChange(index, 'quantidade_m3', e.target.value)}
-                        placeholder="Ex: 10.00"
-                        required
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label>Quantidade (m³)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={item.quantidade_m3}
+                          onChange={(e) => handleItemChange(index, 'quantidade_m3', e.target.value)}
+                          placeholder="Ex: 10.00"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Quantidade (peças)</Label>
+                        <Input
+                          type="number"
+                          value={item.quantidade_pecas}
+                          onChange={(e) => handleItemChange(index, 'quantidade_pecas', e.target.value)}
+                          placeholder="Ex: 500"
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -540,8 +554,10 @@ export default function Pedidos() {
               <CardContent>
                 <div className="space-y-2">
                   {pedido.itens.map((item) => {
-                    const restante = item.quantidade_m3 - item.quantidade_produzida;
-                    const percentual = (item.quantidade_produzida / item.quantidade_m3) * 100;
+                    const pecasRestantes = item.quantidade_pecas - item.quantidade_pecas_produzidas;
+                    const m3PorPeca = item.quantidade_m3 / item.quantidade_pecas;
+                    const m3Restantes = pecasRestantes * m3PorPeca;
+                    const percentual = (item.quantidade_pecas_produzidas / item.quantidade_pecas) * 100;
                     
                     return (
                       <div
@@ -560,25 +576,24 @@ export default function Pedidos() {
                           />
                           <div className="flex-1">
                             <p className={`font-medium ${item.concluido ? 'line-through text-muted-foreground' : ''}`}>
-                              {item.quantidade_m3.toFixed(2)} m³ de {item.descricao}
+                              {item.quantidade_m3.toFixed(2)} m³ de {item.descricao} ({item.quantidade_pecas} peças)
                             </p>
                             <div className="flex items-center gap-2 mt-2">
                               <Label className="text-xs text-muted-foreground">Produzido:</Label>
                               <Input
                                 type="number"
-                                step="0.01"
                                 min="0"
-                                max={item.quantidade_m3}
-                                value={item.quantidade_produzida}
-                                onChange={(e) => updateQuantidadeProduzida(pedido.id, item.id, parseFloat(e.target.value) || 0)}
+                                max={item.quantidade_pecas}
+                                value={item.quantidade_pecas_produzidas}
+                                onChange={(e) => updateQuantidadePecasProduzidas(pedido.id, item.id, parseInt(e.target.value) || 0)}
                                 className="w-24 h-7 text-sm"
                                 disabled={pedido.concluido}
                               />
-                              <span className="text-xs text-muted-foreground">m³</span>
+                              <span className="text-xs text-muted-foreground">peças</span>
                             </div>
                             <div className="mt-2 space-y-1">
                               <div className="flex justify-between text-xs">
-                                <span className="text-muted-foreground">Restante: {restante.toFixed(2)} m³</span>
+                                <span className="text-muted-foreground">Restante: {m3Restantes.toFixed(2)} m³ ({pecasRestantes} peças)</span>
                                 <span className={`font-medium ${item.concluido ? 'text-primary' : 'text-muted-foreground'}`}>
                                   {percentual.toFixed(0)}%
                                 </span>

@@ -169,7 +169,8 @@ export type Database = {
           pedido_id: string
           produto_id: string | null
           quantidade_m3: number
-          quantidade_produzida: number
+          quantidade_pecas: number
+          quantidade_pecas_produzidas: number
         }
         Insert: {
           concluido?: boolean
@@ -179,7 +180,8 @@ export type Database = {
           pedido_id: string
           produto_id?: string | null
           quantidade_m3: number
-          quantidade_produzida?: number
+          quantidade_pecas?: number
+          quantidade_pecas_produzidas?: number
         }
         Update: {
           concluido?: boolean
@@ -189,7 +191,8 @@ export type Database = {
           pedido_id?: string
           produto_id?: string | null
           quantidade_m3?: number
-          quantidade_produzida?: number
+          quantidade_pecas?: number
+          quantidade_pecas_produzidas?: number
         }
         Relationships: [
           {
