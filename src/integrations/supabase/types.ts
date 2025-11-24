@@ -160,6 +160,84 @@ export type Database = {
           },
         ]
       }
+      itens_pedido: {
+        Row: {
+          concluido: boolean
+          created_at: string
+          descricao: string
+          id: string
+          pedido_id: string
+          produto_id: string | null
+          quantidade_m3: number
+        }
+        Insert: {
+          concluido?: boolean
+          created_at?: string
+          descricao: string
+          id?: string
+          pedido_id: string
+          produto_id?: string | null
+          quantidade_m3: number
+        }
+        Update: {
+          concluido?: boolean
+          created_at?: string
+          descricao?: string
+          id?: string
+          pedido_id?: string
+          produto_id?: string | null
+          quantidade_m3?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itens_pedido_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itens_pedido_produto_id_fkey"
+            columns: ["produto_id"]
+            isOneToOne: false
+            referencedRelation: "produtos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          concluido: boolean
+          created_at: string
+          data_pedido: string
+          empresa_id: string
+          id: string
+          numero_pedido: string
+          observacao: string | null
+          updated_at: string
+        }
+        Insert: {
+          concluido?: boolean
+          created_at?: string
+          data_pedido?: string
+          empresa_id: string
+          id?: string
+          numero_pedido: string
+          observacao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          concluido?: boolean
+          created_at?: string
+          data_pedido?: string
+          empresa_id?: string
+          id?: string
+          numero_pedido?: string
+          observacao?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       producao: {
         Row: {
           created_at: string
