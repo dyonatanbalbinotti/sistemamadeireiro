@@ -485,44 +485,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-
-      <Card className="glass-effect dark:neon-border-purple shadow-elegant neon-glow-purple overflow-hidden relative group">
-        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-purple))]/10 via-transparent to-[hsl(var(--neon-magenta))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-        <CardHeader className="relative z-10">
-          <CardTitle className="text-2xl font-tech text-foreground flex items-center gap-2">
-            <TreeDeciduous className="h-7 w-7 text-[hsl(var(--neon-purple))] dark:drop-shadow-[0_0_12px_rgba(138,43,226,0.8)]" />
-            Bem-vindo ao MadeiraStock
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-muted-foreground space-y-4 relative z-10">
-          <p className="text-base leading-relaxed">
-            Sistema completo de controle de estoque para o setor madeireiro, combinando tradição com tecnologia de ponta.
-          </p>
-          <ul className="space-y-3 ml-2">
-            {[
-              "Controle de produção com cubagem automática",
-              "Gestão de estoque de madeira serrada (unidades e m³)",
-              "Controle de toras em toneladas",
-              "Sistema de vendas integrado",
-              "Baixa automática de toras serradas"
-            ].map((item, i) => {
-              const bulletColors = [
-                'bg-[hsl(var(--neon-cyan))] dark:shadow-[0_0_6px_rgba(0,255,255,0.9)]',
-                'bg-[hsl(var(--neon-lime))] dark:shadow-[0_0_6px_rgba(173,255,47,0.9)]',
-                'bg-[hsl(var(--neon-magenta))] dark:shadow-[0_0_6px_rgba(255,0,255,0.9)]',
-                'bg-[hsl(var(--neon-purple))] dark:shadow-[0_0_6px_rgba(138,43,226,0.9)]',
-                'bg-[hsl(var(--neon-cyan))] dark:shadow-[0_0_6px_rgba(0,255,255,0.9)]'
-              ];
-              return (
-                <li key={i} className="flex items-start gap-3 group/item">
-                  <div className={`mt-1 h-2 w-2 rounded-full ${bulletColors[i]} group-hover/item:scale-150 transition-transform`} />
-                  <span className="group-hover/item:text-foreground transition-colors">{item}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </CardContent>
-      </Card>
     </div>
   );
 }

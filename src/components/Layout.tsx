@@ -9,7 +9,8 @@ import {
   LogOut,
   Settings,
   Layers,
-  TreeDeciduous
+  TreeDeciduous,
+  ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +33,7 @@ export default function Layout({ children }: LayoutProps) {
     { to: "/vendas", icon: ShoppingCart, label: "Vendas", roles: ['admin', 'user'] },
     { to: "/estoque", icon: Package, label: "Estoque", roles: ['admin', 'user'] },
     { to: "/residuos", icon: Layers, label: "Resíduos", roles: ['admin', 'user'] },
+    { to: "/pedidos", icon: ClipboardList, label: "Pedidos", roles: ['admin', 'user'] },
   ];
 
   const getRoleLabel = () => {
