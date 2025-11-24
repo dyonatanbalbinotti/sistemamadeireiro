@@ -29,11 +29,11 @@ export default function Layout({ children }: LayoutProps) {
     { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'user'] },
     ...(isAdmin ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ['admin'] }] : []),
     { to: "/toras", icon: TreeDeciduous, label: "Toras", roles: ['admin', 'user'] },
+    { to: "/pedidos", icon: ClipboardList, label: "Pedidos", roles: ['admin', 'user'] },
     { to: "/producao", icon: Factory, label: "Produção", roles: ['admin', 'user'] },
     { to: "/vendas", icon: ShoppingCart, label: "Vendas", roles: ['admin', 'user'] },
     { to: "/estoque", icon: Package, label: "Estoque", roles: ['admin', 'user'] },
     { to: "/residuos", icon: Layers, label: "Resíduos", roles: ['admin', 'user'] },
-    { to: "/pedidos", icon: ClipboardList, label: "Pedidos", roles: ['admin', 'user'] },
   ];
 
   const getRoleLabel = () => {
