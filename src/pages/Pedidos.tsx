@@ -585,7 +585,7 @@ export default function Pedidos() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Quantidade (m³)</Label>
+                        <Label>M³ do Pedido</Label>
                         <Input
                           type="number"
                           step="0.001"
@@ -852,7 +852,7 @@ export default function Pedidos() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Quantidade (m³)</Label>
+                      <Label>M³ do Pedido</Label>
                       <Input
                         type="number"
                         step="0.001"
