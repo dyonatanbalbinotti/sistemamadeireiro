@@ -18,7 +18,7 @@ interface ItemPedido {
   quantidade_pecas: number;
   quantidade_pecas_produzidas: number;
   concluido: boolean;
-  produto_id?: string;
+  produto_id: string;
 }
 
 interface Pedido {
@@ -43,15 +43,15 @@ export default function Pedidos() {
   const [numeroPedido, setNumeroPedido] = useState("");
   const [dataPedido, setDataPedido] = useState(new Date().toISOString().split('T')[0]);
   const [observacao, setObservacao] = useState("");
-  const [itens, setItens] = useState<Array<{ descricao: string; quantidade_m3: string; quantidade_pecas: string; produto_id?: string }>>([
-    { descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }
+  const [itens, setItens] = useState<Array<{ quantidade_m3: string; quantidade_pecas: string; produto_id: string }>>([
+    { quantidade_m3: "", quantidade_pecas: "", produto_id: "" }
   ]);
 
   // Form states para edição
   const [editNumeroPedido, setEditNumeroPedido] = useState("");
   const [editDataPedido, setEditDataPedido] = useState("");
   const [editObservacao, setEditObservacao] = useState("");
-  const [editItens, setEditItens] = useState<Array<{ id?: string; descricao: string; quantidade_m3: string; quantidade_pecas: string; produto_id?: string }>>([]);
+  const [editItens, setEditItens] = useState<Array<{ id?: string; quantidade_m3: string; quantidade_pecas: string; produto_id: string }>>([]);
 
   useEffect(() => {
     fetchPedidos();
@@ -123,7 +123,7 @@ export default function Pedidos() {
   };
 
   const handleAddItem = () => {
-    setItens([...itens, { descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
+    setItens([...itens, { quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -133,16 +133,27 @@ export default function Pedidos() {
   const handleItemChange = (index: number, field: string, value: string) => {
     const newItens = [...itens];
     newItens[index] = { ...newItens[index], [field]: value };
+    
+    // Auto-calcular m³ quando produto ou quantidade de peças mudar
+    if ((field === 'produto_id' || field === 'quantidade_pecas') && newItens[index].produto_id && newItens[index].quantidade_pecas) {
+      const produto = produtos.find(p => p.id === newItens[index].produto_id);
+      if (produto) {
+        const m3PorPeca = (produto.largura * produto.espessura * produto.comprimento) / 1000000000;
+        const quantidadePecas = parseFloat(newItens[index].quantidade_pecas) || 0;
+        newItens[index].quantidade_m3 = (m3PorPeca * quantidadePecas).toFixed(3);
+      }
+    }
+    
     setItens(newItens);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!numeroPedido || itens.length === 0 || itens.some(item => !item.descricao || !item.quantidade_m3 || !item.quantidade_pecas)) {
+    if (!numeroPedido || itens.length === 0 || itens.some(item => !item.produto_id || !item.quantidade_m3 || !item.quantidade_pecas)) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha o número do pedido e todos os itens com quantidade em m³ e peças.",
+        description: "Preencha o número do pedido e selecione um produto com quantidade de peças para todos os itens.",
         variant: "destructive",
       });
       return;
@@ -165,13 +176,16 @@ export default function Pedidos() {
 
       if (pedidoError) throw pedidoError;
 
-      const itensParaInserir = itens.map(item => ({
-        pedido_id: pedido.id,
-        descricao: item.descricao,
-        quantidade_m3: parseFloat(item.quantidade_m3),
-        quantidade_pecas: parseInt(item.quantidade_pecas),
-        produto_id: item.produto_id || null,
-      }));
+      const itensParaInserir = itens.map(item => {
+        const produto = produtos.find(p => p.id === item.produto_id);
+        return {
+          pedido_id: pedido.id,
+          descricao: produto ? produto.nome : "Produto",
+          quantidade_m3: parseFloat(item.quantidade_m3),
+          quantidade_pecas: parseInt(item.quantidade_pecas),
+          produto_id: item.produto_id,
+        };
+      });
 
       const { error: itensError } = await supabase
         .from('itens_pedido')
@@ -188,7 +202,7 @@ export default function Pedidos() {
       setNumeroPedido("");
       setDataPedido(new Date().toISOString().split('T')[0]);
       setObservacao("");
-      setItens([{ descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
+      setItens([{ quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
       fetchPedidos();
     } catch (error) {
       console.error('Erro ao criar pedido:', error);
@@ -359,7 +373,6 @@ export default function Pedidos() {
     setEditObservacao(pedido.observacao || "");
     setEditItens(pedido.itens.map(item => ({
       id: item.id,
-      descricao: item.descricao,
       quantidade_m3: item.quantidade_m3.toString(),
       quantidade_pecas: item.quantidade_pecas.toString(),
       produto_id: item.produto_id || "",
@@ -370,11 +383,22 @@ export default function Pedidos() {
   const handleEditItemChange = (index: number, field: string, value: string) => {
     const newItens = [...editItens];
     newItens[index] = { ...newItens[index], [field]: value };
+    
+    // Auto-calcular m³ quando produto ou quantidade de peças mudar
+    if ((field === 'produto_id' || field === 'quantidade_pecas') && newItens[index].produto_id && newItens[index].quantidade_pecas) {
+      const produto = produtos.find(p => p.id === newItens[index].produto_id);
+      if (produto) {
+        const m3PorPeca = (produto.largura * produto.espessura * produto.comprimento) / 1000000000;
+        const quantidadePecas = parseFloat(newItens[index].quantidade_pecas) || 0;
+        newItens[index].quantidade_m3 = (m3PorPeca * quantidadePecas).toFixed(3);
+      }
+    }
+    
     setEditItens(newItens);
   };
 
   const handleAddEditItem = () => {
-    setEditItens([...editItens, { descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
+    setEditItens([...editItens, { quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
   };
 
   const handleRemoveEditItem = (index: number) => {
@@ -384,10 +408,10 @@ export default function Pedidos() {
   const handleUpdatePedido = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!editandoPedidoId || !editNumeroPedido || editItens.length === 0 || editItens.some(item => !item.descricao || !item.quantidade_m3 || !item.quantidade_pecas)) {
+    if (!editandoPedidoId || !editNumeroPedido || editItens.length === 0 || editItens.some(item => !item.produto_id || !item.quantidade_m3 || !item.quantidade_pecas)) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha o número do pedido e todos os itens com quantidade em m³ e peças.",
+        description: "Preencha o número do pedido e selecione um produto com quantidade de peças para todos os itens.",
         variant: "destructive",
       });
       return;
@@ -415,13 +439,16 @@ export default function Pedidos() {
       if (deleteError) throw deleteError;
 
       // Inserir novos itens
-      const itensParaInserir = editItens.map(item => ({
-        pedido_id: editandoPedidoId,
-        descricao: item.descricao,
-        quantidade_m3: parseFloat(item.quantidade_m3),
-        quantidade_pecas: parseInt(item.quantidade_pecas),
-        produto_id: item.produto_id || null,
-      }));
+      const itensParaInserir = editItens.map(item => {
+        const produto = produtos.find(p => p.id === item.produto_id);
+        return {
+          pedido_id: editandoPedidoId,
+          descricao: produto ? produto.nome : "Produto",
+          quantidade_m3: parseFloat(item.quantidade_m3),
+          quantidade_pecas: parseInt(item.quantidade_pecas),
+          produto_id: item.produto_id,
+        };
+      });
 
       const { error: itensError } = await supabase
         .from('itens_pedido')
@@ -528,7 +555,7 @@ export default function Pedidos() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label>Produto (opcional)</Label>
+                      <Label>Produto (descrições.)</Label>
                       <Select
                         value={item.produto_id}
                         onValueChange={(value) => handleItemChange(index, 'produto_id', value)}
@@ -545,29 +572,8 @@ export default function Pedidos() {
                         </SelectContent>
                       </Select>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label>Descrição</Label>
-                      <Input
-                        value={item.descricao}
-                        onChange={(e) => handleItemChange(index, 'descricao', e.target.value)}
-                        placeholder="Ex: 30 (dimensão do produto)"
-                        required
-                      />
-                    </div>
                     
                     <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label>Quantidade (m³)</Label>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          value={item.quantidade_m3}
-                          onChange={(e) => handleItemChange(index, 'quantidade_m3', e.target.value)}
-                          placeholder="Ex: 10.00"
-                          required
-                        />
-                      </div>
                       <div className="space-y-2">
                         <Label>Quantidade (peças)</Label>
                         <Input
@@ -576,6 +582,17 @@ export default function Pedidos() {
                           onChange={(e) => handleItemChange(index, 'quantidade_pecas', e.target.value)}
                           placeholder="Ex: 500"
                           required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Quantidade (m³)</Label>
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={item.quantidade_m3}
+                          placeholder="Calculado automaticamente"
+                          readOnly
+                          className="bg-muted"
                         />
                       </div>
                     </div>
@@ -805,7 +822,7 @@ export default function Pedidos() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Produto (opcional)</Label>
+                    <Label>Produto (descrições.)</Label>
                     <Select
                       value={item.produto_id}
                       onValueChange={(value) => handleEditItemChange(index, 'produto_id', value)}
@@ -822,29 +839,8 @@ export default function Pedidos() {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label>Descrição</Label>
-                    <Input
-                      value={item.descricao}
-                      onChange={(e) => handleEditItemChange(index, 'descricao', e.target.value)}
-                      placeholder="Ex: 30 (dimensão do produto)"
-                      required
-                    />
-                  </div>
                   
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label>Quantidade (m³)</Label>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        value={item.quantidade_m3}
-                        onChange={(e) => handleEditItemChange(index, 'quantidade_m3', e.target.value)}
-                        placeholder="Ex: 10.00"
-                        required
-                      />
-                    </div>
                     <div className="space-y-2">
                       <Label>Quantidade (peças)</Label>
                       <Input
@@ -853,6 +849,17 @@ export default function Pedidos() {
                         onChange={(e) => handleEditItemChange(index, 'quantidade_pecas', e.target.value)}
                         placeholder="Ex: 500"
                         required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantidade (m³)</Label>
+                      <Input
+                        type="number"
+                        step="0.001"
+                        value={item.quantidade_m3}
+                        placeholder="Calculado automaticamente"
+                        readOnly
+                        className="bg-muted"
                       />
                     </div>
                   </div>
