@@ -138,9 +138,8 @@ export default function Pedidos() {
     if ((field === 'produto_id' || field === 'quantidade_pecas') && newItens[index].produto_id && newItens[index].quantidade_pecas) {
       const produto = produtos.find(p => p.id === newItens[index].produto_id);
       if (produto) {
-        const m3PorPeca = (produto.largura * produto.espessura * produto.comprimento) / 1000000;
         const quantidadePecas = parseFloat(newItens[index].quantidade_pecas) || 0;
-        newItens[index].quantidade_m3 = (m3PorPeca * quantidadePecas).toFixed(3);
+        newItens[index].quantidade_m3 = (quantidadePecas * produto.largura * produto.espessura * produto.comprimento).toFixed(3);
       }
     }
     
@@ -388,9 +387,8 @@ export default function Pedidos() {
     if ((field === 'produto_id' || field === 'quantidade_pecas') && newItens[index].produto_id && newItens[index].quantidade_pecas) {
       const produto = produtos.find(p => p.id === newItens[index].produto_id);
       if (produto) {
-        const m3PorPeca = (produto.largura * produto.espessura * produto.comprimento) / 1000000;
         const quantidadePecas = parseFloat(newItens[index].quantidade_pecas) || 0;
-        newItens[index].quantidade_m3 = (m3PorPeca * quantidadePecas).toFixed(3);
+        newItens[index].quantidade_m3 = (quantidadePecas * produto.largura * produto.espessura * produto.comprimento).toFixed(3);
       }
     }
     
