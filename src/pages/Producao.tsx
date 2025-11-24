@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Factory, BarChart3 } from "lucide-react";
+import { Plus, Edit, Trash2, Factory, BarChart3, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
@@ -18,6 +18,7 @@ import { useEmpresaId } from "@/hooks/useEmpresaId";
 import { getTodayBR, formatDateBR } from "@/lib/dateUtils";
 import { subDays, format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export default function Producao() {
   const { user } = useAuth();
@@ -41,6 +42,8 @@ export default function Producao() {
   const [larguraProduto, setLarguraProduto] = useState("");
   const [espessuraProduto, setEspessuraProduto] = useState("");
   const [comprimentoProduto, setComprimentoProduto] = useState("");
+  const [editandoProdutoId, setEditandoProdutoId] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -350,6 +353,65 @@ export default function Producao() {
     }
   };
 
+  const handleEditProduto = (produto: Produto) => {
+    setEditandoProdutoId(produto.id);
+    setNomeProduto(produto.nome);
+    setTipoProduto(produto.tipo);
+    setLarguraProduto(produto.largura.toString());
+    setEspessuraProduto(produto.espessura.toString());
+    setComprimentoProduto(produto.comprimento.toString());
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateProduto = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editandoProdutoId || !nomeProduto || !tipoProduto || !larguraProduto || !espessuraProduto || !comprimentoProduto) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('produtos')
+        .update({
+          nome: nomeProduto,
+          tipo: tipoProduto,
+          largura: parseFloat(larguraProduto),
+          espessura: parseFloat(espessuraProduto),
+          comprimento: parseFloat(comprimentoProduto),
+        })
+        .eq('id', editandoProdutoId);
+
+      if (error) throw error;
+
+      setProdutos(produtos.map(p => 
+        p.id === editandoProdutoId 
+          ? {
+              ...p,
+              nome: nomeProduto,
+              tipo: tipoProduto,
+              largura: parseFloat(larguraProduto),
+              espessura: parseFloat(espessuraProduto),
+              comprimento: parseFloat(comprimentoProduto),
+            }
+          : p
+      ));
+
+      toast.success("Produto atualizado com sucesso!");
+      setEditDialogOpen(false);
+      setEditandoProdutoId(null);
+      setNomeProduto("");
+      setTipoProduto("");
+      setLarguraProduto("");
+      setEspessuraProduto("");
+      setComprimentoProduto("");
+    } catch (error) {
+      console.error('Erro ao atualizar produto:', error);
+      toast.error('Erro ao atualizar produto');
+    }
+  };
+
   const handleDelete = async (id: string) => {
     try {
       const { error } = await supabase
@@ -488,14 +550,24 @@ export default function Producao() {
                           {produto.largura}×{produto.espessura}×{produto.comprimento}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() => handleDeleteProduto(produto.id)}
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleEditProduto(produto)}
+                              className="h-8 w-8"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleDeleteProduto(produto.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -504,6 +576,93 @@ export default function Producao() {
               </div>
             </CardContent>
           </Card>
+
+          {/* Dialog de Edição de Produto */}
+          <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Editar Produto</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleUpdateProduto} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-nome">Nome do Produto</Label>
+                  <Input
+                    id="edit-nome"
+                    value={nomeProduto}
+                    onChange={(e) => setNomeProduto(e.target.value)}
+                    placeholder="Ex: Tábua"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-tipo">Tipo</Label>
+                  <Input
+                    id="edit-tipo"
+                    value={tipoProduto}
+                    onChange={(e) => setTipoProduto(e.target.value)}
+                    placeholder="Ex: Madeira Serrada"
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-largura">Largura (cm)</Label>
+                    <Input
+                      id="edit-largura"
+                      type="number"
+                      step="0.01"
+                      value={larguraProduto}
+                      onChange={(e) => setLarguraProduto(e.target.value)}
+                      placeholder="Ex: 10"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-espessura">Espessura (cm)</Label>
+                    <Input
+                      id="edit-espessura"
+                      type="number"
+                      step="0.01"
+                      value={espessuraProduto}
+                      onChange={(e) => setEspessuraProduto(e.target.value)}
+                      placeholder="Ex: 2.5"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-comprimento">Comprimento (m)</Label>
+                    <Input
+                      id="edit-comprimento"
+                      type="number"
+                      step="0.01"
+                      value={comprimentoProduto}
+                      onChange={(e) => setComprimentoProduto(e.target.value)}
+                      placeholder="Ex: 3"
+                      required
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditDialogOpen(false);
+                      setEditandoProdutoId(null);
+                      setNomeProduto("");
+                      setTipoProduto("");
+                      setLarguraProduto("");
+                      setEspessuraProduto("");
+                      setComprimentoProduto("");
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button type="submit">Salvar Alterações</Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="producao" className="space-y-6">
