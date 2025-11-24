@@ -258,6 +258,20 @@ export default function Toras() {
 
   const handleDeleteTora = async (id: string) => {
     try {
+      // Verificar se há produções vinculadas a essa tora
+      const { data: producoes, error: checkError } = await supabase
+        .from('producao')
+        .select('id')
+        .eq('tora_id', id)
+        .limit(1);
+
+      if (checkError) throw checkError;
+
+      if (producoes && producoes.length > 0) {
+        toast.error('Não é possível excluir esta tora pois existem produções vinculadas a ela');
+        return;
+      }
+
       const { error } = await supabase
         .from('toras')
         .delete()
