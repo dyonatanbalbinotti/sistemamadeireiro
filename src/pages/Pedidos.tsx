@@ -15,6 +15,7 @@ interface ItemPedido {
   id: string;
   descricao: string;
   quantidade_m3: number;
+  quantidade_produzida: number;
   concluido: boolean;
   produto_id?: string;
 }
@@ -189,11 +190,62 @@ export default function Pedidos() {
     }
   };
 
-  const toggleItemConcluido = async (pedidoId: string, itemId: string, concluido: boolean) => {
+  const updateQuantidadeProduzida = async (pedidoId: string, itemId: string, quantidade: number) => {
     try {
+      const item = pedidos.find(p => p.id === pedidoId)?.itens.find(i => i.id === itemId);
+      if (!item) return;
+
+      if (quantidade < 0 || quantidade > item.quantidade_m3) {
+        toast({
+          title: "Quantidade inválida",
+          description: `A quantidade produzida deve estar entre 0 e ${item.quantidade_m3.toFixed(2)} m³.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const concluido = quantidade >= item.quantidade_m3;
+
       const { error } = await supabase
         .from('itens_pedido')
-        .update({ concluido: !concluido })
+        .update({ 
+          quantidade_produzida: quantidade,
+          concluido: concluido
+        })
+        .eq('id', itemId);
+
+      if (error) throw error;
+
+      fetchPedidos();
+
+      toast({
+        title: "Quantidade atualizada",
+        description: "A quantidade produzida foi atualizada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao atualizar quantidade produzida:', error);
+      toast({
+        title: "Erro ao atualizar quantidade",
+        description: "Não foi possível atualizar a quantidade produzida.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleItemConcluido = async (pedidoId: string, itemId: string, concluido: boolean) => {
+    try {
+      const item = pedidos.find(p => p.id === pedidoId)?.itens.find(i => i.id === itemId);
+      if (!item) return;
+
+      const novosConcluido = !concluido;
+      const novaQuantidade = novosConcluido ? item.quantidade_m3 : 0;
+
+      const { error } = await supabase
+        .from('itens_pedido')
+        .update({ 
+          concluido: novosConcluido,
+          quantidade_produzida: novaQuantidade
+        })
         .eq('id', itemId);
 
       if (error) throw error;
@@ -203,8 +255,8 @@ export default function Pedidos() {
         if (pedido.id === pedidoId) {
           return {
             ...pedido,
-            itens: pedido.itens.map(item =>
-              item.id === itemId ? { ...item, concluido: !concluido } : item
+            itens: pedido.itens.map(i =>
+              i.id === itemId ? { ...i, concluido: novosConcluido, quantidade_produzida: novaQuantidade } : i
             )
           };
         }
@@ -215,7 +267,7 @@ export default function Pedidos() {
       const pedido = pedidos.find(p => p.id === pedidoId);
       if (pedido) {
         const todosItensCompletos = pedido.itens
-          .map(item => item.id === itemId ? !concluido : item.concluido)
+          .map(i => i.id === itemId ? novosConcluido : i.concluido)
           .every(c => c);
 
         if (todosItensCompletos) {
@@ -487,27 +539,62 @@ export default function Pedidos() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {pedido.itens.map((item) => (
-                    <div
-                      key={item.id}
-                      className={`flex items-start gap-3 p-3 rounded-lg border ${
-                        item.concluido ? 'bg-muted/50 line-through' : 'bg-background'
-                      }`}
-                    >
-                      <Checkbox
-                        checked={item.concluido}
-                        onCheckedChange={() =>
-                          toggleItemConcluido(pedido.id, item.id, item.concluido)
-                        }
-                        className="mt-1"
-                      />
-                      <div className="flex-1">
-                        <p className="font-medium">
-                          {item.quantidade_m3.toFixed(2)} m³ de {item.descricao}
-                        </p>
+                  {pedido.itens.map((item) => {
+                    const restante = item.quantidade_m3 - item.quantidade_produzida;
+                    const percentual = (item.quantidade_produzida / item.quantidade_m3) * 100;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        className={`p-3 rounded-lg border ${
+                          item.concluido ? 'bg-primary/5 border-primary/20' : 'bg-background'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3 mb-2">
+                          <Checkbox
+                            checked={item.concluido}
+                            onCheckedChange={() =>
+                              toggleItemConcluido(pedido.id, item.id, item.concluido)
+                            }
+                            className="mt-1"
+                          />
+                          <div className="flex-1">
+                            <p className={`font-medium ${item.concluido ? 'line-through text-muted-foreground' : ''}`}>
+                              {item.quantidade_m3.toFixed(2)} m³ de {item.descricao}
+                            </p>
+                            <div className="flex items-center gap-2 mt-2">
+                              <Label className="text-xs text-muted-foreground">Produzido:</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max={item.quantidade_m3}
+                                value={item.quantidade_produzida}
+                                onChange={(e) => updateQuantidadeProduzida(pedido.id, item.id, parseFloat(e.target.value) || 0)}
+                                className="w-24 h-7 text-sm"
+                                disabled={pedido.concluido}
+                              />
+                              <span className="text-xs text-muted-foreground">m³</span>
+                            </div>
+                            <div className="mt-2 space-y-1">
+                              <div className="flex justify-between text-xs">
+                                <span className="text-muted-foreground">Restante: {restante.toFixed(2)} m³</span>
+                                <span className={`font-medium ${item.concluido ? 'text-primary' : 'text-muted-foreground'}`}>
+                                  {percentual.toFixed(0)}%
+                                </span>
+                              </div>
+                              <div className="w-full bg-muted rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${item.concluido ? 'bg-primary' : 'bg-primary/60'}`}
+                                  style={{ width: `${Math.min(percentual, 100)}%` }}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 <div className="mt-4 pt-4 border-t">
                   <p className="text-sm font-medium">
