@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ClipboardList, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -35,6 +35,8 @@ export default function Pedidos() {
   const [produtos, setProdutos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editandoPedidoId, setEditandoPedidoId] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Form states
@@ -44,6 +46,12 @@ export default function Pedidos() {
   const [itens, setItens] = useState<Array<{ descricao: string; quantidade_m3: string; quantidade_pecas: string; produto_id?: string }>>([
     { descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }
   ]);
+
+  // Form states para edição
+  const [editNumeroPedido, setEditNumeroPedido] = useState("");
+  const [editDataPedido, setEditDataPedido] = useState("");
+  const [editObservacao, setEditObservacao] = useState("");
+  const [editItens, setEditItens] = useState<Array<{ id?: string; descricao: string; quantidade_m3: string; quantidade_pecas: string; produto_id?: string }>>([]);
 
   useEffect(() => {
     fetchPedidos();
@@ -344,6 +352,101 @@ export default function Pedidos() {
     }
   };
 
+  const handleEditPedido = (pedido: Pedido) => {
+    setEditandoPedidoId(pedido.id);
+    setEditNumeroPedido(pedido.numero_pedido);
+    setEditDataPedido(pedido.data_pedido);
+    setEditObservacao(pedido.observacao || "");
+    setEditItens(pedido.itens.map(item => ({
+      id: item.id,
+      descricao: item.descricao,
+      quantidade_m3: item.quantidade_m3.toString(),
+      quantidade_pecas: item.quantidade_pecas.toString(),
+      produto_id: item.produto_id || "",
+    })));
+    setEditDialogOpen(true);
+  };
+
+  const handleEditItemChange = (index: number, field: string, value: string) => {
+    const newItens = [...editItens];
+    newItens[index] = { ...newItens[index], [field]: value };
+    setEditItens(newItens);
+  };
+
+  const handleAddEditItem = () => {
+    setEditItens([...editItens, { descricao: "", quantidade_m3: "", quantidade_pecas: "", produto_id: "" }]);
+  };
+
+  const handleRemoveEditItem = (index: number) => {
+    setEditItens(editItens.filter((_, i) => i !== index));
+  };
+
+  const handleUpdatePedido = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!editandoPedidoId || !editNumeroPedido || editItens.length === 0 || editItens.some(item => !item.descricao || !item.quantidade_m3 || !item.quantidade_pecas)) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o número do pedido e todos os itens com quantidade em m³ e peças.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Atualizar pedido
+      const { error: pedidoError } = await supabase
+        .from('pedidos')
+        .update({
+          numero_pedido: editNumeroPedido,
+          data_pedido: editDataPedido,
+          observacao: editObservacao || null,
+        })
+        .eq('id', editandoPedidoId);
+
+      if (pedidoError) throw pedidoError;
+
+      // Deletar itens antigos
+      const { error: deleteError } = await supabase
+        .from('itens_pedido')
+        .delete()
+        .eq('pedido_id', editandoPedidoId);
+
+      if (deleteError) throw deleteError;
+
+      // Inserir novos itens
+      const itensParaInserir = editItens.map(item => ({
+        pedido_id: editandoPedidoId,
+        descricao: item.descricao,
+        quantidade_m3: parseFloat(item.quantidade_m3),
+        quantidade_pecas: parseInt(item.quantidade_pecas),
+        produto_id: item.produto_id || null,
+      }));
+
+      const { error: itensError } = await supabase
+        .from('itens_pedido')
+        .insert(itensParaInserir);
+
+      if (itensError) throw itensError;
+
+      toast({
+        title: "Pedido atualizado",
+        description: "O pedido foi atualizado com sucesso.",
+      });
+
+      setEditDialogOpen(false);
+      setEditandoPedidoId(null);
+      fetchPedidos();
+    } catch (error) {
+      console.error('Erro ao atualizar pedido:', error);
+      toast({
+        title: "Erro ao atualizar pedido",
+        description: "Não foi possível atualizar o pedido.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
       <div className="flex justify-between items-center">
@@ -541,14 +644,24 @@ export default function Pedidos() {
                       </p>
                     )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deletePedido(pedido.id)}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditPedido(pedido)}
+                      className="hover:bg-primary/10"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deletePedido(pedido.id)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -624,6 +737,145 @@ export default function Pedidos() {
           ))}
         </div>
       )}
+
+      {/* Dialog de Edição de Pedido */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Pedido</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdatePedido} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-numero">Número do Pedido</Label>
+                <Input
+                  id="edit-numero"
+                  value={editNumeroPedido}
+                  onChange={(e) => setEditNumeroPedido(e.target.value)}
+                  placeholder="Ex: 001"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-data">Data</Label>
+                <Input
+                  id="edit-data"
+                  type="date"
+                  value={editDataPedido}
+                  onChange={(e) => setEditDataPedido(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-observacao">Observações</Label>
+              <Textarea
+                id="edit-observacao"
+                value={editObservacao}
+                onChange={(e) => setEditObservacao(e.target.value)}
+                placeholder="Observações sobre o pedido (opcional)"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <Label>Itens do Pedido</Label>
+                <Button type="button" variant="outline" size="sm" onClick={handleAddEditItem}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  Adicionar Item
+                </Button>
+              </div>
+
+              {editItens.map((item, index) => (
+                <div key={index} className="p-4 border rounded-lg space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Item {index + 1}</span>
+                    {editItens.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveEditItem(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label>Produto (opcional)</Label>
+                    <Select
+                      value={item.produto_id}
+                      onValueChange={(value) => handleEditItemChange(index, 'produto_id', value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione um produto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {produtos.map((produto) => (
+                          <SelectItem key={produto.id} value={produto.id}>
+                            {produto.nome} ({produto.largura}x{produto.espessura}x{produto.comprimento})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Descrição</Label>
+                    <Input
+                      value={item.descricao}
+                      onChange={(e) => handleEditItemChange(index, 'descricao', e.target.value)}
+                      placeholder="Ex: 30 (dimensão do produto)"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Quantidade (m³)</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        value={item.quantidade_m3}
+                        onChange={(e) => handleEditItemChange(index, 'quantidade_m3', e.target.value)}
+                        placeholder="Ex: 10.00"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Quantidade (peças)</Label>
+                      <Input
+                        type="number"
+                        value={item.quantidade_pecas}
+                        onChange={(e) => handleEditItemChange(index, 'quantidade_pecas', e.target.value)}
+                        placeholder="Ex: 500"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-2 justify-end pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => {
+                  setEditDialogOpen(false);
+                  setEditandoPedidoId(null);
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit">Salvar Alterações</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
