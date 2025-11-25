@@ -12,6 +12,7 @@ import { getTodayBR, formatInBrazilTimezone } from "@/lib/dateUtils";
 import { subDays, subMonths, format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Dashboard() {
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
@@ -22,6 +23,7 @@ export default function Dashboard() {
   const [producaoDiariaData, setProducaoDiariaData] = useState<any[]>([]);
   const [producaoMensalData, setProducaoMensalData] = useState<any[]>([]);
   const [financeiroData, setFinanceiroData] = useState<any[]>([]);
+  const [periodoFinanceiro, setPeriodoFinanceiro] = useState<string>("6");
   const [loading, setLoading] = useState(true);
   const [alertasAtivos, setAlertasAtivos] = useState<any[]>([]);
   const { toast } = useToast();
@@ -126,15 +128,28 @@ export default function Dashboard() {
           setProducaoMensalData(producaoPorMes);
         }
 
-        // Buscar dados financeiros - últimos 6 meses
-        const last6MonthsFinanceiro = Array.from({ length: 6 }, (_, i) => {
-          const date = subMonths(nowBR, 5 - i);
-          return {
-            year: date.getFullYear(),
-            month: date.getMonth() + 1,
-            label: format(date, 'MMM/yy', { locale: ptBR })
-          };
-        });
+        // Buscar dados financeiros com período selecionado
+        await carregarDadosFinanceiros(nowBR, parseInt(periodoFinanceiro));
+      } catch (error) {
+        console.error('Erro ao carregar dados do dashboard:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [periodoFinanceiro]);
+
+  const carregarDadosFinanceiros = async (nowBR: Date, meses: number) => {
+    try {
+      const lastMonthsFinanceiro = Array.from({ length: meses }, (_, i) => {
+        const date = subMonths(nowBR, meses - 1 - i);
+        return {
+          year: date.getFullYear(),
+          month: date.getMonth() + 1,
+          label: format(date, 'MMM/yy', { locale: ptBR })
+        };
+      });
 
         // Buscar toras com valor
         const { data: torasComValor } = await supabase
@@ -149,7 +164,7 @@ export default function Dashboard() {
           .select('data, valor_total')
           .order('data', { ascending: true });
 
-        const financeiroPorMes = last6MonthsFinanceiro.map(({ year, month, label }) => {
+        const financeiroPorMes = lastMonthsFinanceiro.map(({ year, month, label }) => {
           const despesas = torasComValor?.filter(t => {
             const tDate = toZonedTime(new Date(t.data), 'America/Sao_Paulo');
             return tDate.getFullYear() === year && tDate.getMonth() + 1 === month;
@@ -165,18 +180,13 @@ export default function Dashboard() {
             despesas: parseFloat(despesas.toFixed(2)),
             receitas: parseFloat(receitas.toFixed(2))
           };
-        });
+      });
 
-        setFinanceiroData(financeiroPorMes);
-      } catch (error) {
-        console.error('Erro ao carregar dados do dashboard:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
+      setFinanceiroData(financeiroPorMes);
+    } catch (error) {
+      console.error('Erro ao carregar dados financeiros:', error);
+    }
+  };
 
   const verificarAlertas = async (
     serrado: EstoqueSerrado[], 
@@ -533,10 +543,22 @@ export default function Dashboard() {
       <Card className="glass-effect dark:neon-border-purple shadow-elegant neon-glow-purple overflow-hidden relative group">
         <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-purple))]/10 via-transparent to-[hsl(var(--neon-purple))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
         <CardHeader className="relative z-10">
-          <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-[hsl(var(--neon-purple))] dark:drop-shadow-[0_0_8px_rgba(138,43,226,0.5)]" />
-            Fluxo Financeiro - Últimos 6 Meses
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-[hsl(var(--neon-purple))] dark:drop-shadow-[0_0_8px_rgba(138,43,226,0.5)]" />
+              Fluxo Financeiro
+            </CardTitle>
+            <Select value={periodoFinanceiro} onValueChange={setPeriodoFinanceiro}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">Últimos 3 meses</SelectItem>
+                <SelectItem value="6">Últimos 6 meses</SelectItem>
+                <SelectItem value="12">Último ano</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent className="relative z-10">
           <ResponsiveContainer width="100%" height={350}>
