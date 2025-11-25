@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [estoqueData, setEstoqueData] = useState<any[]>([]);
   const [producaoDiariaData, setProducaoDiariaData] = useState<any[]>([]);
   const [producaoMensalData, setProducaoMensalData] = useState<any[]>([]);
+  const [financeiroData, setFinanceiroData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [alertasAtivos, setAlertasAtivos] = useState<any[]>([]);
   const { toast } = useToast();
@@ -124,6 +125,49 @@ export default function Dashboard() {
           });
           setProducaoMensalData(producaoPorMes);
         }
+
+        // Buscar dados financeiros - últimos 6 meses
+        const last6MonthsFinanceiro = Array.from({ length: 6 }, (_, i) => {
+          const date = subMonths(nowBR, 5 - i);
+          return {
+            year: date.getFullYear(),
+            month: date.getMonth() + 1,
+            label: format(date, 'MMM/yy', { locale: ptBR })
+          };
+        });
+
+        // Buscar toras com valor
+        const { data: torasComValor } = await supabase
+          .from('toras')
+          .select('data, valor_total_carga')
+          .not('valor_total_carga', 'is', null)
+          .order('data', { ascending: true });
+
+        // Buscar vendas
+        const { data: vendasComValor } = await supabase
+          .from('vendas')
+          .select('data, valor_total')
+          .order('data', { ascending: true });
+
+        const financeiroPorMes = last6MonthsFinanceiro.map(({ year, month, label }) => {
+          const despesas = torasComValor?.filter(t => {
+            const tDate = toZonedTime(new Date(t.data), 'America/Sao_Paulo');
+            return tDate.getFullYear() === year && tDate.getMonth() + 1 === month;
+          }).reduce((sum, t) => sum + parseFloat(t.valor_total_carga.toString()), 0) || 0;
+
+          const receitas = vendasComValor?.filter(v => {
+            const vDate = toZonedTime(new Date(v.data), 'America/Sao_Paulo');
+            return vDate.getFullYear() === year && vDate.getMonth() + 1 === month;
+          }).reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0) || 0;
+
+          return {
+            mes: label,
+            despesas: parseFloat(despesas.toFixed(2)),
+            receitas: parseFloat(receitas.toFixed(2))
+          };
+        });
+
+        setFinanceiroData(financeiroPorMes);
       } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
       } finally {
@@ -485,6 +529,63 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="glass-effect dark:neon-border-purple shadow-elegant neon-glow-purple overflow-hidden relative group">
+        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-purple))]/10 via-transparent to-[hsl(var(--neon-purple))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+        <CardHeader className="relative z-10">
+          <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
+            <DollarSign className="h-5 w-5 text-[hsl(var(--neon-purple))] dark:drop-shadow-[0_0_8px_rgba(138,43,226,0.5)]" />
+            Fluxo Financeiro - Últimos 6 Meses
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="relative z-10">
+          <ResponsiveContainer width="100%" height={350}>
+            <BarChart data={financeiroData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis dataKey="mes" className="text-xs" />
+              <YAxis className="text-xs" />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--background))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px'
+                }}
+                formatter={(value: number, name: string) => [
+                  `R$ ${value.toFixed(2)}`, 
+                  name === 'despesas' ? 'Despesas' : 'Receitas'
+                ]}
+              />
+              <Legend />
+              <Bar dataKey="despesas" fill="hsl(var(--destructive))" radius={[8, 8, 0, 0]} name="Despesas" />
+              <Bar dataKey="receitas" fill="hsl(var(--chart-green))" radius={[8, 8, 0, 0]} name="Receitas" className="dark:fill-[hsl(var(--neon-lime))]" />
+            </BarChart>
+          </ResponsiveContainer>
+          <div className="mt-4 grid grid-cols-3 gap-4">
+            <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+              <p className="text-xs text-muted-foreground mb-1">Total Despesas</p>
+              <p className="text-lg font-bold text-destructive">
+                R$ {financeiroData.reduce((sum, d) => sum + d.despesas, 0).toFixed(2)}
+              </p>
+            </div>
+            <div className="p-4 bg-chart-green/10 rounded-lg border border-chart-green/20">
+              <p className="text-xs text-muted-foreground mb-1">Total Receitas</p>
+              <p className="text-lg font-bold text-chart-green dark:text-[hsl(var(--neon-lime))]">
+                R$ {financeiroData.reduce((sum, d) => sum + d.receitas, 0).toFixed(2)}
+              </p>
+            </div>
+            <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+              <p className="text-xs text-muted-foreground mb-1">Saldo</p>
+              <p className={`text-lg font-bold ${
+                financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0) >= 0 
+                  ? 'text-chart-green dark:text-[hsl(var(--neon-lime))]' 
+                  : 'text-destructive'
+              }`}>
+                R$ {financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0).toFixed(2)}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
