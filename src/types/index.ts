@@ -32,6 +32,8 @@ export interface Tora {
   pesoCarga?: number;
   quantidadeToras?: number;
   pesoPorTora?: number;
+  valorPorTonelada?: number;
+  valorTotalCarga?: number;
 }
 
 export interface ToraSerrada {

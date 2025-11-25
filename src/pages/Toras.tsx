@@ -25,6 +25,7 @@ export default function Toras() {
   const [descricaoTora, setDescricaoTora] = useState("");
   const [pesoCargaTora, setPesoCargaTora] = useState("");
   const [quantidadeTorasCarga, setQuantidadeTorasCarga] = useState("");
+  const [valorPorTonelada, setValorPorTonelada] = useState("");
   const [editingToraId, setEditingToraId] = useState<string | null>(null);
 
   // Form states - Toras Serradas
@@ -56,6 +57,8 @@ export default function Toras() {
             pesoCarga: t.peso_carga ? Number(t.peso_carga) : undefined,
             quantidadeToras: t.quantidade_toras ? Number(t.quantidade_toras) : undefined,
             pesoPorTora: t.peso_por_tora ? Number(t.peso_por_tora) : undefined,
+            valorPorTonelada: t.valor_por_tonelada ? Number(t.valor_por_tonelada) : undefined,
+            valorTotalCarga: t.valor_total_carga ? Number(t.valor_total_carga) : undefined,
           })));
         }
 
@@ -96,6 +99,7 @@ export default function Toras() {
     
     const pesoCarga = parseFloat(pesoCargaTora);
     const qtdToras = parseInt(quantidadeTorasCarga);
+    const valorTon = parseFloat(valorPorTonelada) || 0;
     
     if (!descricaoTora || isNaN(pesoCarga) || isNaN(qtdToras) || qtdToras <= 0) {
       toast.error("Preencha todos os campos corretamente");
@@ -108,6 +112,8 @@ export default function Toras() {
     }
 
     const pesoPorTora = pesoCarga / qtdToras;
+    const toneladas = pesoCarga / 1000;
+    const valorTotalCarga = valorTon > 0 ? valorTon * toneladas : 0;
 
     try {
       if (editingToraId) {
@@ -116,10 +122,12 @@ export default function Toras() {
           .update({
             descricao: descricaoTora,
             peso: pesoCarga,
-            toneladas: pesoCarga / 1000,
+            toneladas: toneladas,
             peso_carga: pesoCarga,
             quantidade_toras: qtdToras,
             peso_por_tora: pesoPorTora,
+            valor_por_tonelada: valorTon > 0 ? valorTon : null,
+            valor_total_carga: valorTotalCarga > 0 ? valorTotalCarga : null,
           })
           .eq('id', editingToraId);
 
@@ -129,10 +137,12 @@ export default function Toras() {
           ...t,
           descricao: descricaoTora,
           peso: pesoCarga,
-          toneladas: pesoCarga / 1000,
+          toneladas: toneladas,
           pesoCarga: pesoCarga,
           quantidadeToras: qtdToras,
           pesoPorTora: pesoPorTora,
+          valorPorTonelada: valorTon > 0 ? valorTon : undefined,
+          valorTotalCarga: valorTotalCarga > 0 ? valorTotalCarga : undefined,
         } : t));
         
         toast.success("Tora atualizada com sucesso!");
@@ -143,10 +153,12 @@ export default function Toras() {
             data: getTodayBR(),
             descricao: descricaoTora,
             peso: pesoCarga,
-            toneladas: pesoCarga / 1000,
+            toneladas: toneladas,
             peso_carga: pesoCarga,
             quantidade_toras: qtdToras,
             peso_por_tora: pesoPorTora,
+            valor_por_tonelada: valorTon > 0 ? valorTon : null,
+            valor_total_carga: valorTotalCarga > 0 ? valorTotalCarga : null,
             user_id: user.id,
             empresa_id: empresaId,
           })
@@ -166,6 +178,8 @@ export default function Toras() {
             pesoCarga: Number(data.peso_carga),
             quantidadeToras: Number(data.quantidade_toras),
             pesoPorTora: Number(data.peso_por_tora),
+            valorPorTonelada: data.valor_por_tonelada ? Number(data.valor_por_tonelada) : undefined,
+            valorTotalCarga: data.valor_total_carga ? Number(data.valor_total_carga) : undefined,
           };
 
           setToras([novaTora, ...toras]);
@@ -176,6 +190,7 @@ export default function Toras() {
       setDescricaoTora("");
       setPesoCargaTora("");
       setQuantidadeTorasCarga("");
+      setValorPorTonelada("");
       setEditingToraId(null);
     } catch (error) {
       console.error('Erro ao salvar tora:', error);
@@ -253,6 +268,7 @@ export default function Toras() {
     setDescricaoTora(tora.descricao);
     setPesoCargaTora(tora.pesoCarga?.toString() || "");
     setQuantidadeTorasCarga(tora.quantidadeToras?.toString() || "");
+    setValorPorTonelada(tora.valorPorTonelada?.toString() || "");
     setEditingToraId(tora.id);
   };
 
@@ -372,6 +388,30 @@ export default function Toras() {
                     />
                   </div>
                 </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="valorPorTonelada">Valor por Tonelada (R$)</Label>
+                    <Input
+                      id="valorPorTonelada"
+                      type="number"
+                      step="0.01"
+                      value={valorPorTonelada}
+                      onChange={(e) => setValorPorTonelada(e.target.value)}
+                      placeholder="0.00"
+                      className="border-input"
+                    />
+                  </div>
+                  {valorPorTonelada && pesoCargaTora && (
+                    <div className="space-y-2">
+                      <Label>Valor Total da Carga</Label>
+                      <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted/50 flex items-center">
+                        <span className="font-semibold text-primary">
+                          R$ {((parseFloat(valorPorTonelada) || 0) * ((parseFloat(pesoCargaTora) || 0) / 1000)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
                   {editingToraId ? "Atualizar Tora" : "Adicionar Tora"}
@@ -385,6 +425,7 @@ export default function Toras() {
                       setDescricaoTora("");
                       setPesoCargaTora("");
                       setQuantidadeTorasCarga("");
+                      setValorPorTonelada("");
                     }}
                     className="ml-2"
                   >
@@ -410,6 +451,8 @@ export default function Toras() {
                       <TableHead>Qtd Toras</TableHead>
                       <TableHead>Peso/Tora (kg)</TableHead>
                       <TableHead>Toneladas</TableHead>
+                      <TableHead>Valor/Ton (R$)</TableHead>
+                      <TableHead>Valor Total (R$)</TableHead>
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -423,6 +466,12 @@ export default function Toras() {
                         <TableCell>{tora.pesoPorTora?.toFixed(2)} kg</TableCell>
                         <TableCell className="font-semibold text-primary">
                           {tora.toneladas.toFixed(2)} T
+                        </TableCell>
+                        <TableCell>
+                          {tora.valorPorTonelada ? `R$ ${tora.valorPorTonelada.toFixed(2)}` : '-'}
+                        </TableCell>
+                        <TableCell className="font-semibold text-green-600">
+                          {tora.valorTotalCarga ? `R$ ${tora.valorTotalCarga.toFixed(2)}` : '-'}
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
