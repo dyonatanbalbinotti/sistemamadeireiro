@@ -17,6 +17,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Admin from "./pages/Admin";
 import Pedidos from "./pages/Pedidos";
 import RelatoriosFinanceiros from "./pages/RelatoriosFinanceiros";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +34,7 @@ const AppContent = () => {
       <Route path="/residuos" element={<ProtectedRoute><Layout><Cavaco /></Layout></ProtectedRoute>} />
       <Route path="/pedidos" element={<ProtectedRoute><Layout><Pedidos /></Layout></ProtectedRoute>} />
       <Route path="/relatorios-financeiros" element={<ProtectedRoute><Layout><RelatoriosFinanceiros /></Layout></ProtectedRoute>} />
+      <Route path="/install" element={<Install />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
