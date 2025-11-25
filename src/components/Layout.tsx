@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import ThemeToggle from "@/components/ThemeToggle";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 import dwLogo from "@/assets/dw-logo.png";
 
 interface LayoutProps {
@@ -105,6 +106,7 @@ export default function Layout({ children }: LayoutProps) {
       <main className="container mx-auto px-4 py-8">
         {children}
       </main>
+      <OfflineIndicator />
     </div>
   );
 }
