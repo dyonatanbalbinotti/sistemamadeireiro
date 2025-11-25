@@ -378,6 +378,8 @@ export type Database = {
           quantidade_toras: number | null
           toneladas: number
           user_id: string
+          valor_por_tonelada: number | null
+          valor_total_carga: number | null
         }
         Insert: {
           created_at?: string
@@ -393,6 +395,8 @@ export type Database = {
           quantidade_toras?: number | null
           toneladas: number
           user_id: string
+          valor_por_tonelada?: number | null
+          valor_total_carga?: number | null
         }
         Update: {
           created_at?: string
@@ -408,6 +412,8 @@ export type Database = {
           quantidade_toras?: number | null
           toneladas?: number
           user_id?: string
+          valor_por_tonelada?: number | null
+          valor_total_carga?: number | null
         }
         Relationships: []
       }
