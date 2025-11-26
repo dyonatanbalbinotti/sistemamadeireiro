@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Building2, Search, DollarSign, Save, RefreshCw, Calendar } from "lucide-react";
+import { Trash2, Building2, Search, DollarSign, Save, RefreshCw, Calendar, UserPlus, Key } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDateBR, getTodayBR } from "@/lib/dateUtils";
 import { addYears, format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface Usuario {
   id: string;
@@ -32,6 +34,21 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = useState("");
   const [valorAnuidade, setValorAnuidade] = useState("");
   const [editandoAnuidade, setEditandoAnuidade] = useState(false);
+  
+  // Estados para criar usuário
+  const [openCreateUser, setOpenCreateUser] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserPassword, setNewUserPassword] = useState("");
+  const [newUserNome, setNewUserNome] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
+  
+  // Estados para trocar senha
+  const [openResetPassword, setOpenResetPassword] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [selectedUserName, setSelectedUserName] = useState<string>("");
+  const [newPassword, setNewPassword] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
+  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -346,6 +363,140 @@ export default function Admin() {
     }
   };
 
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserPassword || !newUserNome) {
+      toast({
+        variant: "destructive",
+        title: "Campos obrigatórios",
+        description: "Preencha todos os campos.",
+      });
+      return;
+    }
+
+    if (newUserPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Senha inválida",
+        description: "A senha deve ter no mínimo 6 caracteres.",
+      });
+      return;
+    }
+
+    setCreatingUser(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: newUserEmail,
+            password: newUserPassword,
+            nome: newUserNome,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao criar usuário');
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: "Usuário criado com sucesso.",
+      });
+
+      setOpenCreateUser(false);
+      setNewUserEmail("");
+      setNewUserPassword("");
+      setNewUserNome("");
+      loadUsuarios();
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message,
+      });
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword) {
+      toast({
+        variant: "destructive",
+        title: "Campo obrigatório",
+        description: "Digite a nova senha.",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Senha inválida",
+        description: "A senha deve ter no mínimo 6 caracteres.",
+      });
+      return;
+    }
+
+    setResettingPassword(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-user-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: selectedUserId,
+            newPassword: newPassword,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao trocar senha');
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: `Senha de ${selectedUserName} alterada com sucesso.`,
+      });
+
+      setOpenResetPassword(false);
+      setNewPassword("");
+      setSelectedUserId("");
+      setSelectedUserName("");
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message,
+      });
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   const filteredUsuarios = usuarios.filter(usuario =>
     usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
     usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -441,14 +592,75 @@ export default function Admin() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Gerenciamento de Usuários</span>
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input
-                placeholder="Buscar usuário..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 neon-input"
-              />
+            <div className="flex items-center gap-3">
+              <Dialog open={openCreateUser} onOpenChange={setOpenCreateUser}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2">
+                    <UserPlus className="h-4 w-4" />
+                    Criar Usuário
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Criar Novo Usuário</DialogTitle>
+                    <DialogDescription>
+                      Preencha os dados para criar um novo acesso ao sistema.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nome">Nome Completo</Label>
+                      <Input
+                        id="nome"
+                        value={newUserNome}
+                        onChange={(e) => setNewUserNome(e.target.value)}
+                        placeholder="Nome do usuário"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="email">Email</Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={newUserEmail}
+                        onChange={(e) => setNewUserEmail(e.target.value)}
+                        placeholder="email@exemplo.com"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Senha</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        value={newUserPassword}
+                        onChange={(e) => setNewUserPassword(e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setOpenCreateUser(false)}
+                      disabled={creatingUser}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleCreateUser} disabled={creatingUser}>
+                      {creatingUser ? "Criando..." : "Criar Usuário"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+              <div className="relative w-64">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Buscar usuário..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 neon-input"
+                />
+              </div>
             </div>
           </CardTitle>
         </CardHeader>
@@ -519,6 +731,19 @@ export default function Admin() {
                       <TableCell>{formatDateBR(usuario.created_at)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedUserId(usuario.id);
+                              setSelectedUserName(usuario.nome);
+                              setOpenResetPassword(true);
+                            }}
+                            className="hover:bg-accent"
+                            title="Trocar senha"
+                          >
+                            <Key className="h-4 w-4" />
+                          </Button>
                           {usuario.empresa && (
                             <Button
                               variant="outline"
@@ -550,6 +775,44 @@ export default function Admin() {
           </div>
         </CardContent>
       </Card>
+
+      <Dialog open={openResetPassword} onOpenChange={setOpenResetPassword}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Trocar Senha do Usuário</DialogTitle>
+            <DialogDescription>
+              Alterar senha de: <strong>{selectedUserName}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nova Senha</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpenResetPassword(false);
+                setNewPassword("");
+              }}
+              disabled={resettingPassword}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleResetPassword} disabled={resettingPassword}>
+              {resettingPassword ? "Alterando..." : "Alterar Senha"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   );
 }
