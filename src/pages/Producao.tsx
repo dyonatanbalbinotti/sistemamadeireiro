@@ -57,7 +57,7 @@ export default function Producao() {
         const { data: produtosData } = await supabase
           .from('produtos')
           .select('*')
-          .order('created_at', { ascending: false });
+          .order('nome', { ascending: true });
         
         if (produtosData) {
           setProdutos(produtosData.map(p => ({
@@ -192,7 +192,7 @@ export default function Producao() {
           comprimento: Number(data.comprimento),
         };
 
-        setProdutos([novoProduto, ...produtos]);
+        setProdutos([...produtos, novoProduto].sort((a, b) => a.nome.localeCompare(b.nome)));
         toast.success("Produto cadastrado com sucesso!");
         setNomeProduto("");
         setTipoProduto("");
@@ -396,7 +396,7 @@ export default function Producao() {
               comprimento: parseFloat(comprimentoProduto),
             }
           : p
-      ));
+      ).sort((a, b) => a.nome.localeCompare(b.nome)));
 
       toast.success("Produto atualizado com sucesso!");
       setEditDialogOpen(false);
