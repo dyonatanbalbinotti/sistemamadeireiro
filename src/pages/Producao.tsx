@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Factory, BarChart3, Pencil } from "lucide-react";
+import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search } from "lucide-react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
@@ -44,6 +44,7 @@ export default function Producao() {
   const [comprimentoProduto, setComprimentoProduto] = useState("");
   const [editandoProdutoId, setEditandoProdutoId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [buscaProduto, setBuscaProduto] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -531,6 +532,17 @@ export default function Producao() {
               <CardTitle className="text-foreground">Produtos Cadastrados</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome ou tipo..."
+                    value={buscaProduto}
+                    onChange={(e) => setBuscaProduto(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
               <div className="rounded-lg border border-border overflow-hidden">
                 <Table>
                   <TableHeader>
@@ -542,7 +554,12 @@ export default function Producao() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {produtos.map((produto) => (
+                    {produtos
+                      .filter(produto => 
+                        produto.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
+                        produto.tipo.toLowerCase().includes(buscaProduto.toLowerCase())
+                      )
+                      .map((produto) => (
                       <TableRow key={produto.id}>
                         <TableCell className="font-medium">{produto.nome}</TableCell>
                         <TableCell>{produto.tipo}</TableCell>
@@ -571,6 +588,16 @@ export default function Producao() {
                         </TableCell>
                       </TableRow>
                     ))}
+                    {produtos.filter(produto => 
+                      produto.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
+                      produto.tipo.toLowerCase().includes(buscaProduto.toLowerCase())
+                    ).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                          {buscaProduto ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
