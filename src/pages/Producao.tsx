@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search } from "lucide-react";
+import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search, FileDown, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
@@ -16,9 +16,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresaId } from "@/hooks/useEmpresaId";
 import { getTodayBR, formatDateBR } from "@/lib/dateUtils";
-import { subDays, format } from "date-fns";
+import { subDays, format, parseISO } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 export default function Producao() {
   const { user } = useAuth();
@@ -45,6 +48,15 @@ export default function Producao() {
   const [editandoProdutoId, setEditandoProdutoId] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [buscaProduto, setBuscaProduto] = useState("");
+
+  // Form states - Filtros histórico
+  const [dataInicio, setDataInicio] = useState(() => {
+    const hoje = new Date();
+    const dias30Atras = subDays(hoje, 30);
+    return format(dias30Atras, 'yyyy-MM-dd');
+  });
+  const [dataFim, setDataFim] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [buscaHistorico, setBuscaHistorico] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
@@ -428,6 +440,82 @@ export default function Producao() {
       console.error('Erro ao excluir produção:', error);
       toast.error('Erro ao excluir produção');
     }
+  };
+
+  const getProducaoFiltrada = () => {
+    return producao.filter(prod => {
+      // Filtro por data
+      const prodDate = prod.data.includes('T') ? prod.data.split('T')[0] : prod.data;
+      const dentroDoIntervalo = prodDate >= dataInicio && prodDate <= dataFim;
+      
+      // Filtro por busca
+      const termosBusca = buscaHistorico.toLowerCase();
+      const matchBusca = !termosBusca || 
+        prod.produtoNome.toLowerCase().includes(termosBusca) ||
+        prod.tipo.toLowerCase().includes(termosBusca) ||
+        prod.toraDescricao?.toLowerCase().includes(termosBusca);
+      
+      return dentroDoIntervalo && matchBusca;
+    });
+  };
+
+  const exportarPDF = () => {
+    const doc = new jsPDF();
+    const producaoFiltrada = getProducaoFiltrada();
+    
+    doc.setFontSize(18);
+    doc.text('Histórico de Produção', 14, 22);
+    
+    doc.setFontSize(11);
+    doc.text(`Período: ${formatDateBR(dataInicio)} até ${formatDateBR(dataFim)}`, 14, 30);
+    
+    const tableData = producaoFiltrada.map(prod => [
+      formatDateBR(prod.data),
+      prod.produtoNome,
+      `${prod.largura}×${prod.espessura}×${prod.comprimento}`,
+      prod.quantidade.toString(),
+      prod.m3.toFixed(2),
+      prod.toraDescricao || '-'
+    ]);
+    
+    autoTable(doc, {
+      head: [['Data', 'Produto', 'Dimensões', 'Qtd', 'm³', 'Tora']],
+      body: tableData,
+      startY: 35,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [79, 70, 229] }
+    });
+    
+    const totalM3 = producaoFiltrada.reduce((sum, p) => sum + p.m3, 0);
+    const finalY = (doc as any).lastAutoTable.finalY || 35;
+    doc.setFontSize(12);
+    doc.text(`Total: ${totalM3.toFixed(2)} m³`, 14, finalY + 10);
+    
+    doc.save(`producao-${dataInicio}-${dataFim}.pdf`);
+    toast.success('PDF exportado com sucesso!');
+  };
+
+  const exportarExcel = () => {
+    const producaoFiltrada = getProducaoFiltrada();
+    
+    const dados = producaoFiltrada.map(prod => ({
+      'Data': formatDateBR(prod.data),
+      'Produto': prod.produtoNome,
+      'Tipo': prod.tipo,
+      'Largura (cm)': prod.largura,
+      'Espessura (cm)': prod.espessura,
+      'Comprimento (m)': prod.comprimento,
+      'Quantidade': prod.quantidade,
+      'm³': prod.m3.toFixed(2),
+      'Tora/Lote': prod.toraDescricao || '-'
+    }));
+    
+    const ws = XLSX.utils.json_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Produção');
+    
+    XLSX.writeFile(wb, `producao-${dataInicio}-${dataFim}.xlsx`);
+    toast.success('Excel exportado com sucesso!');
   };
 
   if (loading || loadingEmpresaId) {
@@ -898,7 +986,67 @@ export default function Producao() {
 
           <Card className="shadow-card border-border/50">
             <CardHeader>
-              <CardTitle className="text-foreground">Histórico de Produção</CardTitle>
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-foreground">Histórico de Produção</CardTitle>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportarPDF}
+                      className="gap-2"
+                    >
+                      <FileDown className="h-4 w-4" />
+                      PDF
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={exportarExcel}
+                      className="gap-2"
+                    >
+                      <FileSpreadsheet className="h-4 w-4" />
+                      Excel
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="dataInicio">Data Início</Label>
+                    <Input
+                      id="dataInicio"
+                      type="date"
+                      value={dataInicio}
+                      onChange={(e) => setDataInicio(e.target.value)}
+                      className="border-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dataFim">Data Fim</Label>
+                    <Input
+                      id="dataFim"
+                      type="date"
+                      value={dataFim}
+                      onChange={(e) => setDataFim(e.target.value)}
+                      className="border-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="buscaHistorico">Buscar</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="buscaHistorico"
+                        value={buscaHistorico}
+                        onChange={(e) => setBuscaHistorico(e.target.value)}
+                        placeholder="Produto, tipo ou lote..."
+                        className="pl-9 border-input"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="rounded-lg border border-border overflow-hidden">
@@ -915,43 +1063,79 @@ export default function Producao() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {producao.map((prod) => (
-                      <TableRow key={prod.id}>
-                        <TableCell>{formatDateBR(prod.data)}</TableCell>
-                        <TableCell className="font-medium">{prod.produtoNome}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {prod.largura}×{prod.espessura}×{prod.comprimento}
-                        </TableCell>
-                        <TableCell>{prod.quantidade}</TableCell>
-                        <TableCell className="font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {prod.toraDescricao || "-"}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => handleEdit(prod)}
-                              className="h-8 w-8"
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => handleDelete(prod.id)}
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {(() => {
+                      const producaoFiltrada = getProducaoFiltrada();
+                      
+                      if (producaoFiltrada.length === 0) {
+                        return (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                              Nenhuma produção encontrada no período selecionado
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      
+                      return producaoFiltrada.map((prod) => (
+                        <TableRow key={prod.id}>
+                          <TableCell>{formatDateBR(prod.data)}</TableCell>
+                          <TableCell className="font-medium">{prod.produtoNome}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {prod.largura}×{prod.espessura}×{prod.comprimento}
+                          </TableCell>
+                          <TableCell>{prod.quantidade}</TableCell>
+                          <TableCell className="font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {prod.toraDescricao || "-"}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleEdit(prod)}
+                                className="h-8 w-8"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleDelete(prod.id)}
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ));
+                    })()}
                   </TableBody>
                 </Table>
               </div>
+              {(() => {
+                const producaoFiltrada = getProducaoFiltrada();
+                const totalM3 = producaoFiltrada.reduce((sum, p) => sum + p.m3, 0);
+                const totalPecas = producaoFiltrada.reduce((sum, p) => sum + p.quantidade, 0);
+                
+                return (
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg flex justify-between items-center">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total do Período</p>
+                      <p className="text-lg font-bold text-primary">{totalM3.toFixed(2)} m³</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total de Peças</p>
+                      <p className="text-lg font-bold text-foreground">{totalPecas}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Registros</p>
+                      <p className="text-lg font-bold text-foreground">{producaoFiltrada.length}</p>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
