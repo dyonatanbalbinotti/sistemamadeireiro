@@ -31,6 +31,7 @@ export default function Toras() {
   // Form states - Toras Serradas
   const [toraIdSerrada, setToraIdSerrada] = useState("");
   const [quantidadeTorasSerradas, setQuantidadeTorasSerradas] = useState("");
+  const [editingToraSerradaId, setEditingToraSerradaId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -227,40 +228,66 @@ export default function Toras() {
     const pesoTotal = qtdTorasSerradas * toraSelecionadaObj.pesoPorTora;
 
     try {
-      const { data, error } = await supabase
-        .from('toras_serradas')
-        .insert({
-          data: getTodayBR(),
-          tora_id: toraIdSerrada,
+      if (editingToraSerradaId) {
+        const { error } = await supabase
+          .from('toras_serradas')
+          .update({
+            tora_id: toraIdSerrada,
+            peso: pesoTotal,
+            toneladas: pesoTotal / 1000,
+            quantidade_toras_serradas: qtdTorasSerradas,
+          })
+          .eq('id', editingToraSerradaId);
+
+        if (error) throw error;
+
+        setTorasSerradas(torasSerradas.map(ts => ts.id === editingToraSerradaId ? {
+          ...ts,
+          toraId: toraIdSerrada,
           peso: pesoTotal,
           toneladas: pesoTotal / 1000,
-          quantidade_toras_serradas: qtdTorasSerradas,
-          user_id: user.id,
-          empresa_id: empresaId,
-        })
-        .select()
-        .single();
+          quantidadeTorasSerradas: qtdTorasSerradas,
+        } : ts));
+        
+        toast.success("Tora serrada atualizada com sucesso!");
+      } else {
+        const { data, error } = await supabase
+          .from('toras_serradas')
+          .insert({
+            data: getTodayBR(),
+            tora_id: toraIdSerrada,
+            peso: pesoTotal,
+            toneladas: pesoTotal / 1000,
+            quantidade_toras_serradas: qtdTorasSerradas,
+            user_id: user.id,
+            empresa_id: empresaId,
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      if (data) {
-        const novaToraSerrada: ToraSerrada = {
-          id: data.id,
-          data: data.data,
-          toraId: data.tora_id,
-          peso: Number(data.peso),
-          toneladas: Number(data.toneladas),
-          quantidadeTorasSerradas: Number(data.quantidade_toras_serradas),
-        };
+        if (data) {
+          const novaToraSerrada: ToraSerrada = {
+            id: data.id,
+            data: data.data,
+            toraId: data.tora_id,
+            peso: Number(data.peso),
+            toneladas: Number(data.toneladas),
+            quantidadeTorasSerradas: Number(data.quantidade_toras_serradas),
+          };
 
-        setTorasSerradas([novaToraSerrada, ...torasSerradas]);
-        toast.success(`${qtdTorasSerradas} toras serradas: ${(pesoTotal / 1000).toFixed(2)} T`);
-        setToraIdSerrada("");
-        setQuantidadeTorasSerradas("");
+          setTorasSerradas([novaToraSerrada, ...torasSerradas]);
+          toast.success(`${qtdTorasSerradas} toras serradas: ${(pesoTotal / 1000).toFixed(2)} T`);
+        }
       }
+      
+      setToraIdSerrada("");
+      setQuantidadeTorasSerradas("");
+      setEditingToraSerradaId(null);
     } catch (error) {
-      console.error('Erro ao registrar tora serrada:', error);
-      toast.error('Erro ao registrar tora serrada');
+      console.error('Erro ao salvar tora serrada:', error);
+      toast.error('Erro ao salvar tora serrada');
     }
   };
 
@@ -301,6 +328,12 @@ export default function Toras() {
       console.error('Erro ao excluir tora:', error);
       toast.error('Erro ao excluir tora');
     }
+  };
+
+  const handleEditToraSerrada = (toraSerrada: ToraSerrada) => {
+    setToraIdSerrada(toraSerrada.toraId);
+    setQuantidadeTorasSerradas(toraSerrada.quantidadeTorasSerradas?.toString() || "");
+    setEditingToraSerradaId(toraSerrada.id);
   };
 
   const handleDeleteToraSerrada = async (id: string) => {
@@ -505,7 +538,9 @@ export default function Toras() {
         <TabsContent value="toras-serradas" className="space-y-6">
           <Card className="shadow-card border-border/50">
             <CardHeader>
-              <CardTitle className="text-foreground">Registrar Toras Serradas</CardTitle>
+              <CardTitle className="text-foreground">
+                {editingToraSerradaId ? "Editar Toras Serradas" : "Registrar Toras Serradas"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitToraSerrada} className="space-y-4">
@@ -539,8 +574,22 @@ export default function Toras() {
                 </div>
                 <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
-                  Registrar Toras Serradas
+                  {editingToraSerradaId ? "Atualizar Toras Serradas" : "Registrar Toras Serradas"}
                 </Button>
+                {editingToraSerradaId && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setEditingToraSerradaId(null);
+                      setToraIdSerrada("");
+                      setQuantidadeTorasSerradas("");
+                    }}
+                    className="ml-2"
+                  >
+                    Cancelar
+                  </Button>
+                )}
               </form>
             </CardContent>
           </Card>
@@ -575,14 +624,24 @@ export default function Toras() {
                             {ts.toneladas.toFixed(2)} T
                           </TableCell>
                           <TableCell>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => handleDeleteToraSerrada(ts.id)}
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleEditToraSerrada(ts)}
+                                className="h-8 w-8"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleDeleteToraSerrada(ts.id)}
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
