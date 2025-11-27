@@ -69,6 +69,14 @@ export default function RelatoriosFinanceiros() {
         .lte('data', dataFimStr)
         .order('data', { ascending: true });
 
+      // Buscar vendas de cavaco (receitas)
+      const { data: vendasCavacoData } = await supabase
+        .from('vendas_cavaco')
+        .select('data, valor_total, toneladas, toras(descricao)')
+        .gte('data', dataInicioStr)
+        .lte('data', dataFimStr)
+        .order('data', { ascending: true });
+
       // Processar transações detalhadas
       const transacoesProcessadas: TransacaoDetalhada[] = [];
 
@@ -88,6 +96,16 @@ export default function RelatoriosFinanceiros() {
           tipo: 'Receita',
           descricao: `Venda - ${produtoNome}`,
           valor: parseFloat(venda.valor_total.toString())
+        });
+      });
+
+      vendasCavacoData?.forEach(vendaCavaco => {
+        const toraDescricao = (vendaCavaco.toras as any)?.descricao || 'Cavaco';
+        transacoesProcessadas.push({
+          data: format(new Date(vendaCavaco.data), 'dd/MM/yyyy'),
+          tipo: 'Receita',
+          descricao: `Venda de Cavaco - ${toraDescricao} (${vendaCavaco.toneladas}t)`,
+          valor: parseFloat(vendaCavaco.valor_total.toString())
         });
       });
 
@@ -113,6 +131,13 @@ export default function RelatoriosFinanceiros() {
         const mesAno = format(new Date(venda.data), 'MMM/yy', { locale: ptBR });
         const atual = mesesMap.get(mesAno) || { despesas: 0, receitas: 0 };
         atual.receitas += parseFloat(venda.valor_total.toString());
+        mesesMap.set(mesAno, atual);
+      });
+
+      vendasCavacoData?.forEach(vendaCavaco => {
+        const mesAno = format(new Date(vendaCavaco.data), 'MMM/yy', { locale: ptBR });
+        const atual = mesesMap.get(mesAno) || { despesas: 0, receitas: 0 };
+        atual.receitas += parseFloat(vendaCavaco.valor_total.toString());
         mesesMap.set(mesAno, atual);
       });
 
