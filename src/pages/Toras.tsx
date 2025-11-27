@@ -225,6 +225,21 @@ export default function Toras() {
       return;
     }
 
+    // Validar se a quantidade não excede o disponível no lote
+    const quantidadeTotalLote = toraSelecionadaObj.quantidadeToras || 0;
+    
+    // Calcular quantas toras já foram serradas desse lote (excluindo a que está sendo editada)
+    const torasJaSerradas = torasSerradas
+      .filter(ts => ts.toraId === toraIdSerrada && ts.id !== editingToraSerradaId)
+      .reduce((sum, ts) => sum + (ts.quantidadeTorasSerradas || 0), 0);
+    
+    const torasDisponiveis = quantidadeTotalLote - torasJaSerradas;
+    
+    if (qtdTorasSerradas > torasDisponiveis) {
+      toast.error(`Quantidade inválida! Disponível no lote: ${torasDisponiveis} toras (Total: ${quantidadeTotalLote}, Já serradas: ${torasJaSerradas})`);
+      return;
+    }
+
     const pesoTotal = qtdTorasSerradas * toraSelecionadaObj.pesoPorTora;
 
     try {
