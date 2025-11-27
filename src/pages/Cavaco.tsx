@@ -67,11 +67,13 @@ export default function Cavaco() {
             const cavacoEstoque = toneladasSerradas - toneladasMadeirasSerradas - toneladasVendidasCavaco;
 
             // Calcular porcentagens de aproveitamento
-            const percentualMadeiraSerrada = toneladasSerradas > 0 
-              ? (toneladasMadeirasSerradas / toneladasSerradas) * 100 
+            // O percentual deve considerar o total da carga + o cavaco vendido para calcular o total processado
+            const totalProcessado = toneladasSerradas;
+            const percentualMadeiraSerrada = totalProcessado > 0 
+              ? (toneladasMadeirasSerradas / totalProcessado) * 100 
               : 0;
-            const percentualCavaco = toneladasSerradas > 0 
-              ? (Math.max(0, cavacoEstoque) / toneladasSerradas) * 100 
+            const percentualCavaco = totalProcessado > 0 
+              ? ((cavacoEstoque + toneladasVendidasCavaco) / totalProcessado) * 100 
               : 0;
 
             return {
@@ -111,18 +113,30 @@ export default function Cavaco() {
 
       if (error) throw error;
 
-      // Atualizar dados localmente
+      // Atualizar dados localmente recalculando corretamente
       setDados(prevDados =>
-        prevDados.map(item =>
-          item.id === toraId
-            ? {
-                ...item,
-                pesoPorM3: peso,
-                toneladasMadeirasSerradas: peso * item.m3Serrado,
-                cavacoEstoque: Math.max(0, item.toneladasCarga - (peso * item.m3Serrado))
-              }
-            : item
-        )
+        prevDados.map(item => {
+          if (item.id === toraId) {
+            const novasToneladasMadeiras = peso * item.m3Serrado;
+            const novoCavacoEstoque = Math.max(0, item.toneladasCarga - novasToneladasMadeiras);
+            const percentualMadeiraSerrada = item.toneladasCarga > 0
+              ? (novasToneladasMadeiras / item.toneladasCarga) * 100
+              : 0;
+            const percentualCavaco = item.toneladasCarga > 0
+              ? (novoCavacoEstoque / item.toneladasCarga) * 100
+              : 0;
+            
+            return {
+              ...item,
+              pesoPorM3: peso,
+              toneladasMadeirasSerradas: novasToneladasMadeiras,
+              cavacoEstoque: novoCavacoEstoque,
+              percentualMadeiraSerrada,
+              percentualCavaco
+            };
+          }
+          return item;
+        })
       );
 
       toast.success("Peso por m³ atualizado com sucesso!");
