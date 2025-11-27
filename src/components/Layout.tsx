@@ -25,7 +25,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { signOut, userRole, isAdmin } = useAuth();
+  const { signOut, userRole, userName, isAdmin } = useAuth();
 
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'user'] },
@@ -58,7 +58,7 @@ export default function Layout({ children }: LayoutProps) {
               />
               <div>
                 <h1 className="text-lg font-tech font-bold text-primary tracking-wider">
-                  DwCorporation Sist. Madeireiro
+                  {userName || "DwCorporation Sist. Madeireiro"}
                 </h1>
                 {userRole && (
                   <p className="text-xs text-muted-foreground">
