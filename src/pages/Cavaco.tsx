@@ -291,16 +291,6 @@ export default function Cavaco() {
               </TableBody>
             </Table>
           </div>
-
-          <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-            <h3 className="font-semibold mb-2">Fórmulas de Cálculo:</h3>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• <strong>TN Madeiras Serradas</strong> = Peso por m³ × m³ Serrado</li>
-              <li>• <strong>Cavaco em Estoque</strong> = TN Serradas - TN Madeiras Serradas - TN Vendidas Cavaco</li>
-              <li>• <strong>% Madeira</strong> = (TN Madeiras Serradas / TN Serradas) × 100</li>
-              <li>• <strong>% Cavaco</strong> = (Cavaco em Estoque / TN Serradas) × 100</li>
-            </ul>
-          </div>
         </CardContent>
       </Card>
     </div>
