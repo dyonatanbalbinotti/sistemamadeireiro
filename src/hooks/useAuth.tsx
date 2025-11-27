@@ -7,6 +7,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: 'admin' | 'user' | null;
+  userName: string | null;
   loading: boolean;
   isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -20,6 +21,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -33,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user role
+          // Fetch user role and name
           setTimeout(async () => {
             const { data: roleData } = await supabase
               .from('user_roles')
@@ -48,9 +50,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             } else {
               setUserRole('user');
             }
+
+            // Fetch user name from profiles
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('nome')
+              .eq('id', session.user.id)
+              .maybeSingle();
+            
+            setUserName(profileData?.nome || null);
           }, 0);
         } else {
           setUserRole(null);
+          setUserName(null);
         }
         
         setLoading(false);
@@ -63,20 +75,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', session.user.id)
-          .maybeSingle()
-          .then(({ data: roleData }) => {
-            const role = roleData?.role;
-            if (role === 'admin') {
-              setUserRole('admin');
-            } else {
-              setUserRole('user');
-            }
-            setLoading(false);
-          });
+        Promise.all([
+          supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .maybeSingle(),
+          supabase
+            .from('profiles')
+            .select('nome')
+            .eq('id', session.user.id)
+            .maybeSingle()
+        ]).then(([{ data: roleData }, { data: profileData }]) => {
+          const role = roleData?.role;
+          if (role === 'admin') {
+            setUserRole('admin');
+          } else {
+            setUserRole('user');
+          }
+          setUserName(profileData?.nome || null);
+          setLoading(false);
+        });
       } else {
         setLoading(false);
       }
@@ -149,6 +168,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       user, 
       session, 
       userRole,
+      userName,
       loading, 
       isAdmin,
       signIn, 
