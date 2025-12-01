@@ -57,6 +57,9 @@ export default function Producao() {
   });
   const [dataFim, setDataFim] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [buscaHistorico, setBuscaHistorico] = useState("");
+  
+  // Estado para controlar visualização do gráfico (diária ou mensal)
+  const [tipoVisualizacao, setTipoVisualizacao] = useState<"diaria" | "mensal">("diaria");
 
   useEffect(() => {
     const loadData = async () => {
@@ -783,32 +786,76 @@ export default function Producao() {
         <TabsContent value="producao" className="space-y-6">
           <Card className="glass-effect neon-border shadow-elegant">
             <CardHeader>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Produção Diária (Últimos 7 dias)
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  {tipoVisualizacao === "diaria" ? "Produção Diária (Últimos 7 dias)" : "Produção Mensal (Últimos 6 meses)"}
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    variant={tipoVisualizacao === "diaria" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTipoVisualizacao("diaria")}
+                  >
+                    7 Dias
+                  </Button>
+                  <Button
+                    variant={tipoVisualizacao === "mensal" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTipoVisualizacao("mensal")}
+                  >
+                    Mensal
+                  </Button>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={(() => {
-                  const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
-                  const last7Days = Array.from({ length: 7 }, (_, i) => {
-                    const date = subDays(nowBR, 6 - i);
-                    return format(date, 'yyyy-MM-dd');
-                  });
-                  
-                  return last7Days.map(date => {
-                    const dayProduction = producao.filter(p => {
-                      // Extrair apenas a parte da data (YYYY-MM-DD) sem considerar timezone
-                      const prodDate = p.data.includes('T') ? p.data.split('T')[0] : p.data;
-                      return prodDate === date;
+                  if (tipoVisualizacao === "diaria") {
+                    // Visualização diária (últimos 7 dias)
+                    const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
+                    const last7Days = Array.from({ length: 7 }, (_, i) => {
+                      const date = subDays(nowBR, 6 - i);
+                      return format(date, 'yyyy-MM-dd');
                     });
-                    const total = dayProduction.reduce((sum, p) => sum + p.m3, 0);
-                    return {
-                      data: format(new Date(date + 'T12:00:00'), 'dd/MM'),
-                      total: parseFloat(total.toFixed(2))
-                    };
-                  });
+                    
+                    return last7Days.map(date => {
+                      const dayProduction = producao.filter(p => {
+                        const prodDate = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+                        return prodDate === date;
+                      });
+                      const total = dayProduction.reduce((sum, p) => sum + p.m3, 0);
+                      return {
+                        data: format(new Date(date + 'T12:00:00'), 'dd/MM'),
+                        total: parseFloat(total.toFixed(2))
+                      };
+                    });
+                  } else {
+                    // Visualização mensal (últimos 6 meses)
+                    const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
+                    const last6Months = Array.from({ length: 6 }, (_, i) => {
+                      const date = new Date(nowBR.getFullYear(), nowBR.getMonth() - (5 - i), 1);
+                      return {
+                        year: date.getFullYear(),
+                        month: date.getMonth() + 1,
+                        label: format(date, 'MMM/yy')
+                      };
+                    });
+                    
+                    return last6Months.map(({ year, month, label }) => {
+                      const monthProduction = producao.filter(p => {
+                        const prodDate = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+                        const prodDateObj = new Date(prodDate + 'T12:00:00');
+                        return prodDateObj.getFullYear() === year && (prodDateObj.getMonth() + 1) === month;
+                      });
+                      const total = monthProduction.reduce((sum, p) => sum + p.m3, 0);
+                      return {
+                        data: label,
+                        total: parseFloat(total.toFixed(2))
+                      };
+                    });
+                  }
                 })()}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis dataKey="data" className="text-xs" />
