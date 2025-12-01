@@ -58,8 +58,8 @@ export default function Producao() {
   const [dataFim, setDataFim] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [buscaHistorico, setBuscaHistorico] = useState("");
   
-  // Estado para controlar visualização do gráfico (diária ou mensal)
-  const [tipoVisualizacao, setTipoVisualizacao] = useState<"diaria" | "mensal">("diaria");
+  // Estado para controlar visualização do gráfico (diária, 30 dias ou mensal)
+  const [tipoVisualizacao, setTipoVisualizacao] = useState<"diaria" | "30dias" | "mensal">("diaria");
 
   useEffect(() => {
     const loadData = async () => {
@@ -789,7 +789,11 @@ export default function Producao() {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-foreground flex items-center gap-2">
                   <BarChart3 className="h-5 w-5 text-primary" />
-                  {tipoVisualizacao === "diaria" ? "Produção Diária (Últimos 7 dias)" : "Produção Mensal (Últimos 6 meses)"}
+                  {tipoVisualizacao === "diaria" 
+                    ? "Produção Diária (Últimos 7 dias)" 
+                    : tipoVisualizacao === "30dias"
+                    ? "Produção Diária (Últimos 30 dias)"
+                    : "Produção Mensal (Últimos 6 meses)"}
                 </CardTitle>
                 <div className="flex gap-2">
                   <Button
@@ -798,6 +802,13 @@ export default function Producao() {
                     onClick={() => setTipoVisualizacao("diaria")}
                   >
                     7 Dias
+                  </Button>
+                  <Button
+                    variant={tipoVisualizacao === "30dias" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setTipoVisualizacao("30dias")}
+                  >
+                    30 Dias
                   </Button>
                   <Button
                     variant={tipoVisualizacao === "mensal" ? "default" : "outline"}
@@ -821,6 +832,25 @@ export default function Producao() {
                     });
                     
                     return last7Days.map(date => {
+                      const dayProduction = producao.filter(p => {
+                        const prodDate = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+                        return prodDate === date;
+                      });
+                      const total = dayProduction.reduce((sum, p) => sum + p.m3, 0);
+                      return {
+                        data: format(new Date(date + 'T12:00:00'), 'dd/MM'),
+                        total: parseFloat(total.toFixed(2))
+                      };
+                    });
+                  } else if (tipoVisualizacao === "30dias") {
+                    // Visualização diária (últimos 30 dias)
+                    const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
+                    const last30Days = Array.from({ length: 30 }, (_, i) => {
+                      const date = subDays(nowBR, 29 - i);
+                      return format(date, 'yyyy-MM-dd');
+                    });
+                    
+                    return last30Days.map(date => {
                       const dayProduction = producao.filter(p => {
                         const prodDate = p.data.includes('T') ? p.data.split('T')[0] : p.data;
                         return prodDate === date;
