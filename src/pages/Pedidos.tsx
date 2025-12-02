@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil } from "lucide-react";
+import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil, FileText } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -472,6 +474,95 @@ export default function Pedidos() {
     }
   };
 
+  const gerarPDFPedido = async (pedido: Pedido) => {
+    try {
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // Título
+      doc.setFontSize(20);
+      doc.setFont("helvetica", "bold");
+      doc.text("Pedido de Produção", pageWidth / 2, 20, { align: "center" });
+
+      // Informações do pedido
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "normal");
+      let yPos = 35;
+      
+      doc.text(`Número do Pedido: ${pedido.numero_pedido}`, 14, yPos);
+      yPos += 7;
+      doc.text(`Data: ${new Date(pedido.data_pedido).toLocaleDateString('pt-BR')}`, 14, yPos);
+      yPos += 7;
+      doc.text(`Status: ${pedido.concluido ? 'Concluído' : 'Em Andamento'}`, 14, yPos);
+      yPos += 7;
+      
+      if (pedido.observacao) {
+        doc.text(`Observações: ${pedido.observacao}`, 14, yPos);
+        yPos += 7;
+      }
+
+      // Tabela de itens
+      const tableData = pedido.itens.map((item) => {
+        const percentual = ((item.quantidade_pecas_produzidas / item.quantidade_pecas) * 100).toFixed(0);
+        return [
+          item.descricao,
+          item.quantidade_pecas.toString(),
+          item.quantidade_pecas_produzidas.toString(),
+          `${item.quantidade_m3.toFixed(2)} m³`,
+          `${percentual}%`,
+          item.concluido ? 'Sim' : 'Não'
+        ];
+      });
+
+      autoTable(doc, {
+        startY: yPos + 5,
+        head: [['Produto', 'Qtd. Peças', 'Produzidas', 'Volume (m³)', 'Progresso', 'Concluído']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [139, 69, 19],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        styles: {
+          fontSize: 10,
+          cellPadding: 3,
+        },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { halign: 'center', cellWidth: 25 },
+          2: { halign: 'center', cellWidth: 25 },
+          3: { halign: 'right', cellWidth: 30 },
+          4: { halign: 'center', cellWidth: 25 },
+          5: { halign: 'center', cellWidth: 25 }
+        }
+      });
+
+      // Totais
+      const finalY = (doc as any).lastAutoTable.finalY || yPos + 50;
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Total: ${pedido.itens.reduce((sum, item) => sum + Number(item.quantidade_m3), 0).toFixed(2)} m³`, 14, finalY + 10);
+      doc.text(`Itens concluídos: ${pedido.itens.filter(i => i.concluido).length} de ${pedido.itens.length}`, 14, finalY + 17);
+
+      // Salvar PDF
+      doc.save(`pedido-${pedido.numero_pedido}.pdf`);
+
+      toast({
+        title: "PDF gerado",
+        description: "O PDF do pedido foi gerado com sucesso.",
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Não foi possível gerar o PDF do pedido.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
       <div className="flex justify-between items-center">
@@ -660,6 +751,15 @@ export default function Pedidos() {
                     )}
                   </div>
                   <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => gerarPDFPedido(pedido)}
+                      className="hover:bg-primary/10"
+                      title="Gerar PDF"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
