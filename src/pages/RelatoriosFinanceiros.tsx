@@ -2,9 +2,10 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { FileText, Download, Calendar, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { FileText, Calendar, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import dwLogo from '@/assets/dw-logo-colored.png';
 import { format, subMonths } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
@@ -341,11 +342,11 @@ export default function RelatoriosFinanceiros() {
               </Popover>
             </div>
             <Button onClick={exportarPDF} className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90">
-              <Download className="h-4 w-4 mr-2" />
+              <img src={dwLogo} alt="DW Logo" className="h-4 w-4 mr-2" />
               Exportar PDF
             </Button>
             <Button onClick={exportarExcel} variant="outline" className="mt-8">
-              <Download className="h-4 w-4 mr-2" />
+              <img src={dwLogo} alt="DW Logo" className="h-4 w-4 mr-2" />
               Exportar Excel
             </Button>
           </div>

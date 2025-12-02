@@ -7,11 +7,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingCart, Edit, Trash2, CalendarIcon, Layers, FileText, Download } from "lucide-react";
+import { ShoppingCart, Edit, Trash2, CalendarIcon, Layers, FileText } from "lucide-react";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
+import dwLogo from '@/assets/dw-logo-colored.png';
 import { Venda } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -1427,7 +1428,7 @@ export default function Vendas() {
                 className="flex-1"
                 variant="default"
               >
-                <Download className="h-4 w-4 mr-2" />
+                <img src={dwLogo} alt="DW Logo" className="h-4 w-4 mr-2" />
                 Exportar PDF
               </Button>
               <Button
@@ -1435,7 +1436,7 @@ export default function Vendas() {
                 className="flex-1"
                 variant="default"
               >
-                <Download className="h-4 w-4 mr-2" />
+                <img src={dwLogo} alt="DW Logo" className="h-4 w-4 mr-2" />
                 Exportar Excel
               </Button>
             </div>
