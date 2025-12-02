@@ -99,6 +99,25 @@ export default function Admin() {
 
       if (profilesError) throw profilesError;
 
+      // Buscar emails via edge function (apenas admins podem acessar)
+      const { data: session } = await supabase.auth.getSession();
+      let emailsMap: Record<string, string> = {};
+      
+      if (session?.session) {
+        const { data: emailsData } = await supabase.functions.invoke('get-user-emails', {
+          headers: {
+            Authorization: `Bearer ${session.session.access_token}`,
+          },
+        });
+        
+        if (emailsData?.users) {
+          emailsMap = emailsData.users.reduce((acc: Record<string, string>, u: any) => {
+            acc[u.id] = u.email;
+            return acc;
+          }, {});
+        }
+      }
+
       // Carregar roles e empresas para cada usuário
       const usuariosComDetalhes = await Promise.all(
         (profilesData || []).map(async (profile) => {
@@ -135,7 +154,7 @@ export default function Admin() {
           return {
             id: profile.id,
             nome: profile.nome,
-            email: profile.email,
+            email: emailsMap[profile.id] || '',
             status: (profile.status as 'operacional' | 'invalido') || 'operacional',
             created_at: profile.created_at,
             empresa: empresaData || undefined,

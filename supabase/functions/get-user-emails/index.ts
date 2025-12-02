@@ -44,47 +44,29 @@ serve(async (req) => {
 
     if (!roleData || roleData.role !== 'admin') {
       return new Response(
-        JSON.stringify({ error: 'Apenas administradores podem criar usuários' }),
+        JSON.stringify({ error: 'Apenas administradores podem acessar emails' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const { email, password, nome } = await req.json()
+    // Buscar todos os usuários com seus emails
+    const { data: users, error: usersError } = await supabaseAdmin.auth.admin.listUsers()
 
-    // Criar usuário
-    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { nome }
-    })
-
-    if (createError) {
+    if (usersError) {
       return new Response(
-        JSON.stringify({ error: createError.message }),
+        JSON.stringify({ error: usersError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Criar profile (sem email por segurança)
-    await supabaseAdmin
-      .from('profiles')
-      .insert({
-        id: newUser.user.id,
-        nome,
-        status: 'operacional'
-      })
-
-    // Criar role padrão como 'user'
-    await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: newUser.user.id,
-        role: 'user'
-      })
+    // Mapear para retornar apenas id e email
+    const userEmails = users.users.map(u => ({
+      id: u.id,
+      email: u.email || ''
+    }))
 
     return new Response(
-      JSON.stringify({ success: true, user: newUser.user }),
+      JSON.stringify({ users: userEmails }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
