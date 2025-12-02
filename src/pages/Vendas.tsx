@@ -31,6 +31,7 @@ export default function Vendas() {
   const [toras, setToras] = useState<any[]>([]);
   const [cavacoDisponivel, setCavacoDisponivel] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingCavacoId, setEditingCavacoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Campos para cálculo de conversão m³ (primeiro passo)
@@ -483,7 +484,7 @@ export default function Vendas() {
     }
 
     const cavacoInfo = cavacoDisponivel.find(c => c.id === toraIdCavaco);
-    if (cavacoInfo && toneladas > cavacoInfo.cavacoDisponivel) {
+    if (cavacoInfo && !editingCavacoId && toneladas > cavacoInfo.cavacoDisponivel) {
       toast.error(`Apenas ${cavacoInfo.cavacoDisponivel.toFixed(2)} T disponível para esta tora`);
       return;
     }
@@ -491,6 +492,32 @@ export default function Vendas() {
     const valorTotal = toneladas * valor;
 
     try {
+      if (editingCavacoId) {
+        const { error } = await supabase
+          .from('vendas_cavaco')
+          .update({
+            tora_id: toraIdCavaco,
+            toneladas: toneladas,
+            valor_tonelada: valor,
+            valor_total: valorTotal,
+          })
+          .eq('id', editingCavacoId);
+
+        if (error) throw error;
+
+        setVendasCavaco(vendasCavaco.map(v => v.id === editingCavacoId ? {
+          ...v,
+          tora_id: toraIdCavaco,
+          toneladas: toneladas,
+          valor_tonelada: valor,
+          valor_total: valorTotal,
+        } : v));
+        
+        toast.success("Venda de cavaco atualizada com sucesso!");
+        resetFormCavaco();
+        return;
+      }
+      
       if (loadingEmpresaId) {
         toast.error("Aguardando carregamento dos dados da empresa...");
         return;
@@ -561,6 +588,7 @@ export default function Vendas() {
     setToneladasVendidas("");
     setValorTonelada("");
     setDataVenda(new Date());
+    setEditingCavacoId(null);
   };
 
   const handleEdit = (venda: Venda) => {
@@ -597,6 +625,14 @@ export default function Vendas() {
       console.error('Erro ao excluir venda:', error);
       toast.error('Erro ao excluir venda');
     }
+  };
+
+  const handleEditCavaco = (venda: any) => {
+    setToraIdCavaco(venda.tora_id);
+    setToneladasVendidas(venda.toneladas.toString());
+    setValorTonelada(venda.valor_tonelada.toString());
+    setDataVenda(new Date(venda.data + 'T00:00:00'));
+    setEditingCavacoId(venda.id);
   };
 
   const handleDeleteCavaco = async (id: string) => {
@@ -1284,8 +1320,17 @@ export default function Vendas() {
               <div className="flex gap-2">
                 <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Layers className="h-4 w-4 mr-2" />
-                  Registrar Venda de Cavaco
+                  {editingCavacoId ? 'Atualizar Venda de Cavaco' : 'Registrar Venda de Cavaco'}
                 </Button>
+                {editingCavacoId && (
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={resetFormCavaco}
+                  >
+                    Cancelar
+                  </Button>
+                )}
               </div>
             </form>
           </CardContent>
@@ -1502,14 +1547,24 @@ export default function Vendas() {
                         <TableCell>R$ {Number(venda.valor_tonelada).toFixed(2)}</TableCell>
                         <TableCell className="font-semibold text-primary">R$ {Number(venda.valor_total).toFixed(2)}</TableCell>
                         <TableCell>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            onClick={() => handleDeleteCavaco(venda.id)}
-                            className="h-8 w-8 text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleEditCavaco(venda)}
+                              className="h-8 w-8"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => handleDeleteCavaco(venda.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
