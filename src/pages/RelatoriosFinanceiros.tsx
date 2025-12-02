@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { format, subMonths } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
+import { formatDateBR } from "@/lib/dateUtils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -82,7 +83,7 @@ export default function RelatoriosFinanceiros() {
 
       torasData?.forEach(tora => {
         transacoesProcessadas.push({
-          data: format(new Date(tora.data), 'dd/MM/yyyy'),
+          data: formatDateBR(tora.data),
           tipo: 'Despesa',
           descricao: `Carga de Toras - ${tora.descricao}`,
           valor: parseFloat(tora.valor_total_carga.toString())
@@ -92,7 +93,7 @@ export default function RelatoriosFinanceiros() {
       vendasData?.forEach(venda => {
         const produtoNome = (venda.produtos as any)?.nome || 'Produto';
         transacoesProcessadas.push({
-          data: format(new Date(venda.data), 'dd/MM/yyyy'),
+          data: formatDateBR(venda.data),
           tipo: 'Receita',
           descricao: `Venda - ${produtoNome}`,
           valor: parseFloat(venda.valor_total.toString())
@@ -102,7 +103,7 @@ export default function RelatoriosFinanceiros() {
       vendasCavacoData?.forEach(vendaCavaco => {
         const toraDescricao = (vendaCavaco.toras as any)?.descricao || 'Cavaco';
         transacoesProcessadas.push({
-          data: format(new Date(vendaCavaco.data), 'dd/MM/yyyy'),
+          data: formatDateBR(vendaCavaco.data),
           tipo: 'Receita',
           descricao: `Venda de Cavaco - ${toraDescricao} (${vendaCavaco.toneladas}t)`,
           valor: parseFloat(vendaCavaco.valor_total.toString())
