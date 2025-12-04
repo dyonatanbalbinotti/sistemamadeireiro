@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil, FileText } from "lucide-react";
+import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil, FileText, Search, Filter } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,6 +39,10 @@ export default function Pedidos() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editandoPedidoId, setEditandoPedidoId] = useState<string | null>(null);
+  
+  // Filtros
+  const [filtroNumero, setFiltroNumero] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "concluido" | "pendente">("todos");
   const { toast } = useToast();
 
   // Form states
@@ -563,14 +567,23 @@ export default function Pedidos() {
     }
   };
 
+  // Filtrar pedidos
+  const pedidosFiltrados = pedidos.filter(pedido => {
+    const matchNumero = pedido.numero_pedido.toLowerCase().includes(filtroNumero.toLowerCase());
+    const matchStatus = filtroStatus === "todos" || 
+      (filtroStatus === "concluido" && pedido.concluido) || 
+      (filtroStatus === "pendente" && !pedido.concluido);
+    return matchNumero && matchStatus;
+  });
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-700">
-      <div className="flex justify-between items-center">
+    <div className="space-y-4 animate-in fade-in duration-700">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-tech font-bold text-foreground mb-2">
+          <h1 className="text-3xl font-tech font-bold text-foreground">
             Pedidos
           </h1>
-          <p className="text-muted-foreground">Gerencie os pedidos de produção</p>
+          <p className="text-sm text-muted-foreground">Gerencie os pedidos de produção</p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -700,18 +713,44 @@ export default function Pedidos() {
         </Dialog>
       </div>
 
+      {/* Filtros */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por número..."
+            value={filtroNumero}
+            onChange={(e) => setFiltroNumero(e.target.value)}
+            className="pl-9 h-9"
+          />
+        </div>
+        <Select value={filtroStatus} onValueChange={(v: "todos" | "concluido" | "pendente") => setFiltroStatus(v)}>
+          <SelectTrigger className="w-[160px] h-9">
+            <Filter className="h-4 w-4 mr-2" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos</SelectItem>
+            <SelectItem value="pendente">Pendentes</SelectItem>
+            <SelectItem value="concluido">Concluídos</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {loading ? (
         <div className="text-center py-12">Carregando pedidos...</div>
-      ) : pedidos.length === 0 ? (
+      ) : pedidosFiltrados.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <ClipboardList className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Nenhum pedido cadastrado ainda.</p>
+            <p className="text-muted-foreground">
+              {pedidos.length === 0 ? "Nenhum pedido cadastrado ainda." : "Nenhum pedido encontrado com os filtros aplicados."}
+            </p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid gap-4">
-          {pedidos.map((pedido) => (
+          {pedidosFiltrados.map((pedido) => (
             <Card
               key={pedido.id}
               className={`glass-effect neon-border ${
