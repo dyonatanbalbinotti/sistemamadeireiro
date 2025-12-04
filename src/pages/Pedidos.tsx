@@ -575,18 +575,35 @@ export default function Pedidos() {
     }
   };
 
-  // Filtrar pedidos
+  // Filtrar pedidos - primeiro por data, depois por status
   const pedidosFiltrados = pedidos.filter(pedido => {
-    const matchNumero = pedido.numero_pedido.toLowerCase().includes(filtroNumero.toLowerCase());
+    // Filtro por número do pedido
+    const matchNumero = filtroNumero === "" || 
+      pedido.numero_pedido.toLowerCase().includes(filtroNumero.toLowerCase());
+    
+    // Filtro por data do pedido (normalizado para comparar apenas datas)
+    const dataPedidoStr = pedido.data_pedido; // formato: YYYY-MM-DD
+    const dataPedido = new Date(dataPedidoStr + 'T12:00:00'); // usar meio-dia para evitar problemas de timezone
+    
+    let matchData = true;
+    if (dataInicio) {
+      const inicioNormalizado = new Date(dataInicio);
+      inicioNormalizado.setHours(0, 0, 0, 0);
+      matchData = dataPedido >= inicioNormalizado;
+    }
+    if (matchData && dataFim) {
+      const fimNormalizado = new Date(dataFim);
+      fimNormalizado.setHours(23, 59, 59, 999);
+      matchData = dataPedido <= fimNormalizado;
+    }
+    
+    // Filtro por status (aplicado após o filtro de data)
     const matchStatus = filtroStatus === "todos" || 
       (filtroStatus === "concluido" && pedido.concluido) || 
       (filtroStatus === "pendente" && !pedido.concluido);
     
-    const dataPedido = new Date(pedido.data_pedido + 'T00:00:00');
-    const matchDataInicio = !dataInicio || dataPedido >= dataInicio;
-    const matchDataFim = !dataFim || dataPedido <= dataFim;
-    
-    return matchNumero && matchStatus && matchDataInicio && matchDataFim;
+    // Retorna true apenas se TODOS os filtros forem verdadeiros
+    return matchNumero && matchData && matchStatus;
   });
 
   // Exportar PDF com todos os pedidos filtrados
