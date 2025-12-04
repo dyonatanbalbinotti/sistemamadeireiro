@@ -581,20 +581,18 @@ export default function Pedidos() {
     const matchNumero = filtroNumero === "" || 
       pedido.numero_pedido.toLowerCase().includes(filtroNumero.toLowerCase());
     
-    // Filtro por data do pedido (normalizado para comparar apenas datas)
+    // Filtro por data do pedido - comparar strings YYYY-MM-DD diretamente
     const dataPedidoStr = pedido.data_pedido; // formato: YYYY-MM-DD
-    const dataPedido = new Date(dataPedidoStr + 'T12:00:00'); // usar meio-dia para evitar problemas de timezone
     
     let matchData = true;
     if (dataInicio) {
-      const inicioNormalizado = new Date(dataInicio);
-      inicioNormalizado.setHours(0, 0, 0, 0);
-      matchData = dataPedido >= inicioNormalizado;
+      // Converter data selecionada para string YYYY-MM-DD
+      const inicioStr = format(dataInicio, 'yyyy-MM-dd');
+      matchData = dataPedidoStr >= inicioStr;
     }
     if (matchData && dataFim) {
-      const fimNormalizado = new Date(dataFim);
-      fimNormalizado.setHours(23, 59, 59, 999);
-      matchData = dataPedido <= fimNormalizado;
+      const fimStr = format(dataFim, 'yyyy-MM-dd');
+      matchData = dataPedidoStr <= fimStr;
     }
     
     // Filtro por status (aplicado após o filtro de data)
@@ -987,10 +985,24 @@ export default function Pedidos() {
                                 type="number"
                                 min="0"
                                 max={item.quantidade_pecas}
-                                value={item.quantidade_pecas_produzidas}
-                                onChange={(e) => updateQuantidadePecasProduzidas(pedido.id, item.id, parseInt(e.target.value) || 0)}
+                                defaultValue={item.quantidade_pecas_produzidas}
+                                key={`${item.id}-${item.quantidade_pecas_produzidas}`}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    const value = parseInt((e.target as HTMLInputElement).value) || 0;
+                                    updateQuantidadePecasProduzidas(pedido.id, item.id, value);
+                                  }
+                                }}
+                                onBlur={(e) => {
+                                  const value = parseInt(e.target.value) || 0;
+                                  if (value !== item.quantidade_pecas_produzidas) {
+                                    updateQuantidadePecasProduzidas(pedido.id, item.id, value);
+                                  }
+                                }}
                                 className="w-24 h-7 text-sm"
                                 disabled={pedido.concluido}
+                                placeholder="0"
                               />
                               <span className="text-xs text-muted-foreground">peças</span>
                             </div>
