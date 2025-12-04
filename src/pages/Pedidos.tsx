@@ -5,13 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil, FileText, Search, Filter } from "lucide-react";
+import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil, FileText, Search, Filter, CalendarIcon } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
+import dwLogo from '@/assets/dw-logo-colored.png';
 
 interface ItemPedido {
   id: string;
@@ -43,6 +49,8 @@ export default function Pedidos() {
   // Filtros
   const [filtroNumero, setFiltroNumero] = useState("");
   const [filtroStatus, setFiltroStatus] = useState<"todos" | "concluido" | "pendente">("todos");
+  const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined);
+  const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
   const { toast } = useToast();
 
   // Form states
@@ -573,8 +581,72 @@ export default function Pedidos() {
     const matchStatus = filtroStatus === "todos" || 
       (filtroStatus === "concluido" && pedido.concluido) || 
       (filtroStatus === "pendente" && !pedido.concluido);
-    return matchNumero && matchStatus;
+    
+    const dataPedido = new Date(pedido.data_pedido + 'T00:00:00');
+    const matchDataInicio = !dataInicio || dataPedido >= dataInicio;
+    const matchDataFim = !dataFim || dataPedido <= dataFim;
+    
+    return matchNumero && matchStatus && matchDataInicio && matchDataFim;
   });
+
+  // Exportar PDF com todos os pedidos filtrados
+  const exportarPDFPedidos = () => {
+    if (pedidosFiltrados.length === 0) {
+      toast({
+        title: "Nenhum pedido para exportar",
+        description: "Aplique filtros ou cadastre pedidos primeiro.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text("Relatório de Pedidos", pageWidth / 2, 20, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    let filtroTexto = "Filtros: ";
+    if (filtroStatus !== "todos") filtroTexto += `Status: ${filtroStatus === "concluido" ? "Concluídos" : "Pendentes"} | `;
+    if (dataInicio) filtroTexto += `De: ${format(dataInicio, "dd/MM/yyyy")} | `;
+    if (dataFim) filtroTexto += `Até: ${format(dataFim, "dd/MM/yyyy")} | `;
+    if (filtroNumero) filtroTexto += `Número: ${filtroNumero}`;
+    if (filtroTexto === "Filtros: ") filtroTexto = "Sem filtros aplicados";
+    doc.text(filtroTexto, 14, 30);
+
+    const tableData = pedidosFiltrados.map(pedido => {
+      const totalPecas = pedido.itens.reduce((acc, item) => acc + item.quantidade_pecas, 0);
+      const totalProduzidas = pedido.itens.reduce((acc, item) => acc + item.quantidade_pecas_produzidas, 0);
+      const totalM3 = pedido.itens.reduce((acc, item) => acc + item.quantidade_m3, 0);
+      return [
+        pedido.numero_pedido,
+        format(new Date(pedido.data_pedido + 'T00:00:00'), "dd/MM/yyyy"),
+        pedido.itens.length.toString(),
+        totalPecas.toString(),
+        totalProduzidas.toString(),
+        totalM3.toFixed(3),
+        pedido.concluido ? "Concluído" : "Pendente"
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 38,
+      head: [["Nº Pedido", "Data", "Itens", "Peças", "Produzidas", "M³", "Status"]],
+      body: tableData,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+
+    doc.save(`pedidos-${format(new Date(), "yyyy-MM-dd")}.pdf`);
+    
+    toast({
+      title: "PDF gerado",
+      description: "O relatório foi exportado com sucesso.",
+    });
+  };
 
   return (
     <div className="space-y-4 animate-in fade-in duration-700">
@@ -714,8 +786,8 @@ export default function Pedidos() {
       </div>
 
       {/* Filtros */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[180px] max-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por número..."
@@ -725,7 +797,7 @@ export default function Pedidos() {
           />
         </div>
         <Select value={filtroStatus} onValueChange={(v: "todos" | "concluido" | "pendente") => setFiltroStatus(v)}>
-          <SelectTrigger className="w-[160px] h-9">
+          <SelectTrigger className="w-[140px] h-9">
             <Filter className="h-4 w-4 mr-2" />
             <SelectValue />
           </SelectTrigger>
@@ -735,6 +807,53 @@ export default function Pedidos() {
             <SelectItem value="concluido">Concluídos</SelectItem>
           </SelectContent>
         </Select>
+        
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn("h-9 justify-start text-left font-normal", !dataInicio && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dataInicio ? format(dataInicio, "dd/MM/yy") : "De"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dataInicio}
+              onSelect={setDataInicio}
+              locale={ptBR}
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+        
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn("h-9 justify-start text-left font-normal", !dataFim && "text-muted-foreground")}>
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {dataFim ? format(dataFim, "dd/MM/yy") : "Até"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={dataFim}
+              onSelect={setDataFim}
+              locale={ptBR}
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+
+        {(dataInicio || dataFim) && (
+          <Button variant="ghost" size="sm" className="h-9" onClick={() => { setDataInicio(undefined); setDataFim(undefined); }}>
+            Limpar datas
+          </Button>
+        )}
+
+        <Button onClick={exportarPDFPedidos} variant="outline" size="sm" className="h-9 ml-auto">
+          <img src={dwLogo} alt="DW Logo" className="h-4 w-4 mr-2" />
+          Exportar PDF
+        </Button>
       </div>
 
       {loading ? (
