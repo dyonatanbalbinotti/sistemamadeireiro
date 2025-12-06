@@ -15,13 +15,35 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.ico", "robots.txt", "dw-logo.png"],
+      includeAssets: ["favicon.png", "robots.txt", "icon-192.png", "icon-512.png"],
+      devOptions: {
+        enabled: false
+      },
+      workbox: {
+        cleanupOutdatedCaches: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "supabase-cache",
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+              }
+            }
+          }
+        ]
+      },
       manifest: {
         name: "DwCorporation Sistema Madeireiro",
         short_name: "DwCorp Madeiras",
         description: "Sistema completo de gestão para o setor madeireiro",
-        theme_color: "#8B4513",
-        background_color: "#ffffff",
+        theme_color: "#0a1628",
+        background_color: "#0a1628",
         display: "standalone",
         orientation: "portrait",
         scope: "/",
@@ -56,22 +78,6 @@ export default defineConfig(({ mode }) => ({
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable"
-          }
-        ]
-      },
-      workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-cache",
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              }
-            }
           }
         ]
       }
