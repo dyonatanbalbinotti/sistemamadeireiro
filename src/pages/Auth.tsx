@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
-import dwLogo from "@/assets/dw-logo.png";
+import dwLogo from "@/assets/dw-logo-new.png";
 
 const Auth = () => {
   const [email, setEmail] = useState("");

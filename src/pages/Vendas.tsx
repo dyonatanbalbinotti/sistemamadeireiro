@@ -12,7 +12,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
-import dwLogo from '@/assets/dw-logo-colored.png';
+import dwLogo from '@/assets/dw-logo-new.png';
 import { Venda } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
