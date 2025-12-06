@@ -17,7 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import dwLogo from '@/assets/dw-logo-colored.png';
+import dwLogo from '@/assets/dw-logo-new.png';
 
 interface ItemPedido {
   id: string;

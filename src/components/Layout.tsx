@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import ThemeToggle from "@/components/ThemeToggle";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import FloatingSupport from "@/components/FloatingSupport";
-import dwLogo from "@/assets/dw-logo.png";
+import dwLogo from "@/assets/dw-logo-new.png";
 
 interface LayoutProps {
   children: ReactNode;
