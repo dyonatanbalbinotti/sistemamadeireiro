@@ -1031,7 +1031,8 @@ export default function Producao() {
                           descricao: tora.descricao,
                           toneladas: toneladasSerradas,
                           m3Total,
-                          conversao
+                          conversao,
+                          data: tora.data
                         };
                       }).filter(c => c.m3Total > 0);
 
@@ -1045,16 +1046,65 @@ export default function Producao() {
                         );
                       }
 
-                      return conversoes.map((conv, idx) => (
-                        <TableRow key={idx}>
-                          <TableCell className="font-medium">{conv.descricao}</TableCell>
-                          <TableCell>{conv.toneladas.toFixed(2)} T</TableCell>
-                          <TableCell>{conv.m3Total.toFixed(2)} m³</TableCell>
-                          <TableCell className="font-bold text-primary text-lg">
-                            {conv.conversao.toFixed(2)} T/m³
-                          </TableCell>
-                        </TableRow>
-                      ));
+                      // Calcular totais por mês
+                      const totaisPorMes: Record<string, { toneladas: number; m3: number }> = {};
+                      toras.forEach(tora => {
+                        const mesAno = new Date(tora.data).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
+                        const torasSerradasDoLote = torasSerradas.filter(ts => ts.toraId === tora.id);
+                        const toneladasSerradas = torasSerradasDoLote.reduce((sum, ts) => sum + ts.toneladas, 0);
+                        const producoesDoLote = producao.filter(p => p.toraId === tora.id);
+                        const m3Total = producoesDoLote.reduce((sum, p) => sum + p.m3, 0);
+                        
+                        if (!totaisPorMes[mesAno]) {
+                          totaisPorMes[mesAno] = { toneladas: 0, m3: 0 };
+                        }
+                        totaisPorMes[mesAno].toneladas += toneladasSerradas;
+                        totaisPorMes[mesAno].m3 += m3Total;
+                      });
+
+                      const mesesOrdenados = Object.keys(totaisPorMes).sort((a, b) => {
+                        const [mesA, anoA] = a.split('/');
+                        const [mesB, anoB] = b.split('/');
+                        return new Date(Number(anoB), Number(mesB) - 1).getTime() - new Date(Number(anoA), Number(mesA) - 1).getTime();
+                      });
+
+                      return (
+                        <>
+                          {conversoes.map((conv, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell className="font-medium">{conv.descricao}</TableCell>
+                              <TableCell>{conv.toneladas.toFixed(2)} T</TableCell>
+                              <TableCell>{conv.m3Total.toFixed(2)} m³</TableCell>
+                              <TableCell className="font-bold text-primary text-lg">
+                                {conv.conversao.toFixed(2)} T/m³
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                          {/* Separador */}
+                          <TableRow>
+                            <TableCell colSpan={4} className="bg-muted/30 py-2">
+                              <span className="font-semibold text-muted-foreground">Totais Mensais</span>
+                            </TableCell>
+                          </TableRow>
+                          {/* Totais por mês */}
+                          {mesesOrdenados.map((mes) => {
+                            const dados = totaisPorMes[mes];
+                            const conversaoMensal = dados.m3 > 0 ? dados.toneladas / dados.m3 : 0;
+                            return (
+                              <TableRow key={mes} className="bg-muted/10">
+                                <TableCell className="font-semibold text-foreground">
+                                  {mes}
+                                </TableCell>
+                                <TableCell className="font-semibold">{dados.toneladas.toFixed(2)} T</TableCell>
+                                <TableCell className="font-semibold">{dados.m3.toFixed(2)} m³</TableCell>
+                                <TableCell className="font-bold text-primary text-lg">
+                                  {conversaoMensal.toFixed(2)} T/m³
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </>
+                      );
                     })()}
                   </TableBody>
                 </Table>
