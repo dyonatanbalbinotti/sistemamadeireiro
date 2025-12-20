@@ -30,9 +30,35 @@ export default function Toras() {
   const [editingToraId, setEditingToraId] = useState<string | null>(null);
 
   // Form states - Toras Serradas
-  const [toraIdSerrada, setToraIdSerrada] = useState("");
   const [quantidadeTorasSerradas, setQuantidadeTorasSerradas] = useState("");
+  const [toneladasSerradas, setToneladasSerradas] = useState("");
   const [editingToraSerradaId, setEditingToraSerradaId] = useState<string | null>(null);
+
+  // Calcular peso médio por tonelada do mês atual
+  const calcularPesoMedioPorTonelada = () => {
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    // Filtrar toras do mês atual
+    const torasDoMes = toras.filter(tora => {
+      const dataToora = new Date(tora.data);
+      return dataToora.getMonth() === currentMonth && dataToora.getFullYear() === currentYear;
+    });
+
+    if (torasDoMes.length === 0) return 0;
+
+    // Soma de todas as toneladas do mês
+    const totalToneladas = torasDoMes.reduce((sum, tora) => sum + tora.toneladas, 0);
+    // Total de toras do mês
+    const totalToras = torasDoMes.reduce((sum, tora) => sum + (tora.quantidadeToras || 0), 0);
+
+    if (totalToras === 0) return 0;
+
+    return totalToneladas / totalToras;
+  };
+
+  const pesoMedioPorTonelada = calcularPesoMedioPorTonelada();
 
   useEffect(() => {
     const loadData = async () => {
@@ -215,8 +241,9 @@ export default function Toras() {
     }
     
     const qtdTorasSerradas = parseInt(quantidadeTorasSerradas);
+    const tonSerradas = parseFloat(toneladasSerradas);
     
-    if (!toraIdSerrada || isNaN(qtdTorasSerradas) || qtdTorasSerradas <= 0) {
+    if (isNaN(qtdTorasSerradas) || qtdTorasSerradas <= 0 || isNaN(tonSerradas) || tonSerradas <= 0) {
       toast.error("Preencha todos os campos corretamente");
       return;
     }
@@ -226,37 +253,23 @@ export default function Toras() {
       return;
     }
 
-    const toraSelecionadaObj = toras.find(t => t.id === toraIdSerrada);
-    if (!toraSelecionadaObj || !toraSelecionadaObj.pesoPorTora) {
-      toast.error("Tora selecionada não possui peso por tora calculado");
+    // Usar a primeira tora disponível como referência (ou criar sem vínculo específico)
+    const primeiraToraDisponivel = toras.length > 0 ? toras[0] : null;
+    
+    if (!primeiraToraDisponivel) {
+      toast.error("É necessário ter pelo menos uma entrada de tora cadastrada");
       return;
     }
 
-    // Validar se a quantidade não excede o disponível no lote
-    const quantidadeTotalLote = toraSelecionadaObj.quantidadeToras || 0;
-    
-    // Calcular quantas toras já foram serradas desse lote (excluindo a que está sendo editada)
-    const torasJaSerradas = torasSerradas
-      .filter(ts => ts.toraId === toraIdSerrada && ts.id !== editingToraSerradaId)
-      .reduce((sum, ts) => sum + (ts.quantidadeTorasSerradas || 0), 0);
-    
-    const torasDisponiveis = quantidadeTotalLote - torasJaSerradas;
-    
-    if (qtdTorasSerradas > torasDisponiveis) {
-      toast.error(`Quantidade inválida! Disponível no lote: ${torasDisponiveis} toras (Total: ${quantidadeTotalLote}, Já serradas: ${torasJaSerradas})`);
-      return;
-    }
-
-    const pesoTotal = qtdTorasSerradas * toraSelecionadaObj.pesoPorTora;
+    const pesoTotal = tonSerradas * 1000; // Converter toneladas para kg
 
     try {
       if (editingToraSerradaId) {
         const { error } = await supabase
           .from('toras_serradas')
           .update({
-            tora_id: toraIdSerrada,
             peso: pesoTotal,
-            toneladas: pesoTotal / 1000,
+            toneladas: tonSerradas,
             quantidade_toras_serradas: qtdTorasSerradas,
           })
           .eq('id', editingToraSerradaId);
@@ -265,21 +278,20 @@ export default function Toras() {
 
         setTorasSerradas(torasSerradas.map(ts => ts.id === editingToraSerradaId ? {
           ...ts,
-          toraId: toraIdSerrada,
           peso: pesoTotal,
-          toneladas: pesoTotal / 1000,
+          toneladas: tonSerradas,
           quantidadeTorasSerradas: qtdTorasSerradas,
         } : ts));
         
-        toast.success("Tora serrada atualizada com sucesso!");
+        toast.success("Toras serradas atualizada com sucesso!");
       } else {
         const { data, error } = await supabase
           .from('toras_serradas')
           .insert({
             data: getTodayBR(),
-            tora_id: toraIdSerrada,
+            tora_id: primeiraToraDisponivel.id,
             peso: pesoTotal,
-            toneladas: pesoTotal / 1000,
+            toneladas: tonSerradas,
             quantidade_toras_serradas: qtdTorasSerradas,
             user_id: user.id,
             empresa_id: empresaId,
@@ -300,12 +312,12 @@ export default function Toras() {
           };
 
           setTorasSerradas([novaToraSerrada, ...torasSerradas]);
-          toast.success(`${qtdTorasSerradas} toras serradas: ${(pesoTotal / 1000).toFixed(2)} T`);
+          toast.success(`${qtdTorasSerradas} toras serradas: ${tonSerradas.toFixed(2)} T`);
         }
       }
       
-      setToraIdSerrada("");
       setQuantidadeTorasSerradas("");
+      setToneladasSerradas("");
       setEditingToraSerradaId(null);
     } catch (error) {
       console.error('Erro ao salvar tora serrada:', error);
@@ -354,8 +366,8 @@ export default function Toras() {
   };
 
   const handleEditToraSerrada = (toraSerrada: ToraSerrada) => {
-    setToraIdSerrada(toraSerrada.toraId);
     setQuantidadeTorasSerradas(toraSerrada.quantidadeTorasSerradas?.toString() || "");
+    setToneladasSerradas(toraSerrada.toneladas?.toString() || "");
     setEditingToraSerradaId(toraSerrada.id);
   };
 
@@ -578,22 +590,7 @@ export default function Toras() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitToraSerrada} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="toraSerrada">Selecione o Lote</Label>
-                    <Select value={toraIdSerrada} onValueChange={setToraIdSerrada}>
-                      <SelectTrigger className="border-input">
-                        <SelectValue placeholder="Selecione um lote de toras" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {toras.map((tora) => (
-                          <SelectItem key={tora.id} value={tora.id}>
-                            {tora.descricao} - {tora.toneladas.toFixed(2)} T
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="quantidadeTorasSerradas">Quantidade de Toras Serradas</Label>
                     <Input
@@ -602,6 +599,31 @@ export default function Toras() {
                       value={quantidadeTorasSerradas}
                       onChange={(e) => setQuantidadeTorasSerradas(e.target.value)}
                       placeholder="10"
+                      className="border-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Peso Médio por Tonelada</Label>
+                    <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted/50 flex items-center">
+                      <span className="font-semibold text-primary">
+                        {pesoMedioPorTonelada > 0 
+                          ? `${pesoMedioPorTonelada.toFixed(4)} T/tora`
+                          : 'Sem dados no mês'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Calculado: Toneladas do mês ÷ Toras do mês
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="toneladasSerradas">Toneladas Serradas</Label>
+                    <Input
+                      id="toneladasSerradas"
+                      type="number"
+                      step="0.01"
+                      value={toneladasSerradas}
+                      onChange={(e) => setToneladasSerradas(e.target.value)}
+                      placeholder="5.50"
                       className="border-input"
                     />
                   </div>
@@ -616,8 +638,8 @@ export default function Toras() {
                     variant="outline" 
                     onClick={() => {
                       setEditingToraSerradaId(null);
-                      setToraIdSerrada("");
                       setQuantidadeTorasSerradas("");
+                      setToneladasSerradas("");
                     }}
                     className="ml-2"
                   >
