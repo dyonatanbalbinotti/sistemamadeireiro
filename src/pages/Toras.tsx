@@ -22,6 +22,7 @@ export default function Toras() {
   const [loading, setLoading] = useState(true);
 
   // Form states - Toras
+  const [numeroLote, setNumeroLote] = useState("");
   const [descricaoTora, setDescricaoTora] = useState("");
   const [pesoCargaTora, setPesoCargaTora] = useState("");
   const [quantidadeTorasCarga, setQuantidadeTorasCarga] = useState("");
@@ -51,6 +52,7 @@ export default function Toras() {
           setToras(torasData.map(t => ({
             id: t.id,
             data: t.data,
+            numeroLote: (t as any).numero_lote || undefined,
             descricao: t.descricao,
             peso: Number(t.peso),
             toneladas: Number(t.toneladas),
@@ -102,7 +104,7 @@ export default function Toras() {
     const qtdToras = parseInt(quantidadeTorasCarga);
     const valorTon = parseFloat(valorPorTonelada) || 0;
     
-    if (!descricaoTora || isNaN(pesoCarga) || isNaN(qtdToras) || qtdToras <= 0) {
+    if (!numeroLote || !descricaoTora || isNaN(pesoCarga) || isNaN(qtdToras) || qtdToras <= 0) {
       toast.error("Preencha todos os campos corretamente");
       return;
     }
@@ -121,6 +123,7 @@ export default function Toras() {
         const { error } = await supabase
           .from('toras')
           .update({
+            numero_lote: numeroLote,
             descricao: descricaoTora,
             peso: pesoCarga,
             toneladas: toneladas,
@@ -129,13 +132,14 @@ export default function Toras() {
             peso_por_tora: pesoPorTora,
             valor_por_tonelada: valorTon > 0 ? valorTon : null,
             valor_total_carga: valorTotalCarga > 0 ? valorTotalCarga : null,
-          })
+          } as any)
           .eq('id', editingToraId);
 
         if (error) throw error;
 
         setToras(toras.map(t => t.id === editingToraId ? {
           ...t,
+          numeroLote: numeroLote,
           descricao: descricaoTora,
           peso: pesoCarga,
           toneladas: toneladas,
@@ -152,6 +156,7 @@ export default function Toras() {
           .from('toras')
           .insert({
             data: getTodayBR(),
+            numero_lote: numeroLote,
             descricao: descricaoTora,
             peso: pesoCarga,
             toneladas: toneladas,
@@ -162,7 +167,7 @@ export default function Toras() {
             valor_total_carga: valorTotalCarga > 0 ? valorTotalCarga : null,
             user_id: user.id,
             empresa_id: empresaId,
-          })
+          } as any)
           .select()
           .single();
 
@@ -172,6 +177,7 @@ export default function Toras() {
           const novaTora: Tora = {
             id: data.id,
             data: data.data,
+            numeroLote: (data as any).numero_lote || undefined,
             descricao: data.descricao,
             peso: Number(data.peso),
             toneladas: Number(data.toneladas),
@@ -184,10 +190,11 @@ export default function Toras() {
           };
 
           setToras([novaTora, ...toras]);
-          toast.success(`Tora adicionada: ${qtdToras} toras, ${pesoPorTora.toFixed(2)} kg/tora`);
+          toast.success(`Lote ${numeroLote} adicionado: ${qtdToras} toras`);
         }
       }
       
+      setNumeroLote("");
       setDescricaoTora("");
       setPesoCargaTora("");
       setQuantidadeTorasCarga("");
@@ -307,6 +314,7 @@ export default function Toras() {
   };
 
   const handleEditTora = (tora: Tora) => {
+    setNumeroLote(tora.numeroLote || "");
     setDescricaoTora(tora.descricao);
     setPesoCargaTora(tora.pesoCarga?.toString() || "");
     setQuantidadeTorasCarga(tora.quantidadeToras?.toString() || "");
@@ -401,17 +409,29 @@ export default function Toras() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitTora} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="descricaoTora">Descrição/Lote</Label>
+                    <Label htmlFor="numeroLote">Número do Lote</Label>
+                    <Input
+                      id="numeroLote"
+                      value={numeroLote}
+                      onChange={(e) => setNumeroLote(e.target.value)}
+                      placeholder="Ex: 001"
+                      className="border-input"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="descricaoTora">Descrição</Label>
                     <Input
                       id="descricaoTora"
                       value={descricaoTora}
                       onChange={(e) => setDescricaoTora(e.target.value)}
-                      placeholder="Ex: Lote 001"
+                      placeholder="Ex: Eucalipto"
                       className="border-input"
                     />
                   </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
                   <div className="space-y-2">
                     <Label htmlFor="pesoCargaTora">Peso Total da Carga (kg)</Label>
                     <Input
@@ -435,8 +455,6 @@ export default function Toras() {
                       className="border-input"
                     />
                   </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="valorPorTonelada">Valor por Tonelada (R$)</Label>
                     <Input
@@ -449,17 +467,17 @@ export default function Toras() {
                       className="border-input"
                     />
                   </div>
-                  {valorPorTonelada && pesoCargaTora && (
-                    <div className="space-y-2">
-                      <Label>Valor Total da Carga</Label>
-                      <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted/50 flex items-center">
-                        <span className="font-semibold text-primary">
-                          R$ {((parseFloat(valorPorTonelada) || 0) * ((parseFloat(pesoCargaTora) || 0) / 1000)).toFixed(2)}
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
+                {valorPorTonelada && pesoCargaTora && (
+                  <div className="space-y-2">
+                    <Label>Valor Total da Carga</Label>
+                    <div className="h-10 px-3 py-2 rounded-md border border-input bg-muted/50 flex items-center">
+                      <span className="font-semibold text-primary">
+                        R$ {((parseFloat(valorPorTonelada) || 0) * ((parseFloat(pesoCargaTora) || 0) / 1000)).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <Button type="submit" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Plus className="h-4 w-4 mr-2" />
                   {editingToraId ? "Atualizar Tora" : "Adicionar Tora"}
@@ -470,6 +488,7 @@ export default function Toras() {
                     variant="outline" 
                     onClick={() => {
                       setEditingToraId(null);
+                      setNumeroLote("");
                       setDescricaoTora("");
                       setPesoCargaTora("");
                       setQuantidadeTorasCarga("");
@@ -494,10 +513,10 @@ export default function Toras() {
                   <TableHeader>
                     <TableRow className="bg-muted/50">
                       <TableHead>Data</TableHead>
-                      <TableHead>Descrição/Lote</TableHead>
+                      <TableHead>Nº Lote</TableHead>
+                      <TableHead>Descrição</TableHead>
                       <TableHead>Peso Carga (kg)</TableHead>
                       <TableHead>Qtd Toras</TableHead>
-                      <TableHead>Peso/Tora (kg)</TableHead>
                       <TableHead>Toneladas</TableHead>
                       <TableHead>Valor/Ton (R$)</TableHead>
                       <TableHead>Valor Total (R$)</TableHead>
@@ -508,10 +527,10 @@ export default function Toras() {
                     {toras.map((tora) => (
                       <TableRow key={tora.id}>
                         <TableCell>{formatDateBR(tora.data)}</TableCell>
+                        <TableCell className="font-semibold">{tora.numeroLote || '-'}</TableCell>
                         <TableCell className="font-medium">{tora.descricao}</TableCell>
                         <TableCell>{tora.pesoCarga?.toFixed(2)} kg</TableCell>
                         <TableCell>{tora.quantidadeToras}</TableCell>
-                        <TableCell>{tora.pesoPorTora?.toFixed(2)} kg</TableCell>
                         <TableCell className="font-semibold text-primary">
                           {tora.toneladas.toFixed(2)} T
                         </TableCell>
