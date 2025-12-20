@@ -368,6 +368,7 @@ export type Database = {
           empresa_id: string
           grossura: number | null
           id: string
+          numero_lote: string | null
           peso: number
           peso_carga: number | null
           peso_por_m3: number | null
@@ -385,6 +386,7 @@ export type Database = {
           empresa_id: string
           grossura?: number | null
           id?: string
+          numero_lote?: string | null
           peso: number
           peso_carga?: number | null
           peso_por_m3?: number | null
@@ -402,6 +404,7 @@ export type Database = {
           empresa_id?: string
           grossura?: number | null
           id?: string
+          numero_lote?: string | null
           peso?: number
           peso_carga?: number | null
           peso_por_m3?: number | null

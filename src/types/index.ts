@@ -25,6 +25,7 @@ export interface MadeiraProduzida {
 export interface Tora {
   id: string;
   data: string;
+  numeroLote?: string;
   descricao: string;
   peso: number; // em kg
   toneladas: number;
