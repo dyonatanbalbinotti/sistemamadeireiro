@@ -1,0 +1,204 @@
+import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle,
+  SheetTrigger 
+} from "@/components/ui/sheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { 
+  User, 
+  Mail, 
+  Shield, 
+  LogOut, 
+  Settings,
+  Moon,
+  Sun,
+  ChevronRight
+} from "lucide-react";
+import { useTheme } from "next-themes";
+
+export default function UserAccountDrawer() {
+  const { user, userName, userRole, signOut, isAdmin } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const [open, setOpen] = useState(false);
+
+  const getRoleLabel = () => {
+    if (userRole === 'admin') return 'Administrador';
+    if (userRole === 'user') return 'Usuário';
+    return 'Carregando...';
+  };
+
+  const getRoleBadgeClass = () => {
+    if (userRole === 'admin') return 'bg-primary/20 text-primary border-primary/30';
+    return 'bg-muted text-muted-foreground border-border';
+  };
+
+  const getInitials = () => {
+    if (userName) {
+      return userName
+        .split(' ')
+        .map(n => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    }
+    return user?.email?.charAt(0).toUpperCase() || 'U';
+  };
+
+  const handleSignOut = async () => {
+    setOpen(false);
+    await signOut();
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button 
+          variant="ghost" 
+          className="relative h-10 w-10 rounded-full ring-2 ring-primary/20 hover:ring-primary/50 transition-all"
+        >
+          <Avatar className="h-9 w-9">
+            <AvatarImage src="" alt={userName || "Usuário"} />
+            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
+        </Button>
+      </SheetTrigger>
+      
+      <SheetContent side="right" className="w-80 sm:w-96 bg-background border-l border-border">
+        <SheetHeader className="text-left pb-4">
+          <SheetTitle className="text-lg font-semibold">Minha Conta</SheetTitle>
+        </SheetHeader>
+        
+        {/* User Profile Section */}
+        <div className="flex flex-col items-center py-6 space-y-4">
+          <Avatar className="h-20 w-20 ring-4 ring-primary/20">
+            <AvatarImage src="" alt={userName || "Usuário"} />
+            <AvatarFallback className="bg-primary/10 text-primary text-2xl font-bold">
+              {getInitials()}
+            </AvatarFallback>
+          </Avatar>
+          
+          <div className="text-center space-y-1">
+            <h3 className="text-xl font-semibold text-foreground">
+              {userName || "Usuário"}
+            </h3>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeClass()}`}>
+              <Shield className="h-3 w-3" />
+              {getRoleLabel()}
+            </span>
+          </div>
+        </div>
+        
+        <Separator className="my-4" />
+        
+        {/* User Info */}
+        <div className="space-y-3 py-4">
+          <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Informações
+          </h4>
+          
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary/10">
+                <User className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">Nome</p>
+                <p className="text-sm font-medium text-foreground truncate">
+                  {userName || "Não definido"}
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary/10">
+                <Mail className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">E-mail</p>
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user?.email || "Não definido"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <Separator className="my-4" />
+        
+        {/* Actions */}
+        <div className="space-y-3 py-4">
+          <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+            Ações
+          </h4>
+          
+          <div className="space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-between h-12 px-3"
+              onClick={toggleTheme}
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex items-center justify-center h-9 w-9 rounded-full bg-muted">
+                  {theme === 'dark' ? (
+                    <Moon className="h-4 w-4 text-foreground" />
+                  ) : (
+                    <Sun className="h-4 w-4 text-foreground" />
+                  )}
+                </div>
+                <span className="text-sm font-medium">
+                  {theme === 'dark' ? 'Modo Escuro' : 'Modo Claro'}
+                </span>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            
+            {isAdmin && (
+              <Button
+                variant="ghost"
+                className="w-full justify-between h-12 px-3"
+                onClick={() => {
+                  setOpen(false);
+                  window.location.href = '/admin';
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center h-9 w-9 rounded-full bg-muted">
+                    <Settings className="h-4 w-4 text-foreground" />
+                  </div>
+                  <span className="text-sm font-medium">Configurações Admin</span>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            )}
+          </div>
+        </div>
+        
+        <Separator className="my-4" />
+        
+        {/* Sign Out */}
+        <div className="py-4">
+          <Button
+            variant="destructive"
+            className="w-full h-12 gap-2"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-4 w-4" />
+            Sair da Conta
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}

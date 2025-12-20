@@ -6,18 +6,16 @@ import {
   Package, 
   ShoppingCart, 
   Factory,
-  LogOut,
   Settings,
   Layers,
   TreeDeciduous,
   ClipboardList,
   FileText
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import ThemeToggle from "@/components/ThemeToggle";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import FloatingSupport from "@/components/FloatingSupport";
+import UserAccountDrawer from "@/components/UserAccountDrawer";
 import dwLogo from "@/assets/dw-logo-new.png";
 
 interface LayoutProps {
@@ -26,7 +24,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { signOut, userRole, userName, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
 
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'user'] },
@@ -39,12 +37,6 @@ export default function Layout({ children }: LayoutProps) {
     { to: "/residuos", icon: Layers, label: "Resíduos", roles: ['admin', 'user'] },
     { to: "/relatorios-financeiros", icon: FileText, label: "Relatórios", roles: ['admin', 'user'] },
   ];
-
-  const getRoleLabel = () => {
-    if (userRole === 'admin') return 'Administrador';
-    if (userRole === 'user') return 'Usuário';
-    return '';
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/10 wood-texture">
@@ -59,13 +51,8 @@ export default function Layout({ children }: LayoutProps) {
               />
               <div>
                 <h1 className="text-lg font-tech font-bold text-primary tracking-wider">
-                  {userName || "DwCorporation Sist. Madeireiro"}
+                  DwCorporation Sist. Madeireiro
                 </h1>
-                {userRole && (
-                  <p className="text-xs text-muted-foreground">
-                    {getRoleLabel()}
-                  </p>
-                )}
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -90,16 +77,7 @@ export default function Layout({ children }: LayoutProps) {
                   );
                 })}
               </div>
-              <ThemeToggle />
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={signOut} 
-                title="Sair"
-                className="hover:bg-destructive/10 hover:text-destructive neon-glow"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
+              <UserAccountDrawer />
             </div>
           </div>
         </div>
