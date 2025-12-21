@@ -89,6 +89,7 @@ export type Database = {
           data_vencimento_anuidade: string | null
           endereco: string | null
           id: string
+          logo_posicao_pdf: string | null
           logo_url: string | null
           nome_empresa: string
           telefone: string | null
@@ -103,6 +104,7 @@ export type Database = {
           data_vencimento_anuidade?: string | null
           endereco?: string | null
           id?: string
+          logo_posicao_pdf?: string | null
           logo_url?: string | null
           nome_empresa: string
           telefone?: string | null
@@ -117,6 +119,7 @@ export type Database = {
           data_vencimento_anuidade?: string | null
           endereco?: string | null
           id?: string
+          logo_posicao_pdf?: string | null
           logo_url?: string | null
           nome_empresa?: string
           telefone?: string | null

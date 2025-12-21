@@ -39,6 +39,7 @@ export default function EditEmpresaDialog({
   const [logoUrl, setLogoUrl] = useState(empresa?.logo_url || "");
   const [corPrimaria, setCorPrimaria] = useState(empresa?.cor_primaria || "#1e40af");
   const [corSecundaria, setCorSecundaria] = useState(empresa?.cor_secundaria || "#64748b");
+  const [logoPosicaoPdf, setLogoPosicaoPdf] = useState(empresa?.logo_posicao_pdf || "direita");
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -52,6 +53,7 @@ export default function EditEmpresaDialog({
       setLogoUrl(empresa.logo_url || "");
       setCorPrimaria(empresa.cor_primaria || "#1e40af");
       setCorSecundaria(empresa.cor_secundaria || "#64748b");
+      setLogoPosicaoPdf(empresa.logo_posicao_pdf || "direita");
     }
   });
 
@@ -186,6 +188,7 @@ export default function EditEmpresaDialog({
           logo_url: logoUrl || null,
           cor_primaria: corPrimaria,
           cor_secundaria: corSecundaria,
+          logo_posicao_pdf: logoPosicaoPdf,
         })
         .eq("id", empresa.id);
 
@@ -346,6 +349,29 @@ export default function EditEmpresaDialog({
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Posição do Logo no PDF */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Posição do Logo no PDF</Label>
+            <div className="flex gap-2">
+              {[
+                { value: "esquerda", label: "Esquerda" },
+                { value: "centro", label: "Centro" },
+                { value: "direita", label: "Direita" },
+              ].map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={logoPosicaoPdf === option.value ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setLogoPosicaoPdf(option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
             </div>
           </div>
 
