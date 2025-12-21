@@ -25,7 +25,8 @@ import {
   Pencil,
   Phone,
   MapPin,
-  Building2
+  Building2,
+  FileText
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import EditProfileDialog from "@/components/EditProfileDialog";
@@ -256,6 +257,21 @@ export default function UserAccountDrawer() {
                         </div>
                       )}
                       
+                      {/* CNPJ */}
+                      {empresa.cnpj && (
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                          <div className="flex items-center justify-center h-9 w-9 rounded-full bg-primary/10">
+                            <FileText className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs text-muted-foreground">CNPJ</p>
+                            <p className="text-sm font-medium text-foreground truncate">
+                              {empresa.cnpj}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       {/* Endereço */}
                       {empresa.endereco && (
                         <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
