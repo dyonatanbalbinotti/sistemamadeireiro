@@ -93,11 +93,11 @@ export default function EditEmpresaDialog({
       return;
     }
 
-    // Validar tamanho (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
+    // Validar tamanho (max 20MB)
+    if (file.size > 20 * 1024 * 1024) {
       toast({
         title: "Arquivo muito grande",
-        description: "O logo deve ter no máximo 2MB.",
+        description: `O logo deve ter no máximo 20MB. Tamanho atual: ${(file.size / 1024 / 1024).toFixed(2)}MB`,
         variant: "destructive",
       });
       return;
@@ -106,7 +106,7 @@ export default function EditEmpresaDialog({
     setUploadingLogo(true);
 
     try {
-      const fileExt = file.name.split(".").pop();
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || 'png';
       const fileName = `empresa-${empresa.id}-${Date.now()}.${fileExt}`;
       const filePath = `logos/${fileName}`;
 
@@ -115,7 +115,28 @@ export default function EditEmpresaDialog({
         .from("avatars")
         .upload(filePath, file, { upsert: true });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("Erro de upload:", uploadError);
+        
+        // Mensagens de erro específicas
+        let errorMessage = "Não foi possível enviar o logo.";
+        if (uploadError.message?.includes("Payload too large")) {
+          errorMessage = "Arquivo muito grande para o servidor. Tente uma imagem menor.";
+        } else if (uploadError.message?.includes("Invalid")) {
+          errorMessage = "Tipo de arquivo não suportado. Use JPG, PNG ou WEBP.";
+        } else if (uploadError.message?.includes("not found")) {
+          errorMessage = "Bucket de armazenamento não encontrado. Contate o suporte.";
+        } else if (uploadError.message) {
+          errorMessage = uploadError.message;
+        }
+        
+        toast({
+          title: "Erro ao enviar logo",
+          description: errorMessage,
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Obter URL pública
       const { data: publicUrlData } = supabase.storage
@@ -128,11 +149,11 @@ export default function EditEmpresaDialog({
         title: "Logo enviado",
         description: "O logo foi carregado com sucesso.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao enviar logo:", error);
       toast({
         title: "Erro ao enviar logo",
-        description: "Não foi possível enviar o logo.",
+        description: error?.message || "Erro desconhecido ao enviar o arquivo.",
         variant: "destructive",
       });
     } finally {
@@ -229,7 +250,7 @@ export default function EditEmpresaDialog({
               onChange={handleLogoUpload}
             />
             <p className="text-xs text-muted-foreground">
-              Clique para alterar o logo (máx. 2MB)
+              Clique para alterar o logo (máx. 20MB)
             </p>
           </div>
 
