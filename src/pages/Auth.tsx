@@ -10,12 +10,26 @@ import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 import { motion } from "framer-motion";
 import dwLogo from "@/assets/dw-logo-new.png";
+import { z } from "zod";
+
+// Schema de validação para login
+const loginSchema = z.object({
+  email: z.string()
+    .trim()
+    .min(1, "Email é obrigatório")
+    .email("Email inválido")
+    .max(255, "Email muito longo"),
+  password: z.string()
+    .min(6, "Senha deve ter no mínimo 6 caracteres")
+    .max(128, "Senha muito longa"),
+});
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<{email?: string; password?: string}>({});
   const { signIn, user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -28,9 +42,24 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setValidationErrors({});
+    
+    // Validar inputs com Zod
+    const result = loginSchema.safeParse({ email, password });
+    
+    if (!result.success) {
+      const errors: {email?: string; password?: string} = {};
+      result.error.errors.forEach(err => {
+        if (err.path[0] === 'email') errors.email = err.message;
+        if (err.path[0] === 'password') errors.password = err.message;
+      });
+      setValidationErrors(errors);
+      return;
+    }
+    
     setIsLoading(true);
 
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(result.data.email, result.data.password);
 
     if (error) {
       toast({
@@ -82,7 +111,11 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className={validationErrors.email ? "border-destructive" : ""}
               />
+              {validationErrors.email && (
+                <p className="text-xs text-destructive">{validationErrors.email}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
@@ -94,7 +127,7 @@ const Auth = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="pr-10"
+                  className={`pr-10 ${validationErrors.password ? "border-destructive" : ""}`}
                 />
                 <Button
                   type="button"
@@ -110,6 +143,9 @@ const Auth = () => {
                   )}
                 </Button>
               </div>
+              {validationErrors.password && (
+                <p className="text-xs text-destructive">{validationErrors.password}</p>
+              )}
             </div>
             <Button type="submit" className="w-full neon-glow" disabled={isLoading}>
               {isLoading ? "Entrando..." : "Entrar"}
