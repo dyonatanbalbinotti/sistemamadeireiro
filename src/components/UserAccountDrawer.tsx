@@ -30,13 +30,15 @@ import {
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import EditProfileDialog from "@/components/EditProfileDialog";
+import EditEmpresaDialog from "@/components/EditEmpresaDialog";
 
 export default function UserAccountDrawer() {
   const { user, userName, userRole, signOut, isAdmin } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { empresa } = useEmpresaData();
+  const { empresa, refetch: refetchEmpresa } = useEmpresaData();
   const [open, setOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
+  const [editEmpresaOpen, setEditEmpresaOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [localUserName, setLocalUserName] = useState<string | null>(userName);
 
@@ -215,9 +217,20 @@ export default function UserAccountDrawer() {
                   <Separator className="my-4" />
                   
                   <div className="space-y-3 py-4">
-                    <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
-                      Dados da Empresa
-                    </h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
+                        Dados da Empresa
+                      </h4>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1.5 text-xs"
+                        onClick={() => setEditEmpresaOpen(true)}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Editar
+                      </Button>
+                    </div>
                     
                     <div className="space-y-2">
                       {/* Logo e Nome da Empresa */}
@@ -379,6 +392,13 @@ export default function UserAccountDrawer() {
         currentName={localUserName}
         currentAvatarUrl={avatarUrl}
         onProfileUpdate={handleProfileUpdate}
+      />
+
+      <EditEmpresaDialog
+        open={editEmpresaOpen}
+        onOpenChange={setEditEmpresaOpen}
+        empresa={empresa}
+        onEmpresaUpdate={refetchEmpresa}
       />
     </>
   );
