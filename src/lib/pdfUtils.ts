@@ -46,16 +46,25 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
     doc.rect(0, 0, pageWidth, 5, 'F');
     yPos = 12;
 
-    // Tentar adicionar logo à direita
+    // Tentar adicionar logo na posição configurada
     let logoAdded = false;
+    let logoX = 14; // Padrão: esquerda
+    const logoWidth = 30;
+    const logoHeight = 30;
+    const posicaoLogo = empresa.logo_posicao_pdf || 'direita';
+
     if (empresa.logo_url) {
       try {
         const logoBase64 = await imageUrlToBase64(empresa.logo_url);
         if (logoBase64) {
-          // Logo posicionado à direita do cabeçalho
-          const logoWidth = 30;
-          const logoHeight = 30;
-          const logoX = pageWidth - 14 - logoWidth;
+          // Calcular posição X baseado na configuração
+          if (posicaoLogo === 'centro') {
+            logoX = (pageWidth - logoWidth) / 2;
+          } else if (posicaoLogo === 'direita') {
+            logoX = pageWidth - 14 - logoWidth;
+          }
+          // esquerda: já é o padrão (14)
+          
           doc.addImage(logoBase64, 'PNG', logoX, yPos, logoWidth, logoHeight);
           logoAdded = true;
         }
@@ -64,14 +73,26 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
       }
     }
 
-    // Textos à esquerda (independente do logo)
+    // Textos - posição depende de onde está o logo
+    let textX = 14;
+    let textMaxWidth = pageWidth - 28;
+    
+    // Se logo está à esquerda, texto vai à direita do logo
+    if (logoAdded && posicaoLogo === 'esquerda') {
+      textX = 14 + logoWidth + 6;
+      textMaxWidth = pageWidth - textX - 14;
+    } else if (logoAdded && (posicaoLogo === 'direita' || posicaoLogo === 'centro')) {
+      // Logo à direita ou centro, texto à esquerda
+      textMaxWidth = posicaoLogo === 'direita' ? pageWidth - 60 : pageWidth - 28;
+    }
+    
     let textY = yPos + 5;
     
     // Nome da empresa com cor primária
     doc.setFontSize(14);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(r, g, b);
-    doc.text(empresa.nome_empresa, 14, textY);
+    doc.text(empresa.nome_empresa, textX, textY);
     textY += 6;
     
     // Demais informações em cinza escuro
@@ -89,17 +110,16 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
       infoLine += `Tel: ${empresa.telefone}`;
     }
     if (infoLine) {
-      doc.text(infoLine, 14, textY);
+      doc.text(infoLine, textX, textY);
       textY += 5;
     }
     
     // Endereço
     if (empresa.endereco) {
-      const maxWidth = logoAdded ? pageWidth - 60 : pageWidth - 28;
       const enderecoTruncado = empresa.endereco.length > 80 
         ? empresa.endereco.substring(0, 77) + '...' 
         : empresa.endereco;
-      doc.text(enderecoTruncado, 14, textY);
+      doc.text(enderecoTruncado, textX, textY);
     }
     
     yPos += logoAdded ? 35 : 25;
