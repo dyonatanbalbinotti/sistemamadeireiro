@@ -40,6 +40,7 @@ export default function EditEmpresaDialog({
   const [corPrimaria, setCorPrimaria] = useState(empresa?.cor_primaria || "#1e40af");
   const [corSecundaria, setCorSecundaria] = useState(empresa?.cor_secundaria || "#64748b");
   const [logoPosicaoPdf, setLogoPosicaoPdf] = useState(empresa?.logo_posicao_pdf || "direita");
+  const [logoTamanhoPdf, setLogoTamanhoPdf] = useState(empresa?.logo_tamanho_pdf || "medio");
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -54,6 +55,7 @@ export default function EditEmpresaDialog({
       setCorPrimaria(empresa.cor_primaria || "#1e40af");
       setCorSecundaria(empresa.cor_secundaria || "#64748b");
       setLogoPosicaoPdf(empresa.logo_posicao_pdf || "direita");
+      setLogoTamanhoPdf(empresa.logo_tamanho_pdf || "medio");
     }
   });
 
@@ -189,6 +191,7 @@ export default function EditEmpresaDialog({
           cor_primaria: corPrimaria,
           cor_secundaria: corSecundaria,
           logo_posicao_pdf: logoPosicaoPdf,
+          logo_tamanho_pdf: logoTamanhoPdf,
         })
         .eq("id", empresa.id);
 
@@ -368,6 +371,29 @@ export default function EditEmpresaDialog({
                   size="sm"
                   className="flex-1"
                   onClick={() => setLogoPosicaoPdf(option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tamanho do Logo no PDF */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Tamanho do Logo no PDF</Label>
+            <div className="flex gap-2">
+              {[
+                { value: "pequeno", label: "Pequeno" },
+                { value: "medio", label: "Médio" },
+                { value: "grande", label: "Grande" },
+              ].map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={logoTamanhoPdf === option.value ? "default" : "outline"}
+                  size="sm"
+                  className="flex-1"
+                  onClick={() => setLogoTamanhoPdf(option.value)}
                 >
                   {option.label}
                 </Button>
