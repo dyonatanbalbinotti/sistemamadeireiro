@@ -22,7 +22,7 @@ async function imageUrlToBase64(url: string): Promise<string | null> {
   }
 }
 
-// Adiciona cabeçalho com logo e nome da empresa
+// Adiciona cabeçalho com logo e dados da empresa
 export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<number> {
   const { empresa, doc } = options;
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -35,37 +35,51 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
         const logoBase64 = await imageUrlToBase64(empresa.logo_url);
         if (logoBase64) {
           doc.addImage(logoBase64, 'PNG', 14, yPos, 25, 25);
+          
           // Textos ao lado do logo
+          let textX = 45;
+          let textY = yPos + 5;
+          
+          // Nome da empresa
           doc.setFontSize(14);
           doc.setFont("helvetica", "bold");
-          doc.text(empresa.nome_empresa, 45, yPos + 10);
+          doc.text(empresa.nome_empresa, textX, textY);
+          textY += 6;
           
+          // CNPJ
           doc.setFontSize(9);
           doc.setFont("helvetica", "normal");
           if (empresa.cnpj) {
-            doc.text(`CNPJ: ${empresa.cnpj}`, 45, yPos + 17);
+            doc.text(`CNPJ: ${empresa.cnpj}`, textX, textY);
+            textY += 5;
           }
+          
+          // Telefone
+          if (empresa.telefone) {
+            doc.text(`Tel: ${empresa.telefone}`, textX, textY);
+            textY += 5;
+          }
+          
+          // Endereço (pode ser mais longo, então limitamos)
+          if (empresa.endereco) {
+            const enderecoTruncado = empresa.endereco.length > 60 
+              ? empresa.endereco.substring(0, 57) + '...' 
+              : empresa.endereco;
+            doc.text(enderecoTruncado, textX, textY);
+          }
+          
           yPos += 30;
         } else {
-          // Sem logo, apenas texto
-          doc.setFontSize(14);
-          doc.setFont("helvetica", "bold");
-          doc.text(empresa.nome_empresa, 14, yPos + 8);
-          yPos += 15;
+          // Sem logo, apenas textos
+          yPos = addHeaderTextOnly(doc, empresa, yPos);
         }
       } catch {
         // Fallback sem logo
-        doc.setFontSize(14);
-        doc.setFont("helvetica", "bold");
-        doc.text(empresa.nome_empresa, 14, yPos + 8);
-        yPos += 15;
+        yPos = addHeaderTextOnly(doc, empresa, yPos);
       }
     } else {
       // Sem logo configurado
-      doc.setFontSize(14);
-      doc.setFont("helvetica", "bold");
-      doc.text(empresa.nome_empresa, 14, yPos + 8);
-      yPos += 15;
+      yPos = addHeaderTextOnly(doc, empresa, yPos);
     }
 
     // Linha separadora
@@ -75,6 +89,42 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
   }
 
   return yPos;
+}
+
+// Função auxiliar para adicionar cabeçalho apenas com texto
+function addHeaderTextOnly(doc: jsPDF, empresa: EmpresaData, startY: number): number {
+  let yPos = startY;
+  
+  // Nome da empresa
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "bold");
+  doc.text(empresa.nome_empresa, 14, yPos + 5);
+  yPos += 10;
+  
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  
+  // Linha com CNPJ e Telefone
+  let infoLine = '';
+  if (empresa.cnpj) {
+    infoLine += `CNPJ: ${empresa.cnpj}`;
+  }
+  if (empresa.telefone) {
+    if (infoLine) infoLine += '  |  ';
+    infoLine += `Tel: ${empresa.telefone}`;
+  }
+  if (infoLine) {
+    doc.text(infoLine, 14, yPos + 3);
+    yPos += 6;
+  }
+  
+  // Endereço
+  if (empresa.endereco) {
+    doc.text(empresa.endereco, 14, yPos + 3);
+    yPos += 6;
+  }
+  
+  return yPos + 2;
 }
 
 // Adiciona rodapé com informações da empresa
