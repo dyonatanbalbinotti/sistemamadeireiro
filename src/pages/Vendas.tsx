@@ -20,10 +20,13 @@ import { useEmpresaId } from "@/hooks/useEmpresaId";
 import { formatDateBR, getTodayBR } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 import { calcularEstoqueSerradoSupabase } from "@/lib/supabaseStorage";
+import { useEmpresaData } from '@/hooks/useEmpresaData';
+import { addPDFHeader, addPDFFooter } from '@/lib/pdfUtils';
 
 export default function Vendas() {
   const { user } = useAuth();
   const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
+  const { empresa } = useEmpresaData();
   const [tipoVenda, setTipoVenda] = useState<'madeira' | 'cavaco'>('madeira');
   const [modoVendaMadeira, setModoVendaMadeira] = useState<'unidades' | 'm3'>('unidades');
   const [vendas, setVendas] = useState<Venda[]>([]);
@@ -694,8 +697,7 @@ export default function Vendas() {
     }
   };
 
-  // Exportar para PDF
-  const exportarPDF = () => {
+  const exportarPDF = async () => {
     const vendasFiltradas = getVendasFiltradas();
     
     if (vendasFiltradas.length === 0) {
@@ -704,16 +706,20 @@ export default function Vendas() {
     }
 
     const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Adicionar cabeçalho
+    const startY = await addPDFHeader({ empresa, doc });
     
     // Título
-    doc.setFontSize(18);
-    doc.text(`Relatório de Vendas - ${tipoVenda === 'madeira' ? 'Madeiras Serradas' : 'Cavaco'}`, pageWidth / 2, 15, { align: 'center' });
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Relatório de Vendas - ${tipoVenda === 'madeira' ? 'Madeiras Serradas' : 'Cavaco'}`, 14, startY + 5);
     
     // Período
     doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
     const periodo = `Período: ${dataInicial ? formatDateBR(dataInicial) : 'Início'} até ${dataFinal ? formatDateBR(dataFinal) : 'Hoje'}`;
-    doc.text(periodo, pageWidth / 2, 22, { align: 'center' });
+    doc.text(periodo, 14, startY + 12);
 
     if (tipoVenda === 'madeira') {
       const dados = vendasFiltradas.map((v: Venda) => {
@@ -728,7 +734,7 @@ export default function Vendas() {
       });
 
       autoTable(doc, {
-        startY: 28,
+        startY: startY + 18,
         head: [['Data', 'Produto', 'Quantidade', 'Valor Unit.', 'Total']],
         body: dados,
         foot: [[
@@ -738,7 +744,8 @@ export default function Vendas() {
         theme: 'grid',
         styles: { fontSize: 9 },
         headStyles: { fillColor: [59, 130, 246] },
-        footStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0], fontStyle: 'bold' }
+        footStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { bottom: 30 }
       });
     } else {
       const dados = vendasFiltradas.map((v: any) => [
@@ -750,7 +757,7 @@ export default function Vendas() {
       ]);
 
       autoTable(doc, {
-        startY: 28,
+        startY: startY + 18,
         head: [['Data', 'Lote (Tora)', 'Toneladas', 'Valor/Ton', 'Total']],
         body: dados,
         foot: [[
@@ -760,9 +767,13 @@ export default function Vendas() {
         theme: 'grid',
         styles: { fontSize: 9 },
         headStyles: { fillColor: [59, 130, 246] },
-        footStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0], fontStyle: 'bold' }
+        footStyles: { fillColor: [243, 244, 246], textColor: [0, 0, 0], fontStyle: 'bold' },
+        margin: { bottom: 30 }
       });
     }
+
+    // Adicionar rodapé
+    await addPDFFooter({ empresa, doc });
 
     doc.save(`vendas-${tipoVenda}-${getTodayBR()}.pdf`);
     toast.success('Relatório PDF gerado com sucesso!');

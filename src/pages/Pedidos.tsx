@@ -9,6 +9,8 @@ import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil, FileText, Se
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { supabase } from "@/integrations/supabase/client";
+import { useEmpresaData } from '@/hooks/useEmpresaData';
+import { addPDFHeader, addPDFFooter } from '@/lib/pdfUtils';
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -41,6 +43,7 @@ interface Pedido {
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [produtos, setProdutos] = useState<any[]>([]);
+  const { empresa } = useEmpresaData();
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -489,17 +492,19 @@ export default function Pedidos() {
   const gerarPDFPedido = async (pedido: Pedido) => {
     try {
       const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Adicionar cabeçalho
+      const startY = await addPDFHeader({ empresa, doc });
 
       // Título
-      doc.setFontSize(20);
+      doc.setFontSize(16);
       doc.setFont("helvetica", "bold");
-      doc.text("Pedido de Produção", pageWidth / 2, 20, { align: "center" });
+      doc.text("Pedido de Produção", 14, startY + 5);
 
       // Informações do pedido
-      doc.setFontSize(12);
+      doc.setFontSize(11);
       doc.setFont("helvetica", "normal");
-      let yPos = 35;
+      let yPos = startY + 15;
       
       doc.text(`Número do Pedido: ${pedido.numero_pedido}`, 14, yPos);
       yPos += 7;
@@ -548,7 +553,8 @@ export default function Pedidos() {
           3: { halign: 'right', cellWidth: 30 },
           4: { halign: 'center', cellWidth: 25 },
           5: { halign: 'center', cellWidth: 25 }
-        }
+        },
+        margin: { bottom: 30 }
       });
 
       // Totais
@@ -557,6 +563,9 @@ export default function Pedidos() {
       doc.setFont("helvetica", "bold");
       doc.text(`Total: ${pedido.itens.reduce((sum, item) => sum + Number(item.quantidade_m3), 0).toFixed(2)} m³`, 14, finalY + 10);
       doc.text(`Itens concluídos: ${pedido.itens.filter(i => i.concluido).length} de ${pedido.itens.length}`, 14, finalY + 17);
+
+      // Adicionar rodapé
+      await addPDFFooter({ empresa, doc });
 
       // Salvar PDF
       doc.save(`pedido-${pedido.numero_pedido}.pdf`);
@@ -605,7 +614,7 @@ export default function Pedidos() {
   });
 
   // Exportar PDF com todos os pedidos filtrados
-  const exportarPDFPedidos = () => {
+  const exportarPDFPedidos = async () => {
     if (pedidosFiltrados.length === 0) {
       toast({
         title: "Nenhum pedido para exportar",
@@ -616,11 +625,13 @@ export default function Pedidos() {
     }
 
     const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Adicionar cabeçalho
+    const startY = await addPDFHeader({ empresa, doc });
 
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.text("Relatório de Pedidos", pageWidth / 2, 20, { align: "center" });
+    doc.text("Relatório de Pedidos", 14, startY + 5);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -630,7 +641,7 @@ export default function Pedidos() {
     if (dataFim) filtroTexto += `Até: ${format(dataFim, "dd/MM/yyyy")} | `;
     if (filtroNumero) filtroTexto += `Número: ${filtroNumero}`;
     if (filtroTexto === "Filtros: ") filtroTexto = "Sem filtros aplicados";
-    doc.text(filtroTexto, 14, 30);
+    doc.text(filtroTexto, 14, startY + 12);
 
     const tableData = pedidosFiltrados.map(pedido => {
       const totalPecas = pedido.itens.reduce((acc, item) => acc + item.quantidade_pecas, 0);
@@ -648,12 +659,16 @@ export default function Pedidos() {
     });
 
     autoTable(doc, {
-      startY: 38,
+      startY: startY + 18,
       head: [["Nº Pedido", "Data", "Itens", "Peças", "Produzidas", "M³", "Status"]],
       body: tableData,
       styles: { fontSize: 9 },
       headStyles: { fillColor: [41, 128, 185] },
+      margin: { bottom: 30 }
     });
+
+    // Adicionar rodapé
+    await addPDFFooter({ empresa, doc });
 
     doc.save(`pedidos-${format(new Date(), "yyyy-MM-dd")}.pdf`);
     

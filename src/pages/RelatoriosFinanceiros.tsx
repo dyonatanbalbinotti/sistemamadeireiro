@@ -17,6 +17,8 @@ import * as XLSX from "xlsx";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { useEmpresaData } from '@/hooks/useEmpresaData';
+import { addPDFHeader, addPDFFooter } from '@/lib/pdfUtils';
 
 interface DadosFinanceiros {
   mes: string;
@@ -33,6 +35,7 @@ interface TransacaoDetalhada {
 }
 
 export default function RelatoriosFinanceiros() {
+  const { empresa } = useEmpresaData();
   const [dataInicio, setDataInicio] = useState<Date | undefined>(subMonths(new Date(), 6));
   const [dataFim, setDataFim] = useState<Date | undefined>(new Date());
   const [dadosFinanceiros, setDadosFinanceiros] = useState<DadosFinanceiros[]>([]);
@@ -169,35 +172,43 @@ export default function RelatoriosFinanceiros() {
     }
   };
 
-  const exportarPDF = () => {
+  const exportarPDF = async () => {
     const doc = new jsPDF();
 
+    // Adicionar cabeçalho
+    const startY = await addPDFHeader({ empresa, doc });
+
     // Título
-    doc.setFontSize(18);
-    doc.text('Relatório Financeiro', 14, 20);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text('Relatório Financeiro', 14, startY + 5);
 
     // Período
-    doc.setFontSize(11);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
     doc.text(
       `Período: ${dataInicio ? format(dataInicio, 'dd/MM/yyyy') : ''} a ${dataFim ? format(dataFim, 'dd/MM/yyyy') : ''}`,
       14,
-      30
+      startY + 12
     );
 
     // Resumo
-    doc.setFontSize(14);
-    doc.text('Resumo', 14, 45);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text('Resumo', 14, startY + 25);
     doc.setFontSize(10);
-    doc.text(`Total Despesas: R$ ${totais.despesas.toFixed(2)}`, 14, 52);
-    doc.text(`Total Receitas: R$ ${totais.receitas.toFixed(2)}`, 14, 58);
-    doc.text(`Saldo: R$ ${totais.saldo.toFixed(2)}`, 14, 64);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total Despesas: R$ ${totais.despesas.toFixed(2)}`, 14, startY + 32);
+    doc.text(`Total Receitas: R$ ${totais.receitas.toFixed(2)}`, 14, startY + 38);
+    doc.text(`Saldo: R$ ${totais.saldo.toFixed(2)}`, 14, startY + 44);
 
     // Tabela de dados mensais
-    doc.setFontSize(14);
-    doc.text('Dados Mensais', 14, 75);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text('Dados Mensais', 14, startY + 55);
 
     autoTable(doc, {
-      startY: 80,
+      startY: startY + 60,
       head: [['Mês', 'Despesas (R$)', 'Receitas (R$)', 'Saldo (R$)']],
       body: dadosFinanceiros.map(d => [
         d.mes,
@@ -206,16 +217,22 @@ export default function RelatoriosFinanceiros() {
         d.saldo.toFixed(2)
       ]),
       theme: 'grid',
-      headStyles: { fillColor: [66, 139, 202] }
+      headStyles: { fillColor: [66, 139, 202] },
+      margin: { bottom: 30 }
     });
 
     // Transações detalhadas (nova página)
     doc.addPage();
+    
+    // Cabeçalho na nova página
+    await addPDFHeader({ empresa, doc });
+    
     doc.setFontSize(14);
-    doc.text('Transações Detalhadas', 14, 20);
+    doc.setFont("helvetica", "bold");
+    doc.text('Transações Detalhadas', 14, 45);
 
     autoTable(doc, {
-      startY: 25,
+      startY: 50,
       head: [['Data', 'Tipo', 'Descrição', 'Valor (R$)']],
       body: transacoes.map(t => [
         t.data,
@@ -227,8 +244,12 @@ export default function RelatoriosFinanceiros() {
       headStyles: { fillColor: [66, 139, 202] },
       columnStyles: {
         3: { halign: 'right' }
-      }
+      },
+      margin: { bottom: 30 }
     });
+
+    // Adicionar rodapé
+    await addPDFFooter({ empresa, doc });
 
     doc.save(`relatorio-financeiro-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
     toast.success('PDF exportado com sucesso!');
