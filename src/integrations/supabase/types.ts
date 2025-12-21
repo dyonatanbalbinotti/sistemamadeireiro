@@ -90,6 +90,7 @@ export type Database = {
           endereco: string | null
           id: string
           logo_posicao_pdf: string | null
+          logo_tamanho_pdf: string | null
           logo_url: string | null
           nome_empresa: string
           telefone: string | null
@@ -105,6 +106,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           logo_posicao_pdf?: string | null
+          logo_tamanho_pdf?: string | null
           logo_url?: string | null
           nome_empresa: string
           telefone?: string | null
@@ -120,6 +122,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           logo_posicao_pdf?: string | null
+          logo_tamanho_pdf?: string | null
           logo_url?: string | null
           nome_empresa?: string
           telefone?: string | null
