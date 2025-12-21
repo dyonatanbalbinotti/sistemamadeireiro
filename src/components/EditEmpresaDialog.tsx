@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Upload, Building2 } from "lucide-react";
 
 interface EditEmpresaDialogProps {
@@ -218,12 +219,13 @@ export default function EditEmpresaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Editar Dados da Empresa</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <ScrollArea className="flex-1 px-6 pb-6">
+          <div className="space-y-6 py-4 pr-4">
           {/* Logo Upload */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
@@ -492,7 +494,8 @@ export default function EditEmpresaDialog({
               )}
             </Button>
           </div>
-        </div>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
