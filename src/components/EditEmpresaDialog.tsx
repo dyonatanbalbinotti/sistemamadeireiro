@@ -401,6 +401,72 @@ export default function EditEmpresaDialog({
             </div>
           </div>
 
+          {/* Preview do Cabeçalho do PDF */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Preview do Cabeçalho</Label>
+            <div 
+              className="relative rounded-lg border border-border overflow-hidden"
+              style={{ aspectRatio: '210/60' }}
+            >
+              {/* Barra colorida do topo */}
+              <div 
+                className="absolute top-0 left-0 right-0 h-2"
+                style={{ backgroundColor: corPrimaria }}
+              />
+              
+              {/* Área do cabeçalho */}
+              <div className="pt-4 px-3 pb-2 flex items-start gap-3 h-full">
+                {/* Logo - posicionado conforme configuração */}
+                {logoUrl && (
+                  <div 
+                    className={`flex-shrink-0 ${
+                      logoPosicaoPdf === 'centro' 
+                        ? 'absolute left-1/2 -translate-x-1/2' 
+                        : logoPosicaoPdf === 'direita' 
+                          ? 'order-last ml-auto' 
+                          : ''
+                    }`}
+                    style={{
+                      width: logoTamanhoPdf === 'pequeno' ? '28px' : logoTamanhoPdf === 'grande' ? '50px' : '38px',
+                      height: logoTamanhoPdf === 'pequeno' ? '28px' : logoTamanhoPdf === 'grande' ? '50px' : '38px',
+                    }}
+                  >
+                    <img 
+                      src={logoUrl} 
+                      alt="Logo" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                )}
+                
+                {/* Textos da empresa */}
+                <div className={`flex-1 min-w-0 space-y-0.5 ${logoPosicaoPdf === 'centro' ? 'text-left' : ''}`}>
+                  <p className="text-[10px] font-bold text-foreground truncate">
+                    {nomeEmpresa || "Nome da Empresa"}
+                  </p>
+                  {cnpj && (
+                    <p className="text-[7px] text-muted-foreground">CNPJ: {cnpj}</p>
+                  )}
+                  {telefone && (
+                    <p className="text-[7px] text-muted-foreground">Tel: {telefone}</p>
+                  )}
+                  {endereco && (
+                    <p className="text-[7px] text-muted-foreground truncate">{endereco}</p>
+                  )}
+                </div>
+              </div>
+              
+              {/* Barra colorida do rodapé (preview) */}
+              <div 
+                className="absolute bottom-0 left-0 right-0 h-1.5"
+                style={{ backgroundColor: corSecundaria }}
+              />
+            </div>
+            <p className="text-[10px] text-muted-foreground text-center">
+              Esta é uma representação aproximada do cabeçalho do PDF
+            </p>
+          </div>
+
           {/* Botões */}
           <div className="flex gap-3 pt-4">
             <Button
