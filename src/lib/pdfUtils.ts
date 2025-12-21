@@ -14,18 +14,48 @@ function hexToRgb(hex: string): [number, number, number] {
     : [30, 64, 175]; // Cor padrão azul
 }
 
-// Converte imagem URL para base64
-async function imageUrlToBase64(url: string): Promise<string | null> {
+// Converte imagem URL para base64 e retorna junto com o formato
+async function imageUrlToBase64(url: string): Promise<{ base64: string; format: string } | null> {
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { mode: 'cors' });
+    if (!response.ok) {
+      console.error('Erro ao buscar imagem:', response.status, response.statusText);
+      return null;
+    }
+    
     const blob = await response.blob();
+    const mimeType = blob.type;
+    
+    // Determinar formato baseado no MIME type
+    let format = 'PNG';
+    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {
+      format = 'JPEG';
+    } else if (mimeType.includes('png')) {
+      format = 'PNG';
+    } else if (mimeType.includes('webp')) {
+      format = 'WEBP';
+    } else if (mimeType.includes('gif')) {
+      format = 'GIF';
+    }
+    
     return new Promise((resolve) => {
       const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result as string);
-      reader.onerror = () => resolve(null);
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        if (base64) {
+          resolve({ base64, format });
+        } else {
+          resolve(null);
+        }
+      };
+      reader.onerror = () => {
+        console.error('Erro ao ler imagem como base64');
+        resolve(null);
+      };
       reader.readAsDataURL(blob);
     });
-  } catch {
+  } catch (error) {
+    console.error('Erro ao converter imagem para base64:', error);
     return null;
   }
 }
@@ -55,8 +85,8 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
 
     if (empresa.logo_url) {
       try {
-        const logoBase64 = await imageUrlToBase64(empresa.logo_url);
-        if (logoBase64) {
+        const logoData = await imageUrlToBase64(empresa.logo_url);
+        if (logoData) {
           // Calcular posição X baseado na configuração
           if (posicaoLogo === 'centro') {
             logoX = (pageWidth - logoWidth) / 2;
@@ -65,10 +95,11 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
           }
           // esquerda: já é o padrão (14)
           
-          doc.addImage(logoBase64, 'PNG', logoX, yPos, logoWidth, logoHeight);
+          doc.addImage(logoData.base64, logoData.format, logoX, yPos, logoWidth, logoHeight);
           logoAdded = true;
         }
-      } catch {
+      } catch (error) {
+        console.error('Erro ao adicionar logo ao PDF:', error);
         // Continua sem logo
       }
     }
