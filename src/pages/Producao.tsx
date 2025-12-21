@@ -23,10 +23,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { useEmpresaData } from '@/hooks/useEmpresaData';
+import { addPDFHeader, addPDFFooter } from '@/lib/pdfUtils';
 
 export default function Producao() {
   const { user } = useAuth();
   const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
+  const { empresa } = useEmpresaData();
   const [producao, setProducao] = useState<MadeiraProduzida[]>([]);
   const [toras, setToras] = useState<Tora[]>([]);
   const [torasSerradas, setTorasSerradas] = useState<ToraSerrada[]>([]);
@@ -463,15 +466,20 @@ export default function Producao() {
     });
   };
 
-  const exportarPDF = () => {
+  const exportarPDF = async () => {
     const doc = new jsPDF();
     const producaoFiltrada = getProducaoFiltrada();
     
-    doc.setFontSize(18);
-    doc.text('Histórico de Produção', 14, 22);
+    // Adicionar cabeçalho
+    const startY = await addPDFHeader({ empresa, doc });
     
-    doc.setFontSize(11);
-    doc.text(`Período: ${formatDateBR(dataInicio)} até ${formatDateBR(dataFim)}`, 14, 30);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text('Histórico de Produção', 14, startY + 5);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Período: ${formatDateBR(dataInicio)} até ${formatDateBR(dataFim)}`, 14, startY + 12);
     
     const tableData = producaoFiltrada.map(prod => [
       formatDateBR(prod.data),
@@ -485,15 +493,19 @@ export default function Producao() {
     autoTable(doc, {
       head: [['Data', 'Produto', 'Dimensões', 'Qtd', 'm³', 'Tora']],
       body: tableData,
-      startY: 35,
+      startY: startY + 17,
       styles: { fontSize: 9 },
-      headStyles: { fillColor: [79, 70, 229] }
+      headStyles: { fillColor: [79, 70, 229] },
+      margin: { bottom: 30 }
     });
     
     const totalM3 = producaoFiltrada.reduce((sum, p) => sum + p.m3, 0);
-    const finalY = (doc as any).lastAutoTable.finalY || 35;
+    const finalY = (doc as any).lastAutoTable.finalY || startY + 17;
     doc.setFontSize(12);
     doc.text(`Total: ${totalM3.toFixed(2)} m³`, 14, finalY + 10);
+    
+    // Adicionar rodapé
+    await addPDFFooter({ empresa, doc });
     
     doc.save(`producao-${dataInicio}-${dataFim}.pdf`);
     toast.success('PDF exportado com sucesso!');
