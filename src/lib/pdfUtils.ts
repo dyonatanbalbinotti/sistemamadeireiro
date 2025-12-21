@@ -98,8 +98,11 @@ export async function addPDFFooter(options: PDFHeaderFooterOptions): Promise<voi
     doc.setTextColor(100, 100, 100);
 
     if (empresa) {
-      // Primeira linha: nome e telefone
+      // Primeira linha: nome, CNPJ e telefone
       let footerText = empresa.nome_empresa;
+      if (empresa.cnpj) {
+        footerText += ` | CNPJ: ${empresa.cnpj}`;
+      }
       if (empresa.telefone) {
         footerText += ` | Tel: ${empresa.telefone}`;
       }
