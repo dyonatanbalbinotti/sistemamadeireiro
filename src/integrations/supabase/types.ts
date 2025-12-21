@@ -83,6 +83,8 @@ export type Database = {
       empresas: {
         Row: {
           cnpj: string | null
+          cor_primaria: string | null
+          cor_secundaria: string | null
           created_at: string
           data_vencimento_anuidade: string | null
           endereco: string | null
@@ -95,6 +97,8 @@ export type Database = {
         }
         Insert: {
           cnpj?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string
           data_vencimento_anuidade?: string | null
           endereco?: string | null
@@ -107,6 +111,8 @@ export type Database = {
         }
         Update: {
           cnpj?: string | null
+          cor_primaria?: string | null
+          cor_secundaria?: string | null
           created_at?: string
           data_vencimento_anuidade?: string | null
           endereco?: string | null

@@ -9,6 +9,8 @@ export interface EmpresaData {
   endereco: string | null;
   logo_url: string | null;
   cnpj: string | null;
+  cor_primaria: string | null;
+  cor_secundaria: string | null;
 }
 
 export function useEmpresaData() {
@@ -28,7 +30,7 @@ export function useEmpresaData() {
         if (userRole === 'user') {
           const { data } = await supabase
             .from('empresas')
-            .select('id, nome_empresa, telefone, endereco, logo_url, cnpj')
+            .select('id, nome_empresa, telefone, endereco, logo_url, cnpj, cor_primaria, cor_secundaria')
             .eq('user_id', user.id)
             .maybeSingle();
           
@@ -46,7 +48,7 @@ export function useEmpresaData() {
           if (profile?.empresa_id) {
             const { data } = await supabase
               .from('empresas')
-              .select('id, nome_empresa, telefone, endereco, logo_url, cnpj')
+              .select('id, nome_empresa, telefone, endereco, logo_url, cnpj, cor_primaria, cor_secundaria')
               .eq('id', profile.empresa_id)
               .maybeSingle();
             
@@ -72,7 +74,7 @@ export function useEmpresaData() {
       if (userRole === 'user') {
         const { data } = await supabase
           .from('empresas')
-          .select('id, nome_empresa, telefone, endereco, logo_url, cnpj')
+          .select('id, nome_empresa, telefone, endereco, logo_url, cnpj, cor_primaria, cor_secundaria')
           .eq('user_id', user.id)
           .maybeSingle();
         

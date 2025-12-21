@@ -37,6 +37,8 @@ export default function EditEmpresaDialog({
   const [endereco, setEndereco] = useState(empresa?.endereco || "");
   const [cnpj, setCnpj] = useState(empresa?.cnpj || "");
   const [logoUrl, setLogoUrl] = useState(empresa?.logo_url || "");
+  const [corPrimaria, setCorPrimaria] = useState(empresa?.cor_primaria || "#1e40af");
+  const [corSecundaria, setCorSecundaria] = useState(empresa?.cor_secundaria || "#64748b");
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -48,6 +50,8 @@ export default function EditEmpresaDialog({
       setEndereco(empresa.endereco || "");
       setCnpj(empresa.cnpj || "");
       setLogoUrl(empresa.logo_url || "");
+      setCorPrimaria(empresa.cor_primaria || "#1e40af");
+      setCorSecundaria(empresa.cor_secundaria || "#64748b");
     }
   });
 
@@ -159,6 +163,8 @@ export default function EditEmpresaDialog({
           endereco: endereco.trim() || null,
           cnpj: cnpj.trim() || null,
           logo_url: logoUrl || null,
+          cor_primaria: corPrimaria,
+          cor_secundaria: corSecundaria,
         })
         .eq("id", empresa.id);
 
@@ -273,6 +279,53 @@ export default function EditEmpresaDialog({
               placeholder="Endereço completo"
               maxLength={200}
             />
+          </div>
+
+          {/* Cores do PDF */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Cores do PDF</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cor_primaria" className="text-xs text-muted-foreground">
+                  Cor do Cabeçalho
+                </Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    id="cor_primaria"
+                    value={corPrimaria}
+                    onChange={(e) => setCorPrimaria(e.target.value)}
+                    className="h-10 w-14 rounded border border-input cursor-pointer"
+                  />
+                  <Input
+                    value={corPrimaria}
+                    onChange={(e) => setCorPrimaria(e.target.value)}
+                    className="flex-1 font-mono text-xs"
+                    maxLength={7}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="cor_secundaria" className="text-xs text-muted-foreground">
+                  Cor do Rodapé
+                </Label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    id="cor_secundaria"
+                    value={corSecundaria}
+                    onChange={(e) => setCorSecundaria(e.target.value)}
+                    className="h-10 w-14 rounded border border-input cursor-pointer"
+                  />
+                  <Input
+                    value={corSecundaria}
+                    onChange={(e) => setCorSecundaria(e.target.value)}
+                    className="flex-1 font-mono text-xs"
+                    maxLength={7}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Botões */}
