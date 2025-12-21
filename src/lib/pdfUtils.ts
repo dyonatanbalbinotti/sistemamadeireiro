@@ -6,6 +6,14 @@ interface PDFHeaderFooterOptions {
   doc: jsPDF;
 }
 
+// Converte cor hex para RGB
+function hexToRgb(hex: string): [number, number, number] {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result 
+    ? [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)]
+    : [30, 64, 175]; // Cor padrão azul
+}
+
 // Converte imagem URL para base64
 async function imageUrlToBase64(url: string): Promise<string | null> {
   try {
@@ -29,6 +37,15 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
   let yPos = 10;
 
   if (empresa) {
+    // Obter cor primária personalizada
+    const corPrimaria = empresa.cor_primaria || '#1e40af';
+    const [r, g, b] = hexToRgb(corPrimaria);
+    
+    // Adicionar barra colorida no topo
+    doc.setFillColor(r, g, b);
+    doc.rect(0, 0, pageWidth, 5, 'F');
+    yPos = 12;
+
     // Tentar adicionar logo
     if (empresa.logo_url) {
       try {
@@ -40,27 +57,28 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
           let textX = 45;
           let textY = yPos + 5;
           
-          // Nome da empresa
+          // Nome da empresa com cor primária
           doc.setFontSize(14);
           doc.setFont("helvetica", "bold");
+          doc.setTextColor(r, g, b);
           doc.text(empresa.nome_empresa, textX, textY);
           textY += 6;
           
-          // CNPJ
+          // Demais informações em preto
           doc.setFontSize(9);
           doc.setFont("helvetica", "normal");
+          doc.setTextColor(60, 60, 60);
+          
           if (empresa.cnpj) {
             doc.text(`CNPJ: ${empresa.cnpj}`, textX, textY);
             textY += 5;
           }
           
-          // Telefone
           if (empresa.telefone) {
             doc.text(`Tel: ${empresa.telefone}`, textX, textY);
             textY += 5;
           }
           
-          // Endereço (pode ser mais longo, então limitamos)
           if (empresa.endereco) {
             const enderecoTruncado = empresa.endereco.length > 60 
               ? empresa.endereco.substring(0, 57) + '...' 
@@ -70,39 +88,45 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
           
           yPos += 30;
         } else {
-          // Sem logo, apenas textos
-          yPos = addHeaderTextOnly(doc, empresa, yPos);
+          yPos = addHeaderTextOnly(doc, empresa, yPos, [r, g, b]);
         }
       } catch {
-        // Fallback sem logo
-        yPos = addHeaderTextOnly(doc, empresa, yPos);
+        yPos = addHeaderTextOnly(doc, empresa, yPos, [r, g, b]);
       }
     } else {
-      // Sem logo configurado
-      yPos = addHeaderTextOnly(doc, empresa, yPos);
+      yPos = addHeaderTextOnly(doc, empresa, yPos, [r, g, b]);
     }
 
-    // Linha separadora
-    doc.setDrawColor(200, 200, 200);
+    // Linha separadora com cor primária
+    doc.setDrawColor(r, g, b);
+    doc.setLineWidth(0.5);
     doc.line(14, yPos, pageWidth - 14, yPos);
+    doc.setLineWidth(0.2);
     yPos += 5;
+    
+    // Restaurar cor do texto
+    doc.setTextColor(0, 0, 0);
   }
 
   return yPos;
 }
 
 // Função auxiliar para adicionar cabeçalho apenas com texto
-function addHeaderTextOnly(doc: jsPDF, empresa: EmpresaData, startY: number): number {
+function addHeaderTextOnly(doc: jsPDF, empresa: EmpresaData, startY: number, rgb: [number, number, number]): number {
   let yPos = startY;
+  const [r, g, b] = rgb;
   
-  // Nome da empresa
+  // Nome da empresa com cor primária
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
+  doc.setTextColor(r, g, b);
   doc.text(empresa.nome_empresa, 14, yPos + 5);
   yPos += 10;
   
+  // Demais informações em cinza escuro
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
   
   // Linha com CNPJ e Telefone
   let infoLine = '';
@@ -134,18 +158,25 @@ export async function addPDFFooter(options: PDFHeaderFooterOptions): Promise<voi
   const pageWidth = doc.internal.pageSize.getWidth();
   const totalPages = doc.getNumberOfPages();
 
+  // Obter cor secundária personalizada
+  const corSecundaria = empresa?.cor_secundaria || '#64748b';
+  const [r, g, b] = hexToRgb(corSecundaria);
+
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
     
-    const footerY = pageHeight - 20;
+    const footerY = pageHeight - 22;
     
-    // Linha separadora do rodapé
-    doc.setDrawColor(200, 200, 200);
+    // Linha separadora do rodapé com cor secundária
+    doc.setDrawColor(r, g, b);
+    doc.setLineWidth(0.5);
     doc.line(14, footerY, pageWidth - 14, footerY);
+    doc.setLineWidth(0.2);
 
+    // Texto do rodapé com cor secundária
     doc.setFontSize(8);
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(r, g, b);
 
     if (empresa) {
       // Primeira linha: nome, CNPJ e telefone
@@ -176,6 +207,10 @@ export async function addPDFFooter(options: PDFHeaderFooterOptions): Promise<voi
       minute: '2-digit'
     });
     doc.text(`Gerado em: ${dataGeracao}`, pageWidth - 14, footerY + 11, { align: 'right' });
+
+    // Barra colorida no rodapé
+    doc.setFillColor(r, g, b);
+    doc.rect(0, pageHeight - 5, pageWidth, 5, 'F');
 
     // Restaurar cor do texto
     doc.setTextColor(0, 0, 0);
