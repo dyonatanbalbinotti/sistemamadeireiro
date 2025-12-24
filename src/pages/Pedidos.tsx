@@ -80,10 +80,19 @@ export default function Pedidos() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      // Primeiro buscar a empresa do usuário
+      const { data: empresaData } = await supabase
+        .from('empresas')
+        .select('id')
+        .eq('user_id', user.user.id)
+        .maybeSingle();
+
+      const empresaId = empresaData?.id || user.user.id;
+
       const { data, error } = await supabase
         .from('produtos')
         .select('*')
-        .eq('empresa_id', user.user.id)
+        .eq('empresa_id', empresaId)
         .order('nome');
 
       if (error) throw error;
@@ -759,7 +768,7 @@ export default function Pedidos() {
                     </div>
                     
                     <div className="space-y-2">
-                      <Label>Produto (descrições.)</Label>
+                      <Label>Produto (Descrição)</Label>
                       <Select
                         value={item.produto_id}
                         onValueChange={(value) => handleItemChange(index, 'produto_id', value)}
@@ -1122,7 +1131,7 @@ export default function Pedidos() {
                   </div>
                   
                   <div className="space-y-2">
-                    <Label>Produto (descrições.)</Label>
+                    <Label>Produto (Descrição)</Label>
                     <Select
                       value={item.produto_id}
                       onValueChange={(value) => handleEditItemChange(index, 'produto_id', value)}
