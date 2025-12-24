@@ -219,13 +219,13 @@ export default function EditEmpresaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-hidden p-0">
-        <DialogHeader className="px-6 pt-6 pb-2 flex-shrink-0">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
+        <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>Editar Dados da Empresa</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="h-[calc(85vh-80px)] px-6 pb-6">
-          <div className="space-y-6 py-4 pr-2">
+        <ScrollArea className="flex-1 px-6 pb-6">
+          <div className="space-y-6 py-4 pr-4">
           {/* Logo Upload */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
