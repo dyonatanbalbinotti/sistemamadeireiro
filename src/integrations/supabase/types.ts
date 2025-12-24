@@ -90,6 +90,7 @@ export type Database = {
           endereco: string | null
           id: string
           logo_posicao_pdf: string | null
+          logo_tamanho_pdf: string | null
           logo_url: string | null
           nome_empresa: string
           telefone: string | null
@@ -105,6 +106,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           logo_posicao_pdf?: string | null
+          logo_tamanho_pdf?: string | null
           logo_url?: string | null
           nome_empresa: string
           telefone?: string | null
@@ -120,6 +122,7 @@ export type Database = {
           endereco?: string | null
           id?: string
           logo_posicao_pdf?: string | null
+          logo_tamanho_pdf?: string | null
           logo_url?: string | null
           nome_empresa?: string
           telefone?: string | null
@@ -590,6 +593,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_current_user_empresa_id: { Args: never; Returns: string }
       get_user_empresa_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -600,6 +604,10 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_empresa: { Args: { _user_id: string }; Returns: boolean }
+      user_belongs_to_empresa: {
+        Args: { _empresa_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "empresa" | "funcionario" | "user"
