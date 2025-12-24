@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Upload, Building2 } from "lucide-react";
 
 interface EditEmpresaDialogProps {
@@ -41,7 +40,6 @@ export default function EditEmpresaDialog({
   const [corPrimaria, setCorPrimaria] = useState(empresa?.cor_primaria || "#1e40af");
   const [corSecundaria, setCorSecundaria] = useState(empresa?.cor_secundaria || "#64748b");
   const [logoPosicaoPdf, setLogoPosicaoPdf] = useState(empresa?.logo_posicao_pdf || "direita");
-  const [logoTamanhoPdf, setLogoTamanhoPdf] = useState(empresa?.logo_tamanho_pdf || "medio");
   const [loading, setLoading] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -56,7 +54,6 @@ export default function EditEmpresaDialog({
       setCorPrimaria(empresa.cor_primaria || "#1e40af");
       setCorSecundaria(empresa.cor_secundaria || "#64748b");
       setLogoPosicaoPdf(empresa.logo_posicao_pdf || "direita");
-      setLogoTamanhoPdf(empresa.logo_tamanho_pdf || "medio");
     }
   });
 
@@ -192,7 +189,6 @@ export default function EditEmpresaDialog({
           cor_primaria: corPrimaria,
           cor_secundaria: corSecundaria,
           logo_posicao_pdf: logoPosicaoPdf,
-          logo_tamanho_pdf: logoTamanhoPdf,
         })
         .eq("id", empresa.id);
 
@@ -219,13 +215,12 @@ export default function EditEmpresaDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col p-0">
-        <DialogHeader className="px-6 pt-6 pb-2">
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
           <DialogTitle>Editar Dados da Empresa</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 px-6 pb-6">
-          <div className="space-y-6 py-4 pr-4">
+        <div className="space-y-6 py-4">
           {/* Logo Upload */}
           <div className="flex flex-col items-center gap-4">
             <div className="relative">
@@ -380,95 +375,6 @@ export default function EditEmpresaDialog({
             </div>
           </div>
 
-          {/* Tamanho do Logo no PDF */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Tamanho do Logo no PDF</Label>
-            <div className="flex gap-2">
-              {[
-                { value: "pequeno", label: "Pequeno" },
-                { value: "medio", label: "Médio" },
-                { value: "grande", label: "Grande" },
-              ].map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  variant={logoTamanhoPdf === option.value ? "default" : "outline"}
-                  size="sm"
-                  className="flex-1"
-                  onClick={() => setLogoTamanhoPdf(option.value)}
-                >
-                  {option.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Preview do Cabeçalho do PDF */}
-          <div className="space-y-3">
-            <Label className="text-sm font-medium">Preview do Cabeçalho</Label>
-            <div 
-              className="relative rounded-lg border border-border overflow-hidden"
-              style={{ aspectRatio: '210/60' }}
-            >
-              {/* Barra colorida do topo */}
-              <div 
-                className="absolute top-0 left-0 right-0 h-2"
-                style={{ backgroundColor: corPrimaria }}
-              />
-              
-              {/* Área do cabeçalho */}
-              <div className="pt-4 px-3 pb-2 flex items-start gap-3 h-full">
-                {/* Logo - posicionado conforme configuração */}
-                {logoUrl && (
-                  <div 
-                    className={`flex-shrink-0 ${
-                      logoPosicaoPdf === 'centro' 
-                        ? 'absolute left-1/2 -translate-x-1/2' 
-                        : logoPosicaoPdf === 'direita' 
-                          ? 'order-last ml-auto' 
-                          : ''
-                    }`}
-                    style={{
-                      width: logoTamanhoPdf === 'pequeno' ? '28px' : logoTamanhoPdf === 'grande' ? '50px' : '38px',
-                      height: logoTamanhoPdf === 'pequeno' ? '28px' : logoTamanhoPdf === 'grande' ? '50px' : '38px',
-                    }}
-                  >
-                    <img 
-                      src={logoUrl} 
-                      alt="Logo" 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                )}
-                
-                {/* Textos da empresa */}
-                <div className={`flex-1 min-w-0 space-y-0.5 ${logoPosicaoPdf === 'centro' ? 'text-left' : ''}`}>
-                  <p className="text-[10px] font-bold text-foreground truncate">
-                    {nomeEmpresa || "Nome da Empresa"}
-                  </p>
-                  {cnpj && (
-                    <p className="text-[7px] text-muted-foreground">CNPJ: {cnpj}</p>
-                  )}
-                  {telefone && (
-                    <p className="text-[7px] text-muted-foreground">Tel: {telefone}</p>
-                  )}
-                  {endereco && (
-                    <p className="text-[7px] text-muted-foreground truncate">{endereco}</p>
-                  )}
-                </div>
-              </div>
-              
-              {/* Barra colorida do rodapé (preview) */}
-              <div 
-                className="absolute bottom-0 left-0 right-0 h-1.5"
-                style={{ backgroundColor: corSecundaria }}
-              />
-            </div>
-            <p className="text-[10px] text-muted-foreground text-center">
-              Esta é uma representação aproximada do cabeçalho do PDF
-            </p>
-          </div>
-
           {/* Botões */}
           <div className="flex gap-3 pt-4">
             <Button
@@ -494,8 +400,7 @@ export default function EditEmpresaDialog({
               )}
             </Button>
           </div>
-          </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

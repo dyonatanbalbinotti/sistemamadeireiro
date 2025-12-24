@@ -24,8 +24,6 @@ export default function Dashboard() {
   const [producaoMensalData, setProducaoMensalData] = useState<any[]>([]);
   const [financeiroData, setFinanceiroData] = useState<any[]>([]);
   const [periodoFinanceiro, setPeriodoFinanceiro] = useState<string>("6");
-  const [periodoVendas, setPeriodoVendas] = useState<number>(7);
-  const [periodoProducao, setPeriodoProducao] = useState<number>(7);
   const [loading, setLoading] = useState(true);
   const [alertasAtivos, setAlertasAtivos] = useState<any[]>([]);
   const { toast } = useToast();
@@ -49,14 +47,14 @@ export default function Dashboard() {
         // Verificar alertas de estoque
         await verificarAlertas(serrado, toras, totalQuantidade, totalM3);
 
-        // Dados de vendas (período configurável - GMT-3)
+        // Dados de vendas dos últimos 7 dias (GMT-3)
         const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
-        const lastDaysVendas = Array.from({ length: periodoVendas }, (_, i) => {
-          const date = subDays(nowBR, periodoVendas - 1 - i);
+        const last7Days = Array.from({ length: 7 }, (_, i) => {
+          const date = subDays(nowBR, 6 - i);
           return format(date, 'yyyy-MM-dd');
         });
 
-        const vendasPorDia = lastDaysVendas.map(date => {
+        const vendasPorDia = last7Days.map(date => {
           const dayVendas = vendas.filter(v => {
             // Extrair apenas a parte da data (YYYY-MM-DD) sem considerar timezone
             const vendaDate = v.data.includes('T') ? v.data.split('T')[0] : v.data;
@@ -87,13 +85,13 @@ export default function Dashboard() {
           .order('data', { ascending: true });
 
         if (producaoData) {
-          // Produção diária - período configurável (GMT-3)
-          const lastDaysProd = Array.from({ length: periodoProducao }, (_, i) => {
-            const date = subDays(nowBR, periodoProducao - 1 - i);
+          // Produção diária - últimos 7 dias (GMT-3)
+          const last7DaysProd = Array.from({ length: 7 }, (_, i) => {
+            const date = subDays(nowBR, 6 - i);
             return format(date, 'yyyy-MM-dd');
           });
 
-          const producaoPorDia = lastDaysProd.map(date => {
+          const producaoPorDia = last7DaysProd.map(date => {
             const dayProduction = producaoData.filter(p => {
               // Extrair apenas a parte da data (YYYY-MM-DD) sem considerar timezone
               const prodDate = p.data.includes('T') ? p.data.split('T')[0] : p.data;
@@ -140,7 +138,7 @@ export default function Dashboard() {
     };
 
     fetchData();
-  }, [periodoFinanceiro, periodoVendas, periodoProducao]);
+  }, [periodoFinanceiro]);
 
   const carregarDadosFinanceiros = async (nowBR: Date, meses: number) => {
     try {
@@ -379,34 +377,10 @@ export default function Dashboard() {
         <Card className="glass-effect neon-border shadow-elegant overflow-hidden relative group">
           <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           <CardHeader className="relative z-10">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary dark:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]" />
-                Vendas - Últimos {periodoVendas} dias
-              </CardTitle>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setPeriodoVendas(7)}
-                  className={`px-3 py-1 text-xs font-medium rounded-l-md border transition-colors ${
-                    periodoVendas === 7 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-background border-border hover:bg-muted'
-                  }`}
-                >
-                  7 dias
-                </button>
-                <button
-                  onClick={() => setPeriodoVendas(30)}
-                  className={`px-3 py-1 text-xs font-medium rounded-r-md border-t border-b border-r transition-colors ${
-                    periodoVendas === 30 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-background border-border hover:bg-muted'
-                  }`}
-                >
-                  30 dias
-                </button>
-              </div>
-            </div>
+            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary dark:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]" />
+              Vendas - Últimos 7 dias
+            </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10">
             <ResponsiveContainer width="100%" height={300}>
@@ -496,34 +470,10 @@ export default function Dashboard() {
         <Card className="glass-effect dark:neon-border-lime shadow-elegant neon-glow-lime overflow-hidden relative group">
           <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-lime))]/10 via-transparent to-[hsl(var(--neon-lime))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
           <CardHeader className="relative z-10">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-[hsl(var(--neon-lime))] dark:drop-shadow-[0_0_8px_rgba(173,255,47,0.5)]" />
-                Produção - Últimos {periodoProducao} dias
-              </CardTitle>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setPeriodoProducao(7)}
-                  className={`px-3 py-1 text-xs font-medium rounded-l-md border transition-colors ${
-                    periodoProducao === 7 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-background border-border hover:bg-muted'
-                  }`}
-                >
-                  7 dias
-                </button>
-                <button
-                  onClick={() => setPeriodoProducao(30)}
-                  className={`px-3 py-1 text-xs font-medium rounded-r-md border-t border-b border-r transition-colors ${
-                    periodoProducao === 30 
-                      ? 'bg-primary text-primary-foreground border-primary' 
-                      : 'bg-background border-border hover:bg-muted'
-                  }`}
-                >
-                  30 dias
-                </button>
-              </div>
-            </div>
+            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-[hsl(var(--neon-lime))] dark:drop-shadow-[0_0_8px_rgba(173,255,47,0.5)]" />
+              Produção - Últimos 7 dias
+            </CardTitle>
           </CardHeader>
           <CardContent className="relative z-10">
             <ResponsiveContainer width="100%" height={300}>

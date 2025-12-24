@@ -79,21 +79,8 @@ export async function addPDFHeader(options: PDFHeaderFooterOptions): Promise<num
     // Tentar adicionar logo na posição configurada
     let logoAdded = false;
     let logoX = 14; // Padrão: esquerda
-    
-    // Determinar tamanho do logo baseado na configuração
-    const tamanhoLogo = empresa.logo_tamanho_pdf || 'medio';
-    let logoWidth = 30;
-    let logoHeight = 30;
-    
-    if (tamanhoLogo === 'pequeno') {
-      logoWidth = 20;
-      logoHeight = 20;
-    } else if (tamanhoLogo === 'grande') {
-      logoWidth = 40;
-      logoHeight = 40;
-    }
-    // medio: já é o padrão (30x30)
-    
+    const logoWidth = 30;
+    const logoHeight = 30;
     const posicaoLogo = empresa.logo_posicao_pdf || 'direita';
 
     if (empresa.logo_url) {
