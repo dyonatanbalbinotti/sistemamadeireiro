@@ -14,50 +14,53 @@ function hexToRgb(hex: string): [number, number, number] {
     : [30, 64, 175]; // Cor padrão azul
 }
 
-// Converte imagem URL para base64 e retorna junto com o formato
+// Converte imagem URL para base64 usando Image element (melhor compatibilidade)
 async function imageUrlToBase64(url: string): Promise<{ base64: string; format: string } | null> {
-  try {
-    const response = await fetch(url, { mode: 'cors' });
-    if (!response.ok) {
-      console.error('Erro ao buscar imagem:', response.status, response.statusText);
-      return null;
-    }
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
     
-    const blob = await response.blob();
-    const mimeType = blob.type;
-    
-    // Determinar formato baseado no MIME type
-    let format = 'PNG';
-    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) {
-      format = 'JPEG';
-    } else if (mimeType.includes('png')) {
-      format = 'PNG';
-    } else if (mimeType.includes('webp')) {
-      format = 'WEBP';
-    } else if (mimeType.includes('gif')) {
-      format = 'GIF';
-    }
-    
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        if (base64) {
-          resolve({ base64, format });
-        } else {
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          console.error('Não foi possível criar contexto do canvas');
           resolve(null);
+          return;
         }
-      };
-      reader.onerror = () => {
-        console.error('Erro ao ler imagem como base64');
+        
+        ctx.drawImage(img, 0, 0);
+        
+        // Tentar PNG primeiro, depois JPEG
+        let base64 = canvas.toDataURL('image/png');
+        let format = 'PNG';
+        
+        // Se a imagem for muito grande, usar JPEG com compressão
+        if (base64.length > 500000) {
+          base64 = canvas.toDataURL('image/jpeg', 0.85);
+          format = 'JPEG';
+        }
+        
+        resolve({ base64, format });
+      } catch (error) {
+        console.error('Erro ao converter imagem para base64:', error);
         resolve(null);
-      };
-      reader.readAsDataURL(blob);
-    });
-  } catch (error) {
-    console.error('Erro ao converter imagem para base64:', error);
-    return null;
-  }
+      }
+    };
+    
+    img.onerror = (error) => {
+      console.error('Erro ao carregar imagem:', error);
+      resolve(null);
+    };
+    
+    // Adicionar timestamp para evitar cache
+    const separator = url.includes('?') ? '&' : '?';
+    img.src = `${url}${separator}t=${Date.now()}`;
+  });
 }
 
 // Adiciona cabeçalho com logo e dados da empresa
