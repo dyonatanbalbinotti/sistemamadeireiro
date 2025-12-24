@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Upload, Building2 } from "lucide-react";
+import PDFHeaderPreview from "./PDFHeaderPreview";
 
 interface EditEmpresaDialogProps {
   open: boolean;
@@ -374,6 +375,19 @@ export default function EditEmpresaDialog({
               ))}
             </div>
           </div>
+
+          {/* Preview do Cabeçalho PDF */}
+          <PDFHeaderPreview
+            empresa={{
+              nome_empresa: nomeEmpresa,
+              cnpj,
+              telefone,
+              endereco,
+            }}
+            logoUrl={logoUrl}
+            corPrimaria={corPrimaria}
+            logoPosicao={logoPosicaoPdf}
+          />
 
           {/* Botões */}
           <div className="flex gap-3 pt-4">
