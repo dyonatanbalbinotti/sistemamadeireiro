@@ -108,10 +108,19 @@ export default function Pedidos() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      // Buscar empresa_id correto
+      const { data: empresaData } = await supabase
+        .from('empresas')
+        .select('id')
+        .eq('user_id', user.user.id)
+        .maybeSingle();
+
+      const empresaId = empresaData?.id || user.user.id;
+
       const { data: pedidosData, error: pedidosError } = await supabase
         .from('pedidos')
         .select('*')
-        .eq('empresa_id', user.user.id)
+        .eq('empresa_id', empresaId)
         .order('data_pedido', { ascending: false });
 
       if (pedidosError) throw pedidosError;
@@ -188,10 +197,19 @@ export default function Pedidos() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      // Buscar empresa_id correto
+      const { data: empresaData } = await supabase
+        .from('empresas')
+        .select('id')
+        .eq('user_id', user.user.id)
+        .maybeSingle();
+
+      const empresaId = empresaData?.id || user.user.id;
+
       const { data: pedido, error: pedidoError } = await supabase
         .from('pedidos')
         .insert({
-          empresa_id: user.user.id,
+          empresa_id: empresaId,
           numero_pedido: numeroPedido,
           data_pedido: dataPedido,
           observacao: observacao || null,
