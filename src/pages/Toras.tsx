@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresaId } from "@/hooks/useEmpresaId";
 import { getTodayBR, formatDateBR } from "@/lib/dateUtils";
+import { FadeIn, HoverScale } from "@/components/MotionWrapper";
 
 export default function Toras() {
   const { user } = useAuth();
@@ -386,22 +387,26 @@ export default function Toras() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <TreeDeciduous className="h-8 w-8 text-primary" />
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Cadastro de Toras</h1>
-          <p className="text-muted-foreground">Entrada de toras e registro de toras serradas</p>
+      <FadeIn>
+        <div className="flex items-center gap-3">
+          <TreeDeciduous className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Cadastro de Toras</h1>
+            <p className="text-muted-foreground">Entrada de toras e registro de toras serradas</p>
+          </div>
         </div>
-      </div>
+      </FadeIn>
 
-      <Tabs defaultValue="entrada-toras" className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-2">
-          <TabsTrigger value="entrada-toras">Entrada de Toras</TabsTrigger>
-          <TabsTrigger value="toras-serradas">Toras Serradas</TabsTrigger>
-        </TabsList>
+      <FadeIn delay={0.1}>
+        <Tabs defaultValue="entrada-toras" className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-2">
+            <TabsTrigger value="entrada-toras">Entrada de Toras</TabsTrigger>
+            <TabsTrigger value="toras-serradas">Toras Serradas</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="entrada-toras" className="space-y-6">
-          <Card className="shadow-card border-border/50">
+          <TabsContent value="entrada-toras" className="space-y-6">
+            <HoverScale scale={1.005}>
+              <Card className="shadow-card border-border/50">
             <CardHeader>
               <CardTitle className="text-foreground">
                 {editingToraId ? "Editar Entrada de Tora" : "Nova Entrada de Tora"}
@@ -502,8 +507,10 @@ export default function Toras() {
               </form>
             </CardContent>
           </Card>
+        </HoverScale>
 
-          <Card className="shadow-card border-border/50">
+          <HoverScale scale={1.005}>
+            <Card className="shadow-card border-border/50">
             <CardHeader>
               <CardTitle className="text-foreground">Histórico de Entrada de Toras</CardTitle>
             </CardHeader>
@@ -567,10 +574,12 @@ export default function Toras() {
               </div>
             </CardContent>
           </Card>
+        </HoverScale>
         </TabsContent>
 
         <TabsContent value="toras-serradas" className="space-y-6">
-          <Card className="shadow-card border-border/50">
+          <HoverScale scale={1.005}>
+            <Card className="shadow-card border-border/50">
             <CardHeader>
               <CardTitle className="text-foreground">
                 {editingToraSerradaId ? "Editar Toras Serradas" : "Registrar Toras Serradas"}
@@ -627,7 +636,9 @@ export default function Toras() {
               </form>
             </CardContent>
           </Card>
+        </HoverScale>
 
+        <HoverScale scale={1.005}>
           <Card className="shadow-card border-border/50">
             <CardHeader>
               <CardTitle className="text-foreground">Histórico de Toras Serradas</CardTitle>
@@ -685,8 +696,10 @@ export default function Toras() {
               </div>
             </CardContent>
           </Card>
+        </HoverScale>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </FadeIn>
     </div>
   );
 }

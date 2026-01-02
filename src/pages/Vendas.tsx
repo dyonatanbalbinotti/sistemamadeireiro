@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { calcularEstoqueSerradoSupabase } from "@/lib/supabaseStorage";
 import { useEmpresaData } from '@/hooks/useEmpresaData';
 import { addPDFHeader, addPDFFooter } from '@/lib/pdfUtils';
+import { FadeIn, HoverScale } from "@/components/MotionWrapper";
 
 export default function Vendas() {
   const { user } = useAuth();

@@ -25,6 +25,7 @@ import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { useEmpresaData } from '@/hooks/useEmpresaData';
 import { addPDFHeader, addPDFFooter } from '@/lib/pdfUtils';
+import { FadeIn, HoverScale } from "@/components/MotionWrapper";
 
 export default function Producao() {
   const { user } = useAuth();
