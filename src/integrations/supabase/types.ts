@@ -676,6 +676,48 @@ export type Database = {
           },
         ]
       }
+      vendas_casqueiro: {
+        Row: {
+          altura: number
+          comprimento: number
+          created_at: string
+          data: string
+          empresa_id: string
+          id: string
+          largura: number
+          total_metro_estereo: number
+          user_id: string
+          valor_metro_estereo: number
+          valor_total: number
+        }
+        Insert: {
+          altura: number
+          comprimento: number
+          created_at?: string
+          data?: string
+          empresa_id: string
+          id?: string
+          largura: number
+          total_metro_estereo: number
+          user_id: string
+          valor_metro_estereo: number
+          valor_total: number
+        }
+        Update: {
+          altura?: number
+          comprimento?: number
+          created_at?: string
+          data?: string
+          empresa_id?: string
+          id?: string
+          largura?: number
+          total_metro_estereo?: number
+          user_id?: string
+          valor_metro_estereo?: number
+          valor_total?: number
+        }
+        Relationships: []
+      }
       vendas_cavaco: {
         Row: {
           created_at: string
@@ -719,6 +761,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      vendas_serragem: {
+        Row: {
+          created_at: string
+          data: string
+          empresa_id: string
+          id: string
+          toneladas: number
+          user_id: string
+          valor_tonelada: number
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          data?: string
+          empresa_id: string
+          id?: string
+          toneladas: number
+          user_id: string
+          valor_tonelada: number
+          valor_total: number
+        }
+        Update: {
+          created_at?: string
+          data?: string
+          empresa_id?: string
+          id?: string
+          toneladas?: number
+          user_id?: string
+          valor_tonelada?: number
+          valor_total?: number
+        }
+        Relationships: []
       }
     }
     Views: {
