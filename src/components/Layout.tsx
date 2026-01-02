@@ -10,7 +10,8 @@ import {
   Layers,
   TreeDeciduous,
   ClipboardList,
-  FileText
+  FileText,
+  Shield
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
@@ -28,7 +29,10 @@ export default function Layout({ children }: LayoutProps) {
 
   const navItems = [
     { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'user'] },
-    ...(isAdmin ? [{ to: "/admin", icon: Settings, label: "Admin", roles: ['admin'] }] : []),
+    ...(isAdmin ? [
+      { to: "/admin", icon: Settings, label: "Admin", roles: ['admin'] },
+      { to: "/auditoria", icon: Shield, label: "Auditoria", roles: ['admin'] },
+    ] : []),
     { to: "/toras", icon: TreeDeciduous, label: "Toras", roles: ['admin', 'user'] },
     { to: "/pedidos", icon: ClipboardList, label: "Pedidos", roles: ['admin', 'user'] },
     { to: "/producao", icon: Factory, label: "Produção", roles: ['admin', 'user'] },
