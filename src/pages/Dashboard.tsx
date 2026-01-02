@@ -157,8 +157,10 @@ export default function Dashboard() {
 
           const producaoPorMes = last6Months.map(({ year, month }) => {
             const monthProduction = producaoData.filter(p => {
-              const pDate = toZonedTime(new Date(p.data), 'America/Sao_Paulo');
-              return pDate.getFullYear() === year && pDate.getMonth() + 1 === month;
+              // Usar o mesmo método de parsing de data que a produção diária
+              const prodDateStr = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+              const [pYear, pMonth] = prodDateStr.split('-').map(Number);
+              return pYear === year && pMonth === month;
             });
             const total = monthProduction.reduce((sum, p) => sum + parseFloat(p.m3.toString()), 0);
             return {
