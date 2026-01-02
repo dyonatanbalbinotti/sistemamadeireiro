@@ -1337,8 +1337,8 @@ export default function Vendas() {
 
                 <div className="space-y-2">
                   <Label>Cavaco em Estoque</Label>
-                  <div className="p-3 bg-muted/50 rounded-lg border border-border">
-                    <span className="text-lg font-bold text-primary">
+                  <div className="h-10 px-3 flex items-center bg-muted/50 rounded-md border border-border">
+                    <span className="font-semibold text-primary">
                       {cavacoTotalEstoque.toFixed(2)} T
                     </span>
                     <span className="text-sm text-muted-foreground ml-2">disponível</span>
