@@ -53,6 +53,48 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          empresa_id: string | null
+          id: string
+          ip_address: unknown
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          ip_address?: unknown
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          empresa_id?: string | null
+          id?: string
+          ip_address?: unknown
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       configuracoes: {
         Row: {
           chave: string
@@ -77,6 +119,36 @@ export type Database = {
           id?: string
           updated_at?: string
           valor?: string
+        }
+        Relationships: []
+      }
+      data_deletion_requests: {
+        Row: {
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          reason: string | null
+          requested_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          requested_at?: string
+          status?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -222,6 +294,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      lgpd_consents: {
+        Row: {
+          consent_type: string
+          created_at: string
+          granted: boolean
+          granted_at: string | null
+          id: string
+          ip_address: unknown
+          revoked_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          ip_address?: unknown
+          revoked_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string
+          granted?: boolean
+          granted_at?: string | null
+          id?: string
+          ip_address?: unknown
+          revoked_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      login_attempts: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          ip_address: unknown
+          success: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          ip_address?: unknown
+          success?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          ip_address?: unknown
+          success?: boolean
+        }
+        Relationships: []
       }
       pedidos: {
         Row: {
@@ -593,6 +725,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_login_rate_limit: { Args: { _email: string }; Returns: boolean }
       get_current_user_empresa_id: { Args: never; Returns: string }
       get_user_empresa_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -604,6 +737,20 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_empresa: { Args: { _user_id: string }; Returns: boolean }
+      log_audit_event: {
+        Args: {
+          _action: string
+          _new_data?: Json
+          _old_data?: Json
+          _record_id?: string
+          _table_name: string
+        }
+        Returns: string
+      }
+      record_login_attempt: {
+        Args: { _email: string; _success: boolean }
+        Returns: undefined
+      }
       user_belongs_to_empresa: {
         Args: { _empresa_id: string }
         Returns: boolean
