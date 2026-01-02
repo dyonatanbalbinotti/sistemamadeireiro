@@ -49,7 +49,7 @@ serve(async (req) => {
       )
     }
 
-    const { email, password, nome } = await req.json()
+    const { email, password, nome, nomeEmpresa, planoId, planoMeses, planoValor, dataVencimento } = await req.json()
 
     // Criar usuário
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -66,13 +66,29 @@ serve(async (req) => {
       )
     }
 
-    // Criar profile (sem email por segurança)
+    // Criar empresa para o usuário
+    const { data: empresaData, error: empresaError } = await supabaseAdmin
+      .from('empresas')
+      .insert({
+        user_id: newUser.user.id,
+        nome_empresa: nomeEmpresa || nome,
+        data_vencimento_anuidade: dataVencimento
+      })
+      .select()
+      .single()
+
+    if (empresaError) {
+      console.error('Erro ao criar empresa:', empresaError)
+    }
+
+    // Criar profile vinculado à empresa
     await supabaseAdmin
       .from('profiles')
       .insert({
         id: newUser.user.id,
         nome,
-        status: 'operacional'
+        status: 'operacional',
+        empresa_id: empresaData?.id || null
       })
 
     // Criar role padrão como 'user'
@@ -83,8 +99,21 @@ serve(async (req) => {
         role: 'user'
       })
 
+    // Registrar no histórico de anuidades se tiver plano
+    if (empresaData && planoId && planoValor) {
+      await supabaseAdmin
+        .from('historico_anuidades')
+        .insert({
+          empresa_id: empresaData.id,
+          valor_pago: planoValor,
+          data_vencimento_anterior: null,
+          data_novo_vencimento: dataVencimento,
+          observacao: `Plano inicial - ${planoMeses} mês(es) - Criação de usuário`
+        })
+    }
+
     return new Response(
-      JSON.stringify({ success: true, user: newUser.user }),
+      JSON.stringify({ success: true, user: newUser.user, empresa: empresaData }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
