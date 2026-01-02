@@ -1,18 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Factory, TrendingUp, Weight, TreeDeciduous, DollarSign, PieChart as PieChartIcon, BarChart3, AlertTriangle } from "lucide-react";
+import { Package, Factory, TrendingUp, Weight, AlertTriangle, BarChart3, DollarSign, PieChart as PieChartIcon } from "lucide-react";
 import { calcularEstoqueSerradoSupabase, calcularEstoqueTorasSupabase, getVendasSupabase } from "@/lib/supabaseStorage";
 import { useEffect, useState } from "react";
 import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, Bar, BarChart } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import type { EstoqueSerrado, EstoqueToras } from "@/types";
-import { getTodayBR, formatInBrazilTimezone } from "@/lib/dateUtils";
 import { subDays, subMonths, format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import EmptyState from "@/components/EmptyState";
 
 export default function Dashboard() {
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
@@ -46,10 +45,8 @@ export default function Dashboard() {
         setEstoqueToras(toras.toneladas);
         setTotalItens(serrado.length);
 
-        // Verificar alertas de estoque
         await verificarAlertas(serrado, toras, totalQuantidade, totalM3);
 
-        // Dados de vendas baseado no período selecionado
         const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
         const diasVendas = parseInt(periodoVendas);
         const lastDaysVendas = Array.from({ length: diasVendas }, (_, i) => {
@@ -70,7 +67,6 @@ export default function Dashboard() {
         });
         setVendasData(vendasPorDia);
 
-        // Dados de estoque por produto (top 5)
         const estoquesPorProduto = serrado
           .sort((a, b) => b.m3Total - a.m3Total)
           .slice(0, 5)
@@ -80,14 +76,12 @@ export default function Dashboard() {
           }));
         setEstoqueData(estoquesPorProduto);
 
-        // Buscar dados de produção
         const { data: producaoData } = await supabase
           .from('producao')
           .select('data, m3')
           .order('data', { ascending: true });
 
         if (producaoData) {
-          // Produção diária baseada no período selecionado
           const diasProducao = parseInt(periodoProducao);
           const lastDaysProd = Array.from({ length: diasProducao }, (_, i) => {
             const date = subDays(nowBR, diasProducao - 1 - i);
@@ -107,7 +101,6 @@ export default function Dashboard() {
           });
           setProducaoDiariaData(producaoPorDia);
 
-          // Produção mensal - últimos 6 meses (GMT-3)
           const last6Months = Array.from({ length: 6 }, (_, i) => {
             const date = subMonths(nowBR, 5 - i);
             return {
@@ -130,7 +123,6 @@ export default function Dashboard() {
           setProducaoMensalData(producaoPorMes);
         }
 
-        // Buscar dados financeiros com período selecionado
         await carregarDadosFinanceiros(nowBR, parseInt(periodoFinanceiro));
       } catch (error) {
         console.error('Erro ao carregar dados do dashboard:', error);
@@ -153,35 +145,33 @@ export default function Dashboard() {
         };
       });
 
-        // Buscar toras com valor
-        const { data: torasComValor } = await supabase
-          .from('toras')
-          .select('data, valor_total_carga')
-          .not('valor_total_carga', 'is', null)
-          .order('data', { ascending: true });
+      const { data: torasComValor } = await supabase
+        .from('toras')
+        .select('data, valor_total_carga')
+        .not('valor_total_carga', 'is', null)
+        .order('data', { ascending: true });
 
-        // Buscar vendas
-        const { data: vendasComValor } = await supabase
-          .from('vendas')
-          .select('data, valor_total')
-          .order('data', { ascending: true });
+      const { data: vendasComValor } = await supabase
+        .from('vendas')
+        .select('data, valor_total')
+        .order('data', { ascending: true });
 
-        const financeiroPorMes = lastMonthsFinanceiro.map(({ year, month, label }) => {
-          const despesas = torasComValor?.filter(t => {
-            const tDate = toZonedTime(new Date(t.data), 'America/Sao_Paulo');
-            return tDate.getFullYear() === year && tDate.getMonth() + 1 === month;
-          }).reduce((sum, t) => sum + parseFloat(t.valor_total_carga.toString()), 0) || 0;
+      const financeiroPorMes = lastMonthsFinanceiro.map(({ year, month, label }) => {
+        const despesas = torasComValor?.filter(t => {
+          const tDate = toZonedTime(new Date(t.data), 'America/Sao_Paulo');
+          return tDate.getFullYear() === year && tDate.getMonth() + 1 === month;
+        }).reduce((sum, t) => sum + parseFloat(t.valor_total_carga.toString()), 0) || 0;
 
-          const receitas = vendasComValor?.filter(v => {
-            const vDate = toZonedTime(new Date(v.data), 'America/Sao_Paulo');
-            return vDate.getFullYear() === year && vDate.getMonth() + 1 === month;
-          }).reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0) || 0;
+        const receitas = vendasComValor?.filter(v => {
+          const vDate = toZonedTime(new Date(v.data), 'America/Sao_Paulo');
+          return vDate.getFullYear() === year && vDate.getMonth() + 1 === month;
+        }).reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0) || 0;
 
-          return {
-            mes: label,
-            despesas: parseFloat(despesas.toFixed(2)),
-            receitas: parseFloat(receitas.toFixed(2))
-          };
+        return {
+          mes: label,
+          despesas: parseFloat(despesas.toFixed(2)),
+          receitas: parseFloat(receitas.toFixed(2))
+        };
       });
 
       setFinanceiroData(financeiroPorMes);
@@ -212,7 +202,6 @@ export default function Dashboard() {
 
       alertas.forEach((alerta) => {
         if (alerta.tipo === 'serrado') {
-          // Verificar quantidade mínima
           if (alerta.quantidade_minima && totalQuantidade < alerta.quantidade_minima) {
             alertasAtivados.push({
               tipo: 'serrado',
@@ -221,7 +210,6 @@ export default function Dashboard() {
             });
           }
           
-          // Verificar m³ mínimo
           if (alerta.m3_minimo && totalM3 < alerta.m3_minimo) {
             alertasAtivados.push({
               tipo: 'serrado',
@@ -232,7 +220,6 @@ export default function Dashboard() {
         }
 
         if (alerta.tipo === 'tora') {
-          // Verificar toneladas mínima
           if (alerta.toneladas_minima && toras.toneladas < alerta.toneladas_minima) {
             alertasAtivados.push({
               tipo: 'tora',
@@ -241,7 +228,6 @@ export default function Dashboard() {
             });
           }
 
-          // Verificar quantidade de toras
           if (alerta.quantidade_minima && toras.quantidadeToras < alerta.quantidade_minima) {
             alertasAtivados.push({
               tipo: 'tora',
@@ -254,10 +240,9 @@ export default function Dashboard() {
 
       setAlertasAtivos(alertasAtivados);
 
-      // Mostrar toast para cada alerta
       alertasAtivados.forEach((alerta) => {
         toast({
-          title: "⚠️ Alerta de Estoque Baixo",
+          title: "Alerta de Estoque",
           description: alerta.mensagem,
           variant: "destructive",
         });
@@ -272,25 +257,22 @@ export default function Dashboard() {
       title: "Estoque Serrado",
       value: `${estoqueSerrado.toFixed(2)} m³`,
       icon: Package,
-      gradient: "from-primary/10 to-primary/5",
     },
     {
       title: "Estoque Toras",
       value: `${estoqueToras.toFixed(2)} T`,
       icon: Weight,
-      gradient: "from-secondary/10 to-secondary/5",
     },
     {
       title: "Tipos de Produtos",
       value: totalItens.toString(),
       icon: Factory,
-      gradient: "from-accent/20 to-accent/10",
     },
     {
       title: "Status",
       value: "Operacional",
       icon: TrendingUp,
-      gradient: "from-primary/10 to-accent/10",
+      isStatus: true,
     },
   ];
 
@@ -298,94 +280,89 @@ export default function Dashboard() {
     return (
       <div className="space-y-8">
         <div className="space-y-2">
-          <Skeleton className="h-12 w-64" />
-          <Skeleton className="h-6 w-96" />
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-5 w-72" />
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-32" />
+            <Skeleton key={i} className="h-24" />
           ))}
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Skeleton className="h-96" />
-          <Skeleton className="h-96" />
+        <div className="grid gap-5 lg:grid-cols-2">
+          <Skeleton className="h-80" />
+          <Skeleton className="h-80" />
         </div>
       </div>
     );
   }
 
+  const CHART_COLORS = [
+    'hsl(var(--primary))',
+    'hsl(var(--success))',
+    'hsl(var(--chart-blue))',
+    'hsl(var(--warning))',
+    'hsl(var(--chart-purple))'
+  ];
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent dark:from-primary/10 blur-3xl -z-10 animate-pulse-glow" />
-        <h1 className="text-5xl font-tech font-bold text-foreground mb-3 tracking-tight dark:text-shadow-glow">
-          Dashboard
-        </h1>
-        <p className="text-muted-foreground text-lg">Visão geral do controle de estoque em tempo real</p>
+    <div className="space-y-8 animate-fade-in">
+      {/* Section Header */}
+      <div className="section-header">
+        <h1 className="section-title">Dashboard</h1>
+        <p className="section-description">Visão geral do controle de estoque em tempo real</p>
       </div>
 
+      {/* Alerts - Minimal */}
       {alertasAtivos.length > 0 && (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {alertasAtivos.map((alerta, index) => (
-            <Alert key={index} variant="destructive" className="border-destructive/50 bg-destructive/10">
-              <AlertTriangle className="h-5 w-5" />
-              <AlertTitle className="font-bold">Alerta de Estoque Baixo</AlertTitle>
-              <AlertDescription className="text-sm">
-                {alerta.mensagem}
-              </AlertDescription>
-            </Alert>
+            <div key={index} className="alert-minimal alert-minimal-error">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+              <span>{alerta.mensagem}</span>
+            </div>
           ))}
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card, index) => {
+      {/* KPI Cards */}
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4 stagger-children">
+        {cards.map((card) => {
           const Icon = card.icon;
-          const neonColors = ['neon-glow', 'neon-glow-lime', 'neon-glow-magenta', 'neon-glow-purple'];
-          const borderColors = ['neon-border', 'dark:neon-border-lime', 'dark:neon-border-magenta', 'dark:neon-border-purple'];
-          const iconColors = [
-            'text-[hsl(var(--neon-cyan))] dark:drop-shadow-[0_0_10px_rgba(0,255,255,0.8)]',
-            'text-[hsl(var(--neon-lime))] dark:drop-shadow-[0_0_10px_rgba(173,255,47,0.8)]',
-            'text-[hsl(var(--neon-magenta))] dark:drop-shadow-[0_0_10px_rgba(255,0,255,0.8)]',
-            'text-[hsl(var(--neon-purple))] dark:drop-shadow-[0_0_10px_rgba(138,43,226,0.8)]'
-          ];
-          
           return (
-            <Card 
-              key={card.title} 
-              className={`glass-effect ${borderColors[index]} shadow-elegant ${neonColors[index]} transition-all duration-500 hover:scale-105 hover:-translate-y-1 group overflow-hidden relative`}
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-              <CardHeader className="flex flex-row items-center justify-between pb-2 relative z-10">
-                <CardTitle className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors">
-                  {card.title}
-                </CardTitle>
-                <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 group-hover:bg-primary/20 dark:group-hover:bg-primary/30 transition-all">
-                  <Icon className={`h-5 w-5 ${iconColors[index]} group-hover:scale-110 transition-transform`} />
+            <div key={card.title} className="kpi-card">
+              <div className="flex items-start justify-between">
+                <div className="space-y-2">
+                  <p className="kpi-label">{card.title}</p>
+                  {card.isStatus ? (
+                    <div className="flex items-center gap-2">
+                      <span className="status-badge status-badge-success">
+                        <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                        Operacional
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="kpi-value">{card.value}</p>
+                  )}
                 </div>
-              </CardHeader>
-              <CardContent className="relative z-10">
-                <div className="text-3xl font-tech font-bold text-foreground group-hover:text-primary transition-colors duration-300">
-                  {card.value}
-                </div>
-              </CardContent>
-            </Card>
+                <Icon className="kpi-icon" />
+              </div>
+            </div>
           );
         })}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="glass-effect neon-border shadow-elegant overflow-hidden relative group">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <CardHeader className="relative z-10">
+      {/* Charts Row 1 */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Vendas Chart */}
+        <Card className="enterprise-card border-0">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
-                <DollarSign className="h-5 w-5 text-primary dark:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]" />
-                Vendas - Últimos {periodoVendas} dias
+              <CardTitle className="chart-title flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                Vendas
               </CardTitle>
               <Select value={periodoVendas} onValueChange={setPeriodoVendas}>
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger className="w-28 h-8 text-xs">
                   <SelectValue placeholder="Período" />
                 </SelectTrigger>
                 <SelectContent>
@@ -395,101 +372,120 @@ export default function Dashboard() {
               </Select>
             </div>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={vendasData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="data" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                  formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="valor" 
-                  stroke="hsl(var(--chart-blue))" 
-                  strokeWidth={2}
-                  dot={{ fill: 'hsl(var(--chart-blue))', r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                Total vendido: <span className="text-lg font-bold text-chart-blue">
-                  R$ {vendasData.reduce((sum, d) => sum + d.valor, 0).toFixed(2)}
-                </span>
-              </p>
-            </div>
+          <CardContent>
+            {vendasData.every(d => d.valor === 0) ? (
+              <EmptyState message="Sem vendas no período selecionado" />
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={260}>
+                  <LineChart data={vendasData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis 
+                      dataKey="data" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} 
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      tickFormatter={(value) => `R$${value}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        boxShadow: 'var(--shadow-md)'
+                      }}
+                      formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="valor" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--primary))', r: 3, strokeWidth: 0 }}
+                      activeDot={{ r: 5, strokeWidth: 0 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Total: <span className="text-sm font-semibold text-foreground ml-1">
+                      R$ {vendasData.reduce((sum, d) => sum + d.valor, 0).toFixed(2)}
+                    </span>
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="glass-effect neon-border shadow-elegant overflow-hidden relative group">
-          <div className="absolute inset-0 bg-gradient-to-br from-secondary/5 via-transparent to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <CardHeader className="relative z-10">
-            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
-              <PieChartIcon className="h-5 w-5 text-primary dark:drop-shadow-[0_0_8px_rgba(0,255,255,0.5)]" />
+        {/* Estoque por Produto */}
+        <Card className="enterprise-card border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="chart-title flex items-center gap-2">
+              <PieChartIcon className="h-4 w-4 text-muted-foreground" />
               Estoque por Produto (Top 5)
             </CardTitle>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={estoqueData}
-                  dataKey="valor"
-                  nameKey="nome"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label={(entry) => `${entry.valor.toFixed(2)} m³`}
-                >
-                  {estoqueData.map((_, index) => {
-                    const colors = [
-                      'hsl(var(--chart-brown))',
-                      'hsl(var(--chart-green))',
-                      'hsl(var(--chart-blue))',
-                      'hsl(var(--chart-orange))',
-                      'hsl(var(--chart-purple))'
-                    ];
-                    return (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={colors[index % colors.length]}
-                      />
-                    );
-                  })}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                  formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Estoque']}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+          <CardContent>
+            {estoqueData.length === 0 ? (
+              <EmptyState message="Sem produtos em estoque" />
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={estoqueData}
+                    dataKey="valor"
+                    nameKey="nome"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={90}
+                    innerRadius={50}
+                    label={(entry) => `${entry.valor.toFixed(2)} m³`}
+                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                  >
+                    {estoqueData.map((_, index) => (
+                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Estoque']}
+                  />
+                  <Legend 
+                    wrapperStyle={{ fontSize: '11px' }}
+                    iconType="circle"
+                    iconSize={8}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card className="glass-effect dark:neon-border-lime shadow-elegant neon-glow-lime overflow-hidden relative group">
-          <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-lime))]/10 via-transparent to-[hsl(var(--neon-lime))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <CardHeader className="relative z-10">
+      {/* Charts Row 2 */}
+      <div className="grid gap-5 lg:grid-cols-2">
+        {/* Produção Diária */}
+        <Card className="enterprise-card border-0">
+          <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-[hsl(var(--neon-lime))] dark:drop-shadow-[0_0_8px_rgba(173,255,47,0.5)]" />
-                Produção - Últimos {periodoProducao} dias
+              <CardTitle className="chart-title flex items-center gap-2">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                Produção Diária
               </CardTitle>
               <Select value={periodoProducao} onValueChange={setPeriodoProducao}>
-                <SelectTrigger className="w-[130px]">
+                <SelectTrigger className="w-28 h-8 text-xs">
                   <SelectValue placeholder="Período" />
                 </SelectTrigger>
                 <SelectContent>
@@ -499,81 +495,113 @@ export default function Dashboard() {
               </Select>
             </div>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={producaoDiariaData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="data" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                  formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
-                />
-                <Bar dataKey="total" fill="hsl(var(--chart-green))" radius={[8, 8, 0, 0]} className="dark:fill-[hsl(var(--neon-lime))]" />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                Total produzido: <span className="text-lg font-bold text-chart-green dark:text-[hsl(var(--neon-lime))]">
-                  {producaoDiariaData.reduce((sum, d) => sum + d.total, 0).toFixed(2)} m³
-                </span>
-              </p>
-            </div>
+          <CardContent>
+            {producaoDiariaData.every(d => d.total === 0) ? (
+              <EmptyState message="Sem produção no período selecionado" />
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={producaoDiariaData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis 
+                      dataKey="data" 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                        fontSize: '12px'
+                      }}
+                      formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
+                    />
+                    <Bar dataKey="total" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Total: <span className="text-sm font-semibold text-foreground ml-1">
+                      {producaoDiariaData.reduce((sum, d) => sum + d.total, 0).toFixed(2)} m³
+                    </span>
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
-        <Card className="glass-effect dark:neon-border-magenta shadow-elegant neon-glow-magenta overflow-hidden relative group">
-          <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-magenta))]/10 via-transparent to-[hsl(var(--neon-magenta))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-          <CardHeader className="relative z-10">
-            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
-              <Factory className="h-5 w-5 text-[hsl(var(--neon-magenta))] dark:drop-shadow-[0_0_8px_rgba(255,0,255,0.5)]" />
+        {/* Produção Mensal */}
+        <Card className="enterprise-card border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="chart-title flex items-center gap-2">
+              <Factory className="h-4 w-4 text-muted-foreground" />
               Produção Mensal
             </CardTitle>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={producaoMensalData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                <XAxis dataKey="mes" className="text-xs" />
-                <YAxis className="text-xs" />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--background))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                  formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
-                />
-                <Bar dataKey="total" fill="hsl(var(--chart-orange))" radius={[8, 8, 0, 0]} className="dark:fill-[hsl(var(--neon-magenta))]" />
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="mt-4 p-4 bg-muted/50 rounded-lg">
-              <p className="text-sm text-muted-foreground">
-                Crescimento: <span className="text-lg font-bold text-chart-orange dark:text-[hsl(var(--neon-magenta))]">
-                  {producaoMensalData.length > 1 ? 
-                    `${((producaoMensalData[producaoMensalData.length - 1]?.total || 0) / (producaoMensalData[producaoMensalData.length - 2]?.total || 1) * 100 - 100).toFixed(2)}%` : 
-                    '0.00%'}
-                </span>
-              </p>
-            </div>
+          <CardContent>
+            {producaoMensalData.every(d => d.total === 0) ? (
+              <EmptyState message="Sem produção nos últimos meses" />
+            ) : (
+              <>
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={producaoMensalData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                    <XAxis 
+                      dataKey="mes" 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '6px',
+                        fontSize: '12px'
+                      }}
+                      formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
+                    />
+                    <Bar dataKey="total" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+                <div className="mt-4 pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Crescimento: <span className="text-sm font-semibold text-foreground ml-1">
+                      {producaoMensalData.length > 1 ? 
+                        `${((producaoMensalData[producaoMensalData.length - 1]?.total || 0) / (producaoMensalData[producaoMensalData.length - 2]?.total || 1) * 100 - 100).toFixed(2)}%` : 
+                        '0.00%'}
+                    </span>
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <Card className="glass-effect dark:neon-border-purple shadow-elegant neon-glow-purple overflow-hidden relative group">
-        <div className="absolute inset-0 bg-gradient-to-br from-[hsl(var(--neon-purple))]/10 via-transparent to-[hsl(var(--neon-purple))]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-        <CardHeader className="relative z-10">
+      {/* Fluxo Financeiro */}
+      <Card className="enterprise-card border-0">
+        <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-tech text-foreground flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-[hsl(var(--neon-purple))] dark:drop-shadow-[0_0_8px_rgba(138,43,226,0.5)]" />
+            <CardTitle className="chart-title flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
               Fluxo Financeiro
             </CardTitle>
             <Select value={periodoFinanceiro} onValueChange={setPeriodoFinanceiro}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-36 h-8 text-xs">
                 <SelectValue placeholder="Período" />
               </SelectTrigger>
               <SelectContent>
@@ -584,52 +612,75 @@ export default function Dashboard() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent className="relative z-10">
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={financeiroData}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-              <XAxis dataKey="mes" className="text-xs" />
-              <YAxis className="text-xs" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'hsl(var(--background))', 
-                  border: '1px solid hsl(var(--border))',
-                  borderRadius: '8px'
-                }}
-                formatter={(value: number, name: string) => [
-                  `R$ ${value.toFixed(2)}`, 
-                  name === 'despesas' ? 'Despesas' : 'Receitas'
-                ]}
-              />
-              <Legend />
-              <Bar dataKey="despesas" fill="hsl(var(--destructive))" radius={[8, 8, 0, 0]} name="Despesas" />
-              <Bar dataKey="receitas" fill="hsl(var(--chart-green))" radius={[8, 8, 0, 0]} name="Receitas" className="dark:fill-[hsl(var(--neon-lime))]" />
-            </BarChart>
-          </ResponsiveContainer>
-          <div className="mt-4 grid grid-cols-3 gap-4">
-            <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
-              <p className="text-xs text-muted-foreground mb-1">Total Despesas</p>
-              <p className="text-lg font-bold text-destructive">
-                R$ {financeiroData.reduce((sum, d) => sum + d.despesas, 0).toFixed(2)}
-              </p>
-            </div>
-            <div className="p-4 bg-chart-green/10 rounded-lg border border-chart-green/20">
-              <p className="text-xs text-muted-foreground mb-1">Total Receitas</p>
-              <p className="text-lg font-bold text-chart-green dark:text-[hsl(var(--neon-lime))]">
-                R$ {financeiroData.reduce((sum, d) => sum + d.receitas, 0).toFixed(2)}
-              </p>
-            </div>
-            <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-              <p className="text-xs text-muted-foreground mb-1">Saldo</p>
-              <p className={`text-lg font-bold ${
-                financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0) >= 0 
-                  ? 'text-chart-green dark:text-[hsl(var(--neon-lime))]' 
-                  : 'text-destructive'
-              }`}>
-                R$ {financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0).toFixed(2)}
-              </p>
-            </div>
-          </div>
+        <CardContent>
+          {financeiroData.every(d => d.despesas === 0 && d.receitas === 0) ? (
+            <EmptyState message="Sem movimentação financeira no período" />
+          ) : (
+            <>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={financeiroData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis 
+                    dataKey="mes" 
+                    axisLine={false} 
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                    tickFormatter={(value) => `R$${value}`}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value: number, name: string) => [
+                      `R$ ${value.toFixed(2)}`, 
+                      name === 'despesas' ? 'Despesas' : 'Receitas'
+                    ]}
+                  />
+                  <Legend 
+                    wrapperStyle={{ fontSize: '11px' }}
+                    iconType="circle"
+                    iconSize={8}
+                  />
+                  <Bar dataKey="despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Despesas" />
+                  <Bar dataKey="receitas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} name="Receitas" />
+                </BarChart>
+              </ResponsiveContainer>
+              
+              {/* Summary Cards */}
+              <div className="mt-6 grid grid-cols-3 gap-4">
+                <div className="p-4 rounded-lg bg-destructive/5">
+                  <p className="text-xs text-muted-foreground mb-1">Total Despesas</p>
+                  <p className="text-lg font-semibold text-destructive">
+                    R$ {financeiroData.reduce((sum, d) => sum + d.despesas, 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg bg-success/5">
+                  <p className="text-xs text-muted-foreground mb-1">Total Receitas</p>
+                  <p className="text-lg font-semibold text-success">
+                    R$ {financeiroData.reduce((sum, d) => sum + d.receitas, 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="p-4 rounded-lg bg-primary/5">
+                  <p className="text-xs text-muted-foreground mb-1">Saldo</p>
+                  <p className={`text-lg font-semibold ${
+                    financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0) >= 0 
+                      ? 'text-success' 
+                      : 'text-destructive'
+                  }`}>
+                    R$ {financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
