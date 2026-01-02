@@ -29,7 +29,7 @@ import { FadeIn, HoverScale } from "@/components/MotionWrapper";
 
 export default function Producao() {
   const { user } = useAuth();
-  const { empresaId, loading: loadingEmpresaId } = useEmpresaId();
+  const { empresaId, loading: loadingEmpresaId, error: empresaError } = useEmpresaId();
   const { empresa } = useEmpresaData();
   const [producao, setProducao] = useState<MadeiraProduzida[]>([]);
   const [toras, setToras] = useState<Tora[]>([]);
@@ -539,6 +539,17 @@ export default function Producao() {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Carregando dados...</p>
+      </div>
+    );
+  }
+
+  if (empresaError || !empresaId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <Factory className="h-12 w-12 text-muted-foreground" />
+        <p className="text-muted-foreground text-center">
+          {empresaError || "Você não possui uma empresa cadastrada. Contate o administrador."}
+        </p>
       </div>
     );
   }
