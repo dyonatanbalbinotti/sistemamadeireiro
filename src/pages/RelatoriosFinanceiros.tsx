@@ -82,6 +82,22 @@ export default function RelatoriosFinanceiros() {
         .lte('data', dataFimStr)
         .order('data', { ascending: true });
 
+      // Buscar vendas de serragem (receitas)
+      const { data: vendasSerragemData } = await supabase
+        .from('vendas_serragem')
+        .select('data, valor_total, toneladas')
+        .gte('data', dataInicioStr)
+        .lte('data', dataFimStr)
+        .order('data', { ascending: true });
+
+      // Buscar vendas de casqueiro (receitas)
+      const { data: vendasCasqueiroData } = await supabase
+        .from('vendas_casqueiro')
+        .select('data, valor_total, total_metro_estereo')
+        .gte('data', dataInicioStr)
+        .lte('data', dataFimStr)
+        .order('data', { ascending: true });
+
       // Processar transações detalhadas
       const transacoesProcessadas: TransacaoDetalhada[] = [];
 
@@ -114,6 +130,24 @@ export default function RelatoriosFinanceiros() {
         });
       });
 
+      vendasSerragemData?.forEach(vendaSerragem => {
+        transacoesProcessadas.push({
+          data: formatDateBR(vendaSerragem.data),
+          tipo: 'Receita',
+          descricao: `Venda de Serragem (${vendaSerragem.toneladas}t)`,
+          valor: parseFloat(vendaSerragem.valor_total.toString())
+        });
+      });
+
+      vendasCasqueiroData?.forEach(vendaCasqueiro => {
+        transacoesProcessadas.push({
+          data: formatDateBR(vendaCasqueiro.data),
+          tipo: 'Receita',
+          descricao: `Venda de Casqueiro (${vendaCasqueiro.total_metro_estereo} m³)`,
+          valor: parseFloat(vendaCasqueiro.valor_total.toString())
+        });
+      });
+
       transacoesProcessadas.sort((a, b) => {
         const dateA = new Date(a.data.split('/').reverse().join('-'));
         const dateB = new Date(b.data.split('/').reverse().join('-'));
@@ -143,6 +177,20 @@ export default function RelatoriosFinanceiros() {
         const mesAno = format(new Date(vendaCavaco.data), 'MMM/yy', { locale: ptBR });
         const atual = mesesMap.get(mesAno) || { despesas: 0, receitas: 0 };
         atual.receitas += parseFloat(vendaCavaco.valor_total.toString());
+        mesesMap.set(mesAno, atual);
+      });
+
+      vendasSerragemData?.forEach(vendaSerragem => {
+        const mesAno = format(new Date(vendaSerragem.data), 'MMM/yy', { locale: ptBR });
+        const atual = mesesMap.get(mesAno) || { despesas: 0, receitas: 0 };
+        atual.receitas += parseFloat(vendaSerragem.valor_total.toString());
+        mesesMap.set(mesAno, atual);
+      });
+
+      vendasCasqueiroData?.forEach(vendaCasqueiro => {
+        const mesAno = format(new Date(vendaCasqueiro.data), 'MMM/yy', { locale: ptBR });
+        const atual = mesesMap.get(mesAno) || { despesas: 0, receitas: 0 };
+        atual.receitas += parseFloat(vendaCasqueiro.valor_total.toString());
         mesesMap.set(mesAno, atual);
       });
 
