@@ -55,14 +55,59 @@ export default function Dashboard() {
           return format(date, 'yyyy-MM-dd');
         });
 
+        // Buscar vendas adicionais (cavaco, serragem, casqueiro)
+        const { data: vendasCavaco } = await supabase
+          .from('vendas_cavaco')
+          .select('data, valor_total')
+          .order('data', { ascending: true });
+
+        const { data: vendasSerragem } = await supabase
+          .from('vendas_serragem')
+          .select('data, valor_total')
+          .order('data', { ascending: true });
+
+        const { data: vendasCasqueiro } = await supabase
+          .from('vendas_casqueiro')
+          .select('data, valor_total')
+          .order('data', { ascending: true });
+
         const vendasPorDia = lastDaysVendas.map(date => {
+          // Vendas de madeira serrada
           const dayVendas = vendas.filter(v => {
             const vendaDate = v.data.includes('T') ? v.data.split('T')[0] : v.data;
             return vendaDate === date;
           });
-          const total = dayVendas.reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0);
+          const totalMadeira = dayVendas.reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0);
+          
+          // Vendas de cavaco
+          const dayCavaco = vendasCavaco?.filter(v => {
+            const vendaDate = v.data.includes('T') ? v.data.split('T')[0] : v.data;
+            return vendaDate === date;
+          }) || [];
+          const totalCavaco = dayCavaco.reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0);
+          
+          // Vendas de serragem
+          const daySerragem = vendasSerragem?.filter(v => {
+            const vendaDate = v.data.includes('T') ? v.data.split('T')[0] : v.data;
+            return vendaDate === date;
+          }) || [];
+          const totalSerragem = daySerragem.reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0);
+          
+          // Vendas de casqueiro
+          const dayCasqueiro = vendasCasqueiro?.filter(v => {
+            const vendaDate = v.data.includes('T') ? v.data.split('T')[0] : v.data;
+            return vendaDate === date;
+          }) || [];
+          const totalCasqueiro = dayCasqueiro.reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0);
+          
+          const total = totalMadeira + totalCavaco + totalSerragem + totalCasqueiro;
+          
           return {
             data: format(new Date(date + 'T12:00:00'), 'dd/MM'),
+            madeira: parseFloat(totalMadeira.toFixed(2)),
+            cavaco: parseFloat(totalCavaco.toFixed(2)),
+            serragem: parseFloat(totalSerragem.toFixed(2)),
+            casqueiro: parseFloat(totalCasqueiro.toFixed(2)),
             valor: parseFloat(total.toFixed(2))
           };
         });
@@ -157,21 +202,64 @@ export default function Dashboard() {
         .select('data, valor_total')
         .order('data', { ascending: true });
 
+      // Buscar vendas de cavaco
+      const { data: vendasCavaco } = await supabase
+        .from('vendas_cavaco')
+        .select('data, valor_total')
+        .order('data', { ascending: true });
+
+      // Buscar vendas de serragem
+      const { data: vendasSerragem } = await supabase
+        .from('vendas_serragem')
+        .select('data, valor_total')
+        .order('data', { ascending: true });
+
+      // Buscar vendas de casqueiro
+      const { data: vendasCasqueiro } = await supabase
+        .from('vendas_casqueiro')
+        .select('data, valor_total')
+        .order('data', { ascending: true });
+
       const financeiroPorMes = lastMonthsFinanceiro.map(({ year, month, label }) => {
         const despesas = torasComValor?.filter(t => {
           const tDate = toZonedTime(new Date(t.data), 'America/Sao_Paulo');
           return tDate.getFullYear() === year && tDate.getMonth() + 1 === month;
         }).reduce((sum, t) => sum + parseFloat(t.valor_total_carga.toString()), 0) || 0;
 
-        const receitas = vendasComValor?.filter(v => {
+        // Receitas de madeira serrada
+        const receitasMadeira = vendasComValor?.filter(v => {
           const vDate = toZonedTime(new Date(v.data), 'America/Sao_Paulo');
           return vDate.getFullYear() === year && vDate.getMonth() + 1 === month;
         }).reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0) || 0;
 
+        // Receitas de cavaco
+        const receitasCavaco = vendasCavaco?.filter(v => {
+          const vDate = toZonedTime(new Date(v.data), 'America/Sao_Paulo');
+          return vDate.getFullYear() === year && vDate.getMonth() + 1 === month;
+        }).reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0) || 0;
+
+        // Receitas de serragem
+        const receitasSerragem = vendasSerragem?.filter(v => {
+          const vDate = toZonedTime(new Date(v.data), 'America/Sao_Paulo');
+          return vDate.getFullYear() === year && vDate.getMonth() + 1 === month;
+        }).reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0) || 0;
+
+        // Receitas de casqueiro
+        const receitasCasqueiro = vendasCasqueiro?.filter(v => {
+          const vDate = toZonedTime(new Date(v.data), 'America/Sao_Paulo');
+          return vDate.getFullYear() === year && vDate.getMonth() + 1 === month;
+        }).reduce((sum, v) => sum + parseFloat(v.valor_total.toString()), 0) || 0;
+
+        const receitas = receitasMadeira + receitasCavaco + receitasSerragem + receitasCasqueiro;
+
         return {
           mes: label,
           despesas: parseFloat(despesas.toFixed(2)),
-          receitas: parseFloat(receitas.toFixed(2))
+          receitas: parseFloat(receitas.toFixed(2)),
+          receitasMadeira: parseFloat(receitasMadeira.toFixed(2)),
+          receitasCavaco: parseFloat(receitasCavaco.toFixed(2)),
+          receitasSerragem: parseFloat(receitasSerragem.toFixed(2)),
+          receitasCasqueiro: parseFloat(receitasCasqueiro.toFixed(2))
         };
       });
 
@@ -389,7 +477,7 @@ export default function Dashboard() {
                 ) : (
                   <>
                     <ResponsiveContainer width="100%" height={260}>
-                      <LineChart data={vendasData}>
+                      <BarChart data={vendasData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
                         <XAxis 
                           dataKey="data" 
@@ -411,24 +499,58 @@ export default function Dashboard() {
                             fontSize: '12px',
                             boxShadow: 'var(--shadow-md)'
                           }}
-                          formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
+                          formatter={(value: number, name: string) => {
+                            const labels: Record<string, string> = {
+                              madeira: 'Madeira Serrada',
+                              cavaco: 'Cavaco',
+                              serragem: 'Serragem',
+                              casqueiro: 'Casqueiro'
+                            };
+                            return [`R$ ${value.toFixed(2)}`, labels[name] || name];
+                          }}
                         />
-                        <Line 
-                          type="monotone" 
-                          dataKey="valor" 
-                          stroke="hsl(var(--primary))" 
-                          strokeWidth={2}
-                          dot={{ fill: 'hsl(var(--primary))', r: 3, strokeWidth: 0 }}
-                          activeDot={{ r: 5, strokeWidth: 0 }}
+                        <Legend 
+                          wrapperStyle={{ fontSize: '11px' }}
+                          iconType="circle"
+                          iconSize={8}
                         />
-                      </LineChart>
+                        <Bar dataKey="madeira" stackId="a" fill="hsl(var(--primary))" name="Madeira" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="cavaco" stackId="a" fill="hsl(var(--success))" name="Cavaco" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="serragem" stackId="a" fill="hsl(var(--warning))" name="Serragem" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="casqueiro" stackId="a" fill="hsl(var(--chart-purple))" name="Casqueiro" radius={[4, 4, 0, 0]} />
+                      </BarChart>
                     </ResponsiveContainer>
-                    <div className="mt-4 pt-4 border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        Total: <span className="text-sm font-semibold text-foreground ml-1">
+                    <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Total</p>
+                        <p className="text-sm font-semibold text-foreground">
                           R$ {vendasData.reduce((sum, d) => sum + d.valor, 0).toFixed(2)}
-                        </span>
-                      </p>
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Madeira</p>
+                        <p className="text-sm font-semibold text-primary">
+                          R$ {vendasData.reduce((sum, d) => sum + (d.madeira || 0), 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Cavaco</p>
+                        <p className="text-sm font-semibold text-success">
+                          R$ {vendasData.reduce((sum, d) => sum + (d.cavaco || 0), 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Serragem</p>
+                        <p className="text-sm font-semibold text-warning">
+                          R$ {vendasData.reduce((sum, d) => sum + (d.serragem || 0), 0).toFixed(2)}
+                        </p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground">Casqueiro</p>
+                        <p className="text-sm font-semibold" style={{ color: 'hsl(var(--chart-purple))' }}>
+                          R$ {vendasData.reduce((sum, d) => sum + (d.casqueiro || 0), 0).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
                   </>
                 )}
