@@ -33,14 +33,29 @@ export const useEmpresaId = () => {
           setEmpresaId(empresaData.id);
           setError(null);
         } else {
-          // Usuário não tem empresa cadastrada
-          // NÃO usar user.id como fallback - isso viola as RLS policies
-          console.warn('Usuário não possui empresa cadastrada');
-          setEmpresaId(null);
-          
-          // Admins podem não ter empresa, isso é ok
-          if (!isAdmin) {
-            setError('Usuário não possui empresa cadastrada. Contate o administrador.');
+          // Se não é dono, verifica se está vinculado via profiles.empresa_id
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('empresa_id')
+            .eq('id', user.id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Erro ao buscar perfil:', profileError);
+            setError('Erro ao buscar empresa');
+            setEmpresaId(null);
+          } else if (profileData?.empresa_id) {
+            setEmpresaId(profileData.empresa_id);
+            setError(null);
+          } else {
+            // Usuário não tem empresa cadastrada nem vinculada
+            console.warn('Usuário não possui empresa cadastrada');
+            setEmpresaId(null);
+            
+            // Admins podem não ter empresa, isso é ok
+            if (!isAdmin) {
+              setError('Usuário não possui empresa cadastrada. Contate o administrador.');
+            }
           }
         }
       } catch (err) {
