@@ -39,52 +39,60 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/10 wood-texture">
-      <nav className="glass-effect border-b neon-border backdrop-blur-xl sticky top-0 z-50">
+    <div className="min-h-screen bg-background">
+      {/* Header - Reduced height, clean design */}
+      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
         <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
+            {/* Logo & Brand */}
             <div className="flex items-center gap-3">
               <img 
                 src={dwLogo} 
                 alt="DW Corporation Logo" 
-                className="h-10 w-10 object-contain dark:drop-shadow-[0_0_12px_rgba(0,255,255,0.6)] transition-all" 
+                className="h-8 w-8 object-contain" 
               />
-              <div>
-                <h1 className="text-lg font-tech font-bold text-primary tracking-wider">
-                  DwCorporation Sist. Madeireiro
+              <div className="hidden sm:block">
+                <h1 className="text-sm font-semibold text-foreground">
+                  DwCorporation
                 </h1>
+                <p className="text-xs text-muted-foreground">Sistema Madeireiro</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex gap-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = location.pathname === item.to;
-                  return (
-                    <Link
-                      key={item.to}
-                      to={item.to}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-300",
-                        isActive
-                          ? "bg-primary text-primary-foreground shadow-lg dark:shadow-[0_0_15px_rgba(0,255,255,0.3)] scale-105"
-                          : "text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground neon-glow"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="hidden sm:inline">{item.label}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-              <UserAccountDrawer />
-            </div>
+
+            {/* Navigation - Clean, monochromatic */}
+            <nav className="flex items-center gap-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.to;
+                return (
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                    )}
+                  >
+                    <Icon className={cn("h-4 w-4", !isActive && "opacity-70")} />
+                    <span className="hidden lg:inline">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* User Account */}
+            <UserAccountDrawer />
           </div>
         </div>
-      </nav>
+      </header>
+
+      {/* Main Content - More white space */}
       <main className="container mx-auto px-4 py-8">
         {children}
       </main>
+
       <OfflineIndicator />
       <FloatingSupport />
     </div>
