@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Building2, Search, DollarSign, Save, RefreshCw, Calendar, UserPlus, Key } from "lucide-react";
+import { Trash2, Building2, Search, RefreshCw, Calendar, UserPlus, Key } from "lucide-react";
 import { motion } from "framer-motion";
 import { formatDateBR, getTodayBR } from "@/lib/dateUtils";
-import { addYears, format } from "date-fns";
+import { addMonths, format } from "date-fns";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toZonedTime } from "date-fns-tz";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -28,12 +29,18 @@ interface Usuario {
   role?: 'admin' | 'empresa';
 }
 
+// Planos disponíveis
+const PLANOS = [
+  { id: '1_mes', label: '1 Mês', meses: 1, valor: 200 },
+  { id: '6_meses', label: '6 Meses', meses: 6, valor: 1100 },
+  { id: '12_meses', label: '12 Meses', meses: 12, valor: 2100 },
+];
+
 export default function Admin() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [valorAnuidade, setValorAnuidade] = useState("");
-  const [editandoAnuidade, setEditandoAnuidade] = useState(false);
+  const [planoSelecionado, setPlanoSelecionado] = useState<Record<string, string>>({});
   
   // Estados para criar usuário
   const [openCreateUser, setOpenCreateUser] = useState(false);
@@ -53,7 +60,6 @@ export default function Admin() {
 
   useEffect(() => {
     loadUsuarios();
-    loadConfiguracoes();
     verificarAnuidadesVencidas();
   }, []);
 
@@ -175,59 +181,6 @@ export default function Admin() {
     }
   };
 
-  const loadConfiguracoes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('configuracoes')
-        .select('valor')
-        .eq('chave', 'valor_anuidade')
-        .maybeSingle();
-
-      if (error) throw error;
-
-      setValorAnuidade(data?.valor || '1000');
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Erro ao carregar configurações: " + error.message,
-      });
-    }
-  };
-
-  const handleSalvarAnuidade = async () => {
-    if (!valorAnuidade || parseFloat(valorAnuidade) <= 0) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Digite um valor válido para a anuidade.",
-      });
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('configuracoes')
-        .update({ valor: valorAnuidade })
-        .eq('chave', 'valor_anuidade');
-
-      if (error) throw error;
-
-      toast({
-        title: "Sucesso!",
-        description: "Valor da anuidade atualizado.",
-      });
-
-      setEditandoAnuidade(false);
-    } catch (error: any) {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Erro ao salvar anuidade: " + error.message,
-      });
-    }
-  };
-
   const handleToggleStatus = async (userId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'operacional' ? 'invalido' : 'operacional';
     
@@ -304,8 +257,20 @@ export default function Admin() {
     }
   };
 
-  const handleRenovarAnuidade = async (empresaId: string, usuarioNome: string) => {
-    if (!confirm(`Confirma a renovação da anuidade para "${usuarioNome}"?\n\nO vencimento será estendido por +1 ano a partir de hoje ou da data atual (o que for maior).\nValor da anuidade: R$ ${parseFloat(valorAnuidade).toFixed(2)}`)) {
+  const handleRenovarPlano = async (empresaId: string, usuarioNome: string) => {
+    const planoId = planoSelecionado[empresaId];
+    const plano = PLANOS.find(p => p.id === planoId);
+    
+    if (!plano) {
+      toast({
+        variant: "destructive",
+        title: "Selecione um plano",
+        description: "Escolha um plano antes de renovar.",
+      });
+      return;
+    }
+
+    if (!confirm(`Confirma a renovação para "${usuarioNome}"?\n\nPlano: ${plano.label}\nValor: R$ ${plano.valor.toFixed(2)}\n\nO vencimento será estendido por +${plano.meses} mês(es) a partir de hoje ou da data atual (o que for maior).`)) {
       return;
     }
 
@@ -319,14 +284,14 @@ export default function Admin() {
 
       if (empresaError) throw empresaError;
 
-      // Calcular nova data de vencimento (1 ano a partir de hoje ou da data atual de vencimento, o que for maior) - GMT-3
+      // Calcular nova data de vencimento (X meses a partir de hoje ou da data atual de vencimento, o que for maior) - GMT-3
       const hojeBR = toZonedTime(new Date(), 'America/Sao_Paulo');
       const dataVencimentoAtual = empresaData.data_vencimento_anuidade 
         ? toZonedTime(new Date(empresaData.data_vencimento_anuidade), 'America/Sao_Paulo')
         : hojeBR;
       
       const baseDate = dataVencimentoAtual > hojeBR ? dataVencimentoAtual : hojeBR;
-      const novaDataVencimento = addYears(baseDate, 1);
+      const novaDataVencimento = addMonths(baseDate, plano.meses);
       const novaDataFormatada = format(novaDataVencimento, 'yyyy-MM-dd');
 
       // Atualizar data de vencimento na empresa
@@ -337,22 +302,15 @@ export default function Admin() {
 
       if (updateError) throw updateError;
 
-      // Buscar valor da anuidade
-      const { data: configData } = await supabase
-        .from('configuracoes')
-        .select('valor')
-        .eq('chave', 'valor_anuidade')
-        .maybeSingle();
-
       // Registrar no histórico
       await supabase
         .from('historico_anuidades')
         .insert({
           empresa_id: empresaId,
-          valor_pago: parseFloat(configData?.valor || valorAnuidade),
+          valor_pago: plano.valor,
           data_vencimento_anterior: empresaData.data_vencimento_anuidade,
           data_novo_vencimento: novaDataFormatada,
-          observacao: 'Renovação manual pelo administrador'
+          observacao: `Plano ${plano.label} - Renovação manual pelo administrador`
         });
 
       // Reativar usuário se estava inativo
@@ -369,7 +327,14 @@ export default function Admin() {
 
       toast({
         title: "Sucesso!",
-        description: `Anuidade renovada até ${formatDateBR(novaDataVencimento.toISOString())}`,
+        description: `Plano ${plano.label} ativado até ${formatDateBR(novaDataVencimento.toISOString())}`,
+      });
+
+      // Limpar seleção do plano
+      setPlanoSelecionado(prev => {
+        const next = { ...prev };
+        delete next[empresaId];
+        return next;
       });
 
       loadUsuarios();
@@ -377,7 +342,7 @@ export default function Admin() {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Erro ao renovar anuidade: " + error.message,
+        description: "Erro ao renovar plano: " + error.message,
       });
     }
   };
@@ -552,63 +517,6 @@ export default function Admin() {
 
       <Card className="glass-effect neon-border">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <DollarSign className="h-5 w-5 text-primary" />
-            Configuração de Anuidade
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <div className="flex-1">
-              <label className="text-sm text-muted-foreground mb-2 block">
-                Valor da Anuidade (R$)
-              </label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={valorAnuidade}
-                onChange={(e) => setValorAnuidade(e.target.value)}
-                disabled={!editandoAnuidade}
-                className="neon-input"
-                placeholder="0.00"
-              />
-            </div>
-            <div className="flex gap-2 mt-6">
-              {editandoAnuidade ? (
-                <>
-                  <Button
-                    onClick={handleSalvarAnuidade}
-                    className="gap-2"
-                  >
-                    <Save className="h-4 w-4" />
-                    Salvar
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setEditandoAnuidade(false);
-                      loadConfiguracoes();
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                </>
-              ) : (
-                <Button
-                  onClick={() => setEditandoAnuidade(true)}
-                  variant="outline"
-                >
-                  Editar
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="glass-effect neon-border">
-        <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Gerenciamento de Usuários</span>
             <div className="flex items-center gap-3">
@@ -693,6 +601,7 @@ export default function Admin() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Vencimento</TableHead>
+                  <TableHead>Plano</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Cadastro</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -701,7 +610,7 @@ export default function Admin() {
               <TableBody>
                 {filteredUsuarios.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                       Nenhum usuário encontrado
                     </TableCell>
                   </TableRow>
@@ -738,6 +647,28 @@ export default function Admin() {
                         )}
                       </TableCell>
                       <TableCell>
+                        {usuario.empresa && (
+                          <Select
+                            value={planoSelecionado[usuario.empresa.id] || ''}
+                            onValueChange={(value) => setPlanoSelecionado(prev => ({
+                              ...prev,
+                              [usuario.empresa!.id]: value
+                            }))}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue placeholder="Selecionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {PLANOS.map(plano => (
+                                <SelectItem key={plano.id} value={plano.id}>
+                                  {plano.label} - R$ {plano.valor}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      </TableCell>
+                      <TableCell>
                         <Button
                           variant={usuario.status === 'operacional' ? 'default' : 'destructive'}
                           size="sm"
@@ -763,13 +694,13 @@ export default function Admin() {
                           >
                             <Key className="h-4 w-4" />
                           </Button>
-                          {usuario.empresa && (
+                          {usuario.empresa && planoSelecionado[usuario.empresa.id] && (
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => handleRenovarAnuidade(usuario.empresa!.id, usuario.nome)}
+                              onClick={() => handleRenovarPlano(usuario.empresa!.id, usuario.nome)}
                               className="hover:bg-primary/10 hover:text-primary"
-                              title="Renovar anuidade"
+                              title="Renovar plano"
                             >
                               <RefreshCw className="h-4 w-4" />
                             </Button>
