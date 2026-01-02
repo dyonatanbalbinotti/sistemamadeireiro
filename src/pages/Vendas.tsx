@@ -34,7 +34,7 @@ export default function Vendas() {
   const [vendasCavaco, setVendasCavaco] = useState<any[]>([]);
   const [produtos, setProdutos] = useState<any[]>([]);
   const [toras, setToras] = useState<any[]>([]);
-  const [cavacoDisponivel, setCavacoDisponivel] = useState<any[]>([]);
+  const [cavacoDisponivel, setCavacoDisponivel] = useState<{id: string; descricao: string; cavacoDisponivel: number}[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingCavacoId, setEditingCavacoId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -52,9 +52,9 @@ export default function Vendas() {
   const [valorUnitario, setValorUnitario] = useState("");
 
   // Campos para venda de cavaco
-  const [toraIdCavaco, setToraIdCavaco] = useState("");
   const [toneladasVendidas, setToneladasVendidas] = useState("");
   const [valorTonelada, setValorTonelada] = useState("");
+  const [cavacoTotalEstoque, setCavacoTotalEstoque] = useState(0);
 
   // Campos para venda direta por m³
   const [produtoM3Direto, setProdutoM3Direto] = useState("");
@@ -163,14 +163,17 @@ export default function Vendas() {
           setVendasCavaco(vendasCavacoData);
         }
 
-        // Calcular cavaco disponível
+        // Calcular cavaco disponível (por tora para manter compatibilidade)
         const { data: producaoData } = await supabase
           .from('producao')
           .select('*, toras(id)')
           .order('created_at', { ascending: false });
 
         if (torasData && producaoData && vendasCavacoData) {
-          const calculoCavaco = torasData.map(tora => {
+          let totalCavacoDisponivel = 0;
+          const calculoCavaco: {id: string; descricao: string; cavacoDisponivel: number}[] = [];
+          
+          torasData.forEach(tora => {
             const producoesDaTora = producaoData.filter(p => p.tora_id === tora.id);
             const m3Total = producoesDaTora.reduce((sum, p) => sum + Number(p.m3), 0);
             
@@ -179,16 +182,21 @@ export default function Vendas() {
             const cavacoTotal = Number(tora.toneladas) - toneladasMadeirasSerradas;
             
             const vendasDaTora = vendasCavacoData.filter(v => v.tora_id === tora.id);
-            const toneladasVendidas = vendasDaTora.reduce((sum, v) => sum + Number(v.toneladas), 0);
-            const cavacoDisponivel = Math.max(0, cavacoTotal - toneladasVendidas);
-
-            return {
-              id: tora.id,
-              descricao: tora.descricao,
-              cavacoDisponivel,
-            };
+            const toneladasVendidasTora = vendasDaTora.reduce((sum, v) => sum + Number(v.toneladas), 0);
+            const cavacoDisponivelTora = Math.max(0, cavacoTotal - toneladasVendidasTora);
+            
+            totalCavacoDisponivel += cavacoDisponivelTora;
+            
+            if (cavacoDisponivelTora > 0) {
+              calculoCavaco.push({
+                id: tora.id,
+                descricao: tora.descricao,
+                cavacoDisponivel: cavacoDisponivelTora,
+              });
+            }
           });
 
+          setCavacoTotalEstoque(totalCavacoDisponivel);
           setCavacoDisponivel(calculoCavaco);
         }
       } catch (error) {
@@ -483,14 +491,14 @@ export default function Vendas() {
     const toneladas = parseFloat(toneladasVendidas);
     const valor = parseFloat(valorTonelada);
     
-    if (!toraIdCavaco || isNaN(toneladas) || isNaN(valor)) {
+    if (isNaN(toneladas) || isNaN(valor) || toneladas <= 0 || valor <= 0) {
       toast.error("Preencha todos os campos corretamente");
       return;
     }
 
-    const cavacoInfo = cavacoDisponivel.find(c => c.id === toraIdCavaco);
-    if (cavacoInfo && !editingCavacoId && toneladas > cavacoInfo.cavacoDisponivel) {
-      toast.error(`Apenas ${cavacoInfo.cavacoDisponivel.toFixed(2)} T disponível para esta tora`);
+    // Validar contra o estoque total disponível
+    if (!editingCavacoId && toneladas > cavacoTotalEstoque) {
+      toast.error(`Apenas ${cavacoTotalEstoque.toFixed(2)} T disponível em estoque`);
       return;
     }
 
@@ -498,10 +506,16 @@ export default function Vendas() {
 
     try {
       if (editingCavacoId) {
+        // Na edição, mantemos o tora_id original
+        const vendaAtual = vendasCavaco.find(v => v.id === editingCavacoId);
+        if (!vendaAtual) {
+          toast.error("Venda não encontrada");
+          return;
+        }
+        
         const { error } = await supabase
           .from('vendas_cavaco')
           .update({
-            tora_id: toraIdCavaco,
             toneladas: toneladas,
             valor_tonelada: valor,
             valor_total: valorTotal,
@@ -512,11 +526,14 @@ export default function Vendas() {
 
         setVendasCavaco(vendasCavaco.map(v => v.id === editingCavacoId ? {
           ...v,
-          tora_id: toraIdCavaco,
           toneladas: toneladas,
           valor_tonelada: valor,
           valor_total: valorTotal,
         } : v));
+        
+        // Recalcular estoque
+        const diferencaToneladas = toneladas - Number(vendaAtual.toneladas);
+        setCavacoTotalEstoque(prev => prev - diferencaToneladas);
         
         toast.success("Venda de cavaco atualizada com sucesso!");
         resetFormCavaco();
@@ -533,38 +550,74 @@ export default function Vendas() {
         return;
       }
 
+      // Distribuir a venda entre as toras disponíveis
+      let toneladasRestantes = toneladas;
+      const vendasParaInserir: any[] = [];
+      
+      for (const cavaco of cavacoDisponivel) {
+        if (toneladasRestantes <= 0) break;
+        
+        const toneladasDessaTora = Math.min(toneladasRestantes, cavaco.cavacoDisponivel);
+        if (toneladasDessaTora > 0) {
+          vendasParaInserir.push({
+            tora_id: cavaco.id,
+            toneladas: toneladasDessaTora,
+            valor_tonelada: valor,
+            valor_total: toneladasDessaTora * valor,
+          });
+          toneladasRestantes -= toneladasDessaTora;
+        }
+      }
+
+      if (toneladasRestantes > 0) {
+        toast.error("Estoque insuficiente para completar a venda");
+        return;
+      }
+
       const year = dataVenda.getFullYear();
       const month = String(dataVenda.getMonth() + 1).padStart(2, '0');
       const day = String(dataVenda.getDate()).padStart(2, '0');
       const dataFormatada = `${year}-${month}-${day}`;
 
-      const { data, error } = await supabase
-        .from('vendas_cavaco')
-        .insert({
-          data: dataFormatada,
-          tora_id: toraIdCavaco,
-          toneladas: toneladas,
-          valor_tonelada: valor,
-          valor_total: valorTotal,
-          user_id: user.id,
-          empresa_id: empresaId,
-        })
-        .select()
-        .single();
+      // Inserir todas as vendas necessárias
+      const vendasInseridas: any[] = [];
+      for (const venda of vendasParaInserir) {
+        const { data, error } = await supabase
+          .from('vendas_cavaco')
+          .insert({
+            data: dataFormatada,
+            tora_id: venda.tora_id,
+            toneladas: venda.toneladas,
+            valor_tonelada: venda.valor_tonelada,
+            valor_total: venda.valor_total,
+            user_id: user.id,
+            empresa_id: empresaId,
+          })
+          .select('*, toras(descricao)')
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
+        if (data) vendasInseridas.push(data);
+      }
 
-      if (data) {
-        setVendasCavaco([data, ...vendasCavaco]);
+      if (vendasInseridas.length > 0) {
+        setVendasCavaco([...vendasInseridas, ...vendasCavaco]);
         
         // Atualizar cavaco disponível
-        setCavacoDisponivel(prev => 
-          prev.map(c => 
-            c.id === toraIdCavaco 
-              ? { ...c, cavacoDisponivel: c.cavacoDisponivel - toneladas }
-              : c
-          )
-        );
+        setCavacoTotalEstoque(prev => prev - toneladas);
+        setCavacoDisponivel(prev => {
+          const updated = [...prev];
+          for (const venda of vendasParaInserir) {
+            const idx = updated.findIndex(c => c.id === venda.tora_id);
+            if (idx >= 0) {
+              updated[idx] = { 
+                ...updated[idx], 
+                cavacoDisponivel: updated[idx].cavacoDisponivel - venda.toneladas 
+              };
+            }
+          }
+          return updated.filter(c => c.cavacoDisponivel > 0);
+        });
         
         toast.success(`Venda de cavaco registrada: R$ ${valorTotal.toFixed(2)}`);
       }
@@ -589,7 +642,6 @@ export default function Vendas() {
   };
 
   const resetFormCavaco = () => {
-    setToraIdCavaco("");
     setToneladasVendidas("");
     setValorTonelada("");
     setDataVenda(new Date());
@@ -633,7 +685,6 @@ export default function Vendas() {
   };
 
   const handleEditCavaco = (venda: any) => {
-    setToraIdCavaco(venda.tora_id);
     setToneladasVendidas(venda.toneladas.toString());
     setValorTonelada(venda.valor_tonelada.toString());
     setDataVenda(new Date(venda.data + 'T00:00:00'));
@@ -1285,19 +1336,13 @@ export default function Vendas() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="toraIdCavaco">Lote (Tora) *</Label>
-                  <Select value={toraIdCavaco} onValueChange={setToraIdCavaco}>
-                    <SelectTrigger className="border-input">
-                      <SelectValue placeholder="Selecione o lote" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {cavacoDisponivel.map((cavaco) => (
-                        <SelectItem key={cavaco.id} value={cavaco.id}>
-                          {cavaco.descricao} - Disponível: {cavaco.cavacoDisponivel.toFixed(2)} T
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label>Cavaco em Estoque</Label>
+                  <div className="p-3 bg-muted/50 rounded-lg border border-border">
+                    <span className="text-lg font-bold text-primary">
+                      {cavacoTotalEstoque.toFixed(2)} T
+                    </span>
+                    <span className="text-sm text-muted-foreground ml-2">disponível</span>
+                  </div>
                 </div>
 
                 <div className="space-y-2">
