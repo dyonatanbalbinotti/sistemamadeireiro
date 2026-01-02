@@ -29,6 +29,7 @@ serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
     
     if (authError || !user) {
+      console.error('Auth error:', authError)
       return new Response(
         JSON.stringify({ error: 'Não autorizado' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -51,7 +52,9 @@ serve(async (req) => {
 
     const { email, password, nome, nomeEmpresa, planoId, planoMeses, planoValor, dataVencimento } = await req.json()
 
-    // Criar usuário
+    console.log('Creating user:', { email, nome, nomeEmpresa, planoId, dataVencimento })
+
+    // Criar usuário - o trigger handle_new_user vai criar o profile e o user_role automaticamente
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -60,11 +63,14 @@ serve(async (req) => {
     })
 
     if (createError) {
+      console.error('Create user error:', createError)
       return new Response(
         JSON.stringify({ error: createError.message }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log('User created:', newUser.user.id)
 
     // Criar empresa para o usuário
     const { data: empresaData, error: empresaError } = await supabaseAdmin
@@ -78,30 +84,30 @@ serve(async (req) => {
       .single()
 
     if (empresaError) {
-      console.error('Erro ao criar empresa:', empresaError)
+      console.error('Create empresa error:', empresaError)
+      return new Response(
+        JSON.stringify({ error: 'Erro ao criar empresa: ' + empresaError.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    // Criar profile vinculado à empresa
-    await supabaseAdmin
-      .from('profiles')
-      .insert({
-        id: newUser.user.id,
-        nome,
-        status: 'operacional',
-        empresa_id: empresaData?.id || null
-      })
+    console.log('Empresa created:', empresaData.id)
 
-    // Criar role padrão como 'user'
-    await supabaseAdmin
-      .from('user_roles')
-      .insert({
-        user_id: newUser.user.id,
-        role: 'user'
+    // Atualizar profile para vincular à empresa (o trigger já criou o profile)
+    const { error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        empresa_id: empresaData.id
       })
+      .eq('id', newUser.user.id)
+
+    if (profileError) {
+      console.error('Update profile error:', profileError)
+    }
 
     // Registrar no histórico de anuidades se tiver plano
     if (empresaData && planoId && planoValor) {
-      await supabaseAdmin
+      const { error: historicoError } = await supabaseAdmin
         .from('historico_anuidades')
         .insert({
           empresa_id: empresaData.id,
@@ -110,7 +116,13 @@ serve(async (req) => {
           data_novo_vencimento: dataVencimento,
           observacao: `Plano inicial - ${planoMeses} mês(es) - Criação de usuário`
         })
+
+      if (historicoError) {
+        console.error('Create historico error:', historicoError)
+      }
     }
+
+    console.log('User creation complete')
 
     return new Response(
       JSON.stringify({ success: true, user: newUser.user, empresa: empresaData }),
@@ -118,6 +130,7 @@ serve(async (req) => {
     )
 
   } catch (error: any) {
+    console.error('Unexpected error:', error)
     return new Response(
       JSON.stringify({ error: error?.message || 'Erro desconhecido' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
