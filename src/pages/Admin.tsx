@@ -47,6 +47,8 @@ export default function Admin() {
   const [newUserEmail, setNewUserEmail] = useState("");
   const [newUserPassword, setNewUserPassword] = useState("");
   const [newUserNome, setNewUserNome] = useState("");
+  const [newUserPlano, setNewUserPlano] = useState("");
+  const [newUserNomeEmpresa, setNewUserNomeEmpresa] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
   
   // Estados para trocar senha
@@ -348,11 +350,11 @@ export default function Admin() {
   };
 
   const handleCreateUser = async () => {
-    if (!newUserEmail || !newUserPassword || !newUserNome) {
+    if (!newUserEmail || !newUserPassword || !newUserNome || !newUserNomeEmpresa || !newUserPlano) {
       toast({
         variant: "destructive",
         title: "Campos obrigatórios",
-        description: "Preencha todos os campos.",
+        description: "Preencha todos os campos, incluindo empresa e plano.",
       });
       return;
     }
@@ -366,10 +368,25 @@ export default function Admin() {
       return;
     }
 
+    const plano = PLANOS.find(p => p.id === newUserPlano);
+    if (!plano) {
+      toast({
+        variant: "destructive",
+        title: "Plano inválido",
+        description: "Selecione um plano válido.",
+      });
+      return;
+    }
+
     setCreatingUser(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      
+      // Calcular data de vencimento baseada no plano
+      const hojeBR = toZonedTime(new Date(), 'America/Sao_Paulo');
+      const dataVencimento = addMonths(hojeBR, plano.meses);
+      const dataVencimentoFormatada = format(dataVencimento, 'yyyy-MM-dd');
       
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-user`,
@@ -383,6 +400,11 @@ export default function Admin() {
             email: newUserEmail,
             password: newUserPassword,
             nome: newUserNome,
+            nomeEmpresa: newUserNomeEmpresa,
+            planoId: newUserPlano,
+            planoMeses: plano.meses,
+            planoValor: plano.valor,
+            dataVencimento: dataVencimentoFormatada,
           }),
         }
       );
@@ -395,13 +417,15 @@ export default function Admin() {
 
       toast({
         title: "Sucesso!",
-        description: "Usuário criado com sucesso.",
+        description: `Usuário criado com plano ${plano.label} até ${formatDateBR(dataVencimento.toISOString())}.`,
       });
 
       setOpenCreateUser(false);
       setNewUserEmail("");
       setNewUserPassword("");
       setNewUserNome("");
+      setNewUserNomeEmpresa("");
+      setNewUserPlano("");
       loadUsuarios();
 
     } catch (error: any) {
@@ -564,6 +588,33 @@ export default function Admin() {
                         placeholder="Mínimo 6 caracteres"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="nomeEmpresa">Nome da Empresa</Label>
+                      <Input
+                        id="nomeEmpresa"
+                        value={newUserNomeEmpresa}
+                        onChange={(e) => setNewUserNomeEmpresa(e.target.value)}
+                        placeholder="Nome da empresa"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="plano">Plano</Label>
+                      <Select
+                        value={newUserPlano}
+                        onValueChange={setNewUserPlano}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o plano" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PLANOS.map(plano => (
+                            <SelectItem key={plano.id} value={plano.id}>
+                              {plano.label} - R$ {plano.valor.toFixed(2)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <DialogFooter>
                     <Button
@@ -694,13 +745,14 @@ export default function Admin() {
                           >
                             <Key className="h-4 w-4" />
                           </Button>
-                          {usuario.empresa && planoSelecionado[usuario.empresa.id] && (
+                          {usuario.empresa && (
                             <Button
                               variant="outline"
                               size="icon"
                               onClick={() => handleRenovarPlano(usuario.empresa!.id, usuario.nome)}
                               className="hover:bg-primary/10 hover:text-primary"
-                              title="Renovar plano"
+                              title="Renovar/Ativar plano"
+                              disabled={!planoSelecionado[usuario.empresa.id]}
                             >
                               <RefreshCw className="h-4 w-4" />
                             </Button>
