@@ -23,7 +23,7 @@ interface AlertaEstoque {
 }
 
 export default function Estoque() {
-  const { empresaId } = useEmpresaId();
+  const { empresaId, loading: loadingEmpresaId, error: empresaError } = useEmpresaId();
   const [estoqueSerrado, setEstoqueSerrado] = useState<EstoqueSerrado[]>([]);
   const [estoqueToras, setEstoqueToras] = useState<EstoqueToras | null>(null);
   const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
@@ -108,7 +108,7 @@ export default function Estoque() {
   const totalM3 = estoqueSerrado.reduce((acc, item) => acc + item.m3Total, 0);
   const totalUnidades = estoqueSerrado.reduce((acc, item) => acc + item.quantidadeUnidades, 0);
 
-  if (loading) {
+  if (loading || loadingEmpresaId) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-3">
@@ -124,6 +124,17 @@ export default function Estoque() {
         </div>
         <Skeleton className="h-96" />
         <Skeleton className="h-64" />
+      </div>
+    );
+  }
+
+  if (empresaError || !empresaId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <Package className="h-12 w-12 text-muted-foreground" />
+        <p className="text-muted-foreground text-center">
+          {empresaError || "Você não possui uma empresa cadastrada. Contate o administrador."}
+        </p>
       </div>
     );
   }
