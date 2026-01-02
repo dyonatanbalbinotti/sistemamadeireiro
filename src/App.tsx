@@ -20,6 +20,7 @@ import Admin from "./pages/Admin";
 import Pedidos from "./pages/Pedidos";
 import RelatoriosFinanceiros from "./pages/RelatoriosFinanceiros";
 import Install from "./pages/Install";
+import { SecurityHeaders } from "@/components/SecurityHeaders";
 
 const queryClient = new QueryClient();
 
@@ -73,6 +74,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
       <TooltipProvider>
+        <SecurityHeaders />
         <Toaster />
         <Sonner />
         <BrowserRouter>
