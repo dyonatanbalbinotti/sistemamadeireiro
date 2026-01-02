@@ -12,6 +12,7 @@ import { toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import EmptyState from "@/components/EmptyState";
+import { FadeIn, StaggerContainer, StaggerItem, HoverScale } from "@/components/MotionWrapper";
 
 export default function Dashboard() {
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
@@ -305,384 +306,414 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="space-y-8">
       {/* Section Header */}
-      <div className="section-header">
-        <h1 className="section-title">Dashboard</h1>
-        <p className="section-description">Visão geral do controle de estoque em tempo real</p>
-      </div>
+      <FadeIn>
+        <div className="section-header">
+          <h1 className="section-title">Dashboard</h1>
+          <p className="section-description">Visão geral do controle de estoque em tempo real</p>
+        </div>
+      </FadeIn>
 
       {/* Alerts - Minimal */}
       {alertasAtivos.length > 0 && (
-        <div className="space-y-2">
-          {alertasAtivos.map((alerta, index) => (
-            <div key={index} className="alert-minimal alert-minimal-error">
-              <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-              <span>{alerta.mensagem}</span>
-            </div>
-          ))}
-        </div>
+        <FadeIn delay={0.1}>
+          <div className="space-y-2">
+            {alertasAtivos.map((alerta, index) => (
+              <div key={index} className="alert-minimal alert-minimal-error">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <span>{alerta.mensagem}</span>
+              </div>
+            ))}
+          </div>
+        </FadeIn>
       )}
 
       {/* KPI Cards */}
-      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4 stagger-children">
+      <StaggerContainer className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
         {cards.map((card) => {
           const Icon = card.icon;
           return (
-            <div key={card.title} className="kpi-card">
-              <div className="flex items-start justify-between">
-                <div className="space-y-2">
-                  <p className="kpi-label">{card.title}</p>
-                  {card.isStatus ? (
-                    <div className="flex items-center gap-2">
-                      <span className="status-badge status-badge-success">
-                        <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                        Operacional
-                      </span>
+            <StaggerItem key={card.title}>
+              <HoverScale>
+                <div className="kpi-card h-full">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <p className="kpi-label">{card.title}</p>
+                      {card.isStatus ? (
+                        <div className="flex items-center gap-2">
+                          <span className="status-badge status-badge-success">
+                            <span className="w-1.5 h-1.5 rounded-full bg-success" />
+                            Operacional
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="kpi-value">{card.value}</p>
+                      )}
                     </div>
-                  ) : (
-                    <p className="kpi-value">{card.value}</p>
-                  )}
+                    <Icon className="kpi-icon" />
+                  </div>
                 </div>
-                <Icon className="kpi-icon" />
-              </div>
-            </div>
+              </HoverScale>
+            </StaggerItem>
           );
         })}
-      </div>
+      </StaggerContainer>
 
       {/* Charts Row 1 */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Vendas Chart */}
-        <Card className="enterprise-card border-0">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="chart-title flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                Vendas
-              </CardTitle>
-              <Select value={periodoVendas} onValueChange={setPeriodoVendas}>
-                <SelectTrigger className="w-28 h-8 text-xs">
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">7 dias</SelectItem>
-                  <SelectItem value="30">30 dias</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {vendasData.every(d => d.valor === 0) ? (
-              <EmptyState message="Sem vendas no período selecionado" />
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height={260}>
-                  <LineChart data={vendasData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                    <XAxis 
-                      dataKey="data" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} 
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                      tickFormatter={(value) => `R$${value}`}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        boxShadow: 'var(--shadow-md)'
-                      }}
-                      formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="valor" 
-                      stroke="hsl(var(--primary))" 
-                      strokeWidth={2}
-                      dot={{ fill: 'hsl(var(--primary))', r: 3, strokeWidth: 0 }}
-                      activeDot={{ r: 5, strokeWidth: 0 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Total: <span className="text-sm font-semibold text-foreground ml-1">
-                      R$ {vendasData.reduce((sum, d) => sum + d.valor, 0).toFixed(2)}
-                    </span>
-                  </p>
+      <FadeIn delay={0.3}>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {/* Vendas Chart */}
+          <HoverScale scale={1.01}>
+            <Card className="enterprise-card border-0 h-full">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="chart-title flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    Vendas
+                  </CardTitle>
+                  <Select value={periodoVendas} onValueChange={setPeriodoVendas}>
+                    <SelectTrigger className="w-28 h-8 text-xs">
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">7 dias</SelectItem>
+                      <SelectItem value="30">30 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent>
+                {vendasData.every(d => d.valor === 0) ? (
+                  <EmptyState message="Sem vendas no período selecionado" />
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <LineChart data={vendasData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis 
+                          dataKey="data" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} 
+                        />
+                        <YAxis 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                          tickFormatter={(value) => `R$${value}`}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            boxShadow: 'var(--shadow-md)'
+                          }}
+                          formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Total']}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="valor" 
+                          stroke="hsl(var(--primary))" 
+                          strokeWidth={2}
+                          dot={{ fill: 'hsl(var(--primary))', r: 3, strokeWidth: 0 }}
+                          activeDot={{ r: 5, strokeWidth: 0 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs text-muted-foreground">
+                        Total: <span className="text-sm font-semibold text-foreground ml-1">
+                          R$ {vendasData.reduce((sum, d) => sum + d.valor, 0).toFixed(2)}
+                        </span>
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </HoverScale>
 
-        {/* Estoque por Produto */}
-        <Card className="enterprise-card border-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="chart-title flex items-center gap-2">
-              <PieChartIcon className="h-4 w-4 text-muted-foreground" />
-              Estoque por Produto (Top 5)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {estoqueData.length === 0 ? (
-              <EmptyState message="Sem produtos em estoque" />
-            ) : (
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={estoqueData}
-                    dataKey="valor"
-                    nameKey="nome"
-                    cx="50%"
-                    cy="50%"
-                    outerRadius={90}
-                    innerRadius={50}
-                    label={(entry) => `${entry.valor.toFixed(2)} m³`}
-                    labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
-                  >
-                    {estoqueData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '6px',
-                      fontSize: '12px'
-                    }}
-                    formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Estoque']}
-                  />
-                  <Legend 
-                    wrapperStyle={{ fontSize: '11px' }}
-                    iconType="circle"
-                    iconSize={8}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          {/* Estoque por Produto */}
+          <HoverScale scale={1.01}>
+            <Card className="enterprise-card border-0 h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="chart-title flex items-center gap-2">
+                  <PieChartIcon className="h-4 w-4 text-muted-foreground" />
+                  Estoque por Produto (Top 5)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {estoqueData.length === 0 ? (
+                  <EmptyState message="Sem produtos em estoque" />
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={estoqueData}
+                        dataKey="valor"
+                        nameKey="nome"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={90}
+                        innerRadius={50}
+                        label={(entry) => `${entry.valor.toFixed(2)} m³`}
+                        labelLine={{ stroke: 'hsl(var(--muted-foreground))', strokeWidth: 1 }}
+                      >
+                        {estoqueData.map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                          fontSize: '12px'
+                        }}
+                        formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Estoque']}
+                      />
+                      <Legend 
+                        wrapperStyle={{ fontSize: '11px' }}
+                        iconType="circle"
+                        iconSize={8}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </HoverScale>
+        </div>
+      </FadeIn>
 
       {/* Charts Row 2 */}
-      <div className="grid gap-5 lg:grid-cols-2">
-        {/* Produção Diária */}
-        <Card className="enterprise-card border-0">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="chart-title flex items-center gap-2">
-                <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                Produção Diária
-              </CardTitle>
-              <Select value={periodoProducao} onValueChange={setPeriodoProducao}>
-                <SelectTrigger className="w-28 h-8 text-xs">
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">7 dias</SelectItem>
-                  <SelectItem value="30">30 dias</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {producaoDiariaData.every(d => d.total === 0) ? (
-              <EmptyState message="Sem produção no período selecionado" />
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={producaoDiariaData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                    <XAxis 
-                      dataKey="data" 
-                      axisLine={false} 
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                        fontSize: '12px'
-                      }}
-                      formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
-                    />
-                    <Bar dataKey="total" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Total: <span className="text-sm font-semibold text-foreground ml-1">
-                      {producaoDiariaData.reduce((sum, d) => sum + d.total, 0).toFixed(2)} m³
-                    </span>
-                  </p>
+      <FadeIn delay={0.4}>
+        <div className="grid gap-5 lg:grid-cols-2">
+          {/* Produção Diária */}
+          <HoverScale scale={1.01}>
+            <Card className="enterprise-card border-0 h-full">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="chart-title flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    Produção Diária
+                  </CardTitle>
+                  <Select value={periodoProducao} onValueChange={setPeriodoProducao}>
+                    <SelectTrigger className="w-28 h-8 text-xs">
+                      <SelectValue placeholder="Período" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="7">7 dias</SelectItem>
+                      <SelectItem value="30">30 dias</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+              </CardHeader>
+              <CardContent>
+                {producaoDiariaData.every(d => d.total === 0) ? (
+                  <EmptyState message="Sem produção no período selecionado" />
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={producaoDiariaData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis 
+                          dataKey="data" 
+                          axisLine={false} 
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <YAxis 
+                          axisLine={false} 
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                            fontSize: '12px'
+                          }}
+                          formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
+                        />
+                        <Bar dataKey="total" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs text-muted-foreground">
+                        Total: <span className="text-sm font-semibold text-foreground ml-1">
+                          {producaoDiariaData.reduce((sum, d) => sum + d.total, 0).toFixed(2)} m³
+                        </span>
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </HoverScale>
 
-        {/* Produção Mensal */}
-        <Card className="enterprise-card border-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="chart-title flex items-center gap-2">
-              <Factory className="h-4 w-4 text-muted-foreground" />
-              Produção Mensal
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {producaoMensalData.every(d => d.total === 0) ? (
-              <EmptyState message="Sem produção nos últimos meses" />
-            ) : (
-              <>
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={producaoMensalData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                    <XAxis 
-                      dataKey="mes" 
-                      axisLine={false} 
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <YAxis 
-                      axisLine={false} 
-                      tickLine={false}
-                      tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: 'hsl(var(--card))', 
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                        fontSize: '12px'
-                      }}
-                      formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
-                    />
-                    <Bar dataKey="total" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-                <div className="mt-4 pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Crescimento: <span className="text-sm font-semibold text-foreground ml-1">
-                      {producaoMensalData.length > 1 ? 
-                        `${((producaoMensalData[producaoMensalData.length - 1]?.total || 0) / (producaoMensalData[producaoMensalData.length - 2]?.total || 1) * 100 - 100).toFixed(2)}%` : 
-                        '0.00%'}
-                    </span>
-                  </p>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          {/* Produção Mensal */}
+          <HoverScale scale={1.01}>
+            <Card className="enterprise-card border-0 h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="chart-title flex items-center gap-2">
+                  <Factory className="h-4 w-4 text-muted-foreground" />
+                  Produção Mensal
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {producaoMensalData.every(d => d.total === 0) ? (
+                  <EmptyState message="Sem produção nos últimos meses" />
+                ) : (
+                  <>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={producaoMensalData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                        <XAxis 
+                          dataKey="mes" 
+                          axisLine={false} 
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <YAxis 
+                          axisLine={false} 
+                          tickLine={false}
+                          tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                        />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'hsl(var(--card))', 
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                            fontSize: '12px'
+                          }}
+                          formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
+                        />
+                        <Bar dataKey="total" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <p className="text-xs text-muted-foreground">
+                        Crescimento: <span className="text-sm font-semibold text-foreground ml-1">
+                          {producaoMensalData.length > 1 ? 
+                            `${((producaoMensalData[producaoMensalData.length - 1]?.total || 0) / (producaoMensalData[producaoMensalData.length - 2]?.total || 1) * 100 - 100).toFixed(2)}%` : 
+                            '0.00%'}
+                        </span>
+                      </p>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </HoverScale>
+        </div>
+      </FadeIn>
 
       {/* Fluxo Financeiro */}
-      <Card className="enterprise-card border-0">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <CardTitle className="chart-title flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-              Fluxo Financeiro
-            </CardTitle>
-            <Select value={periodoFinanceiro} onValueChange={setPeriodoFinanceiro}>
-              <SelectTrigger className="w-36 h-8 text-xs">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="3">Últimos 3 meses</SelectItem>
-                <SelectItem value="6">Últimos 6 meses</SelectItem>
-                <SelectItem value="12">Último ano</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {financeiroData.every(d => d.despesas === 0 && d.receitas === 0) ? (
-            <EmptyState message="Sem movimentação financeira no período" />
-          ) : (
-            <>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={financeiroData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis 
-                    dataKey="mes" 
-                    axisLine={false} 
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                  />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    tickFormatter={(value) => `R$${value}`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))', 
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '6px',
-                      fontSize: '12px'
-                    }}
-                    formatter={(value: number, name: string) => [
-                      `R$ ${value.toFixed(2)}`, 
-                      name === 'despesas' ? 'Despesas' : 'Receitas'
-                    ]}
-                  />
-                  <Legend 
-                    wrapperStyle={{ fontSize: '11px' }}
-                    iconType="circle"
-                    iconSize={8}
-                  />
-                  <Bar dataKey="despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Despesas" />
-                  <Bar dataKey="receitas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} name="Receitas" />
-                </BarChart>
-              </ResponsiveContainer>
-              
-              {/* Summary Cards */}
-              <div className="mt-6 grid grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg bg-destructive/5">
-                  <p className="text-xs text-muted-foreground mb-1">Total Despesas</p>
-                  <p className="text-lg font-semibold text-destructive">
-                    R$ {financeiroData.reduce((sum, d) => sum + d.despesas, 0).toFixed(2)}
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-success/5">
-                  <p className="text-xs text-muted-foreground mb-1">Total Receitas</p>
-                  <p className="text-lg font-semibold text-success">
-                    R$ {financeiroData.reduce((sum, d) => sum + d.receitas, 0).toFixed(2)}
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg bg-primary/5">
-                  <p className="text-xs text-muted-foreground mb-1">Saldo</p>
-                  <p className={`text-lg font-semibold ${
-                    financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0) >= 0 
-                      ? 'text-success' 
-                      : 'text-destructive'
-                  }`}>
-                    R$ {financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0).toFixed(2)}
-                  </p>
-                </div>
+      <FadeIn delay={0.5}>
+        <HoverScale scale={1.005}>
+          <Card className="enterprise-card border-0">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="chart-title flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                  Fluxo Financeiro
+                </CardTitle>
+                <Select value={periodoFinanceiro} onValueChange={setPeriodoFinanceiro}>
+                  <SelectTrigger className="w-36 h-8 text-xs">
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="3">Últimos 3 meses</SelectItem>
+                    <SelectItem value="6">Últimos 6 meses</SelectItem>
+                    <SelectItem value="12">Último ano</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <CardContent>
+              {financeiroData.every(d => d.despesas === 0 && d.receitas === 0) ? (
+                <EmptyState message="Sem movimentação financeira no período" />
+              ) : (
+                <>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={financeiroData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                      <XAxis 
+                        dataKey="mes" 
+                        axisLine={false} 
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                      />
+                      <YAxis 
+                        axisLine={false} 
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+                        tickFormatter={(value) => `R$${value}`}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--card))', 
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                          fontSize: '12px'
+                        }}
+                        formatter={(value: number, name: string) => [
+                          `R$ ${value.toFixed(2)}`, 
+                          name === 'despesas' ? 'Despesas' : 'Receitas'
+                        ]}
+                      />
+                      <Legend 
+                        wrapperStyle={{ fontSize: '11px' }}
+                        iconType="circle"
+                        iconSize={8}
+                      />
+                      <Bar dataKey="despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} name="Despesas" />
+                      <Bar dataKey="receitas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} name="Receitas" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                  
+                  {/* Summary Cards */}
+                  <StaggerContainer className="mt-6 grid grid-cols-3 gap-4" staggerDelay={0.1}>
+                    <StaggerItem>
+                      <div className="p-4 rounded-lg bg-destructive/5">
+                        <p className="text-xs text-muted-foreground mb-1">Total Despesas</p>
+                        <p className="text-lg font-semibold text-destructive">
+                          R$ {financeiroData.reduce((sum, d) => sum + d.despesas, 0).toFixed(2)}
+                        </p>
+                      </div>
+                    </StaggerItem>
+                    <StaggerItem>
+                      <div className="p-4 rounded-lg bg-success/5">
+                        <p className="text-xs text-muted-foreground mb-1">Total Receitas</p>
+                        <p className="text-lg font-semibold text-success">
+                          R$ {financeiroData.reduce((sum, d) => sum + d.receitas, 0).toFixed(2)}
+                        </p>
+                      </div>
+                    </StaggerItem>
+                    <StaggerItem>
+                      <div className="p-4 rounded-lg bg-primary/5">
+                        <p className="text-xs text-muted-foreground mb-1">Saldo</p>
+                        <p className={`text-lg font-semibold ${
+                          financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0) >= 0 
+                            ? 'text-success' 
+                            : 'text-destructive'
+                        }`}>
+                          R$ {financeiroData.reduce((sum, d) => sum + (d.receitas - d.despesas), 0).toFixed(2)}
+                        </p>
+                      </div>
+                    </StaggerItem>
+                  </StaggerContainer>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </HoverScale>
+      </FadeIn>
     </div>
   );
 }
