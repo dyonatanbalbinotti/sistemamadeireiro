@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEmpresaId } from "@/hooks/useEmpresaId";
 import { getTodayBR, formatDateBR } from "@/lib/dateUtils";
 import { subDays, format, parseISO } from "date-fns";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { toZonedTime } from "date-fns-tz";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import jsPDF from 'jspdf';
@@ -66,6 +67,9 @@ export default function Producao() {
   
   // Estado para controlar visualização do gráfico (diária, 30 dias ou mensal)
   const [tipoVisualizacao, setTipoVisualizacao] = useState<"diaria" | "30dias" | "mensal">("diaria");
+  
+  // Estado para paginação da tabela de conversão por mês
+  const [paginaConversao, setPaginaConversao] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
@@ -1034,72 +1038,95 @@ export default function Producao() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead>Lote (Tora)</TableHead>
-                      <TableHead>Toneladas</TableHead>
-                      <TableHead>m³ Serrados</TableHead>
-                      <TableHead className="text-primary font-semibold">Conversão (T/m³)</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {(() => {
-                      const conversoes = toras.map(tora => {
-                        const producoesDoLote = producao.filter(p => p.toraId === tora.id);
-                        const m3Total = producoesDoLote.reduce((sum, p) => sum + p.m3, 0);
-                        
-                        // Buscar toneladas das toras serradas ao invés do peso total do lote
-                        const torasSerradasDoLote = torasSerradas.filter(ts => ts.toraId === tora.id);
-                        const toneladasSerradas = torasSerradasDoLote.reduce((sum, ts) => sum + ts.toneladas, 0);
-                        
-                        const conversao = m3Total > 0 ? toneladasSerradas / m3Total : 0;
-                        
-                        return {
-                          descricao: tora.descricao,
-                          toneladas: toneladasSerradas,
-                          m3Total,
-                          conversao,
-                          data: tora.data
-                        };
-                      }).filter(c => c.m3Total > 0);
+              {(() => {
+                // Calcular totais por mês e agrupar conversões
+                const totaisPorMes: Record<string, { toneladas: number; m3: number; conversoes: Array<{descricao: string; toneladas: number; m3Total: number; conversao: number}> }> = {};
+                
+                toras.forEach(tora => {
+                  const mesAno = new Date(tora.data).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
+                  const torasSerradasDoLote = torasSerradas.filter(ts => ts.toraId === tora.id);
+                  const toneladasSerradas = torasSerradasDoLote.reduce((sum, ts) => sum + ts.toneladas, 0);
+                  const producoesDoLote = producao.filter(p => p.toraId === tora.id);
+                  const m3Total = producoesDoLote.reduce((sum, p) => sum + p.m3, 0);
+                  
+                  if (!totaisPorMes[mesAno]) {
+                    totaisPorMes[mesAno] = { toneladas: 0, m3: 0, conversoes: [] };
+                  }
+                  
+                  if (m3Total > 0) {
+                    totaisPorMes[mesAno].toneladas += toneladasSerradas;
+                    totaisPorMes[mesAno].m3 += m3Total;
+                    totaisPorMes[mesAno].conversoes.push({
+                      descricao: tora.descricao,
+                      toneladas: toneladasSerradas,
+                      m3Total,
+                      conversao: m3Total > 0 ? toneladasSerradas / m3Total : 0
+                    });
+                  }
+                });
 
-                      if (conversoes.length === 0) {
-                        return (
-                          <TableRow>
-                            <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                              Nenhuma produção vinculada a toras ainda
-                            </TableCell>
+                const mesesOrdenados = Object.keys(totaisPorMes)
+                  .filter(mes => totaisPorMes[mes].m3 > 0)
+                  .sort((a, b) => {
+                    const [mesA, anoA] = a.split('/');
+                    const [mesB, anoB] = b.split('/');
+                    return new Date(Number(anoB), Number(mesB) - 1).getTime() - new Date(Number(anoA), Number(mesA) - 1).getTime();
+                  });
+
+                if (mesesOrdenados.length === 0) {
+                  return (
+                    <div className="text-center text-muted-foreground py-8">
+                      Nenhuma produção vinculada a toras ainda
+                    </div>
+                  );
+                }
+
+                const mesAtual = mesesOrdenados[paginaConversao];
+                const dadosMes = totaisPorMes[mesAtual];
+                const conversaoMensal = dadosMes.m3 > 0 ? dadosMes.toneladas / dadosMes.m3 : 0;
+
+                return (
+                  <div className="space-y-4">
+                    {/* Navegação por mês */}
+                    <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPaginaConversao(prev => Math.max(0, prev - 1))}
+                        disabled={paginaConversao === 0}
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Anterior
+                      </Button>
+                      <div className="text-center">
+                        <span className="font-semibold text-lg text-primary">{mesAtual}</span>
+                        <p className="text-xs text-muted-foreground">
+                          Página {paginaConversao + 1} de {mesesOrdenados.length}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setPaginaConversao(prev => Math.min(mesesOrdenados.length - 1, prev + 1))}
+                        disabled={paginaConversao === mesesOrdenados.length - 1}
+                      >
+                        Próximo
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
+
+                    <div className="rounded-lg border border-border overflow-hidden">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-muted/50">
+                            <TableHead>Lote (Tora)</TableHead>
+                            <TableHead>Toneladas</TableHead>
+                            <TableHead>m³ Serrados</TableHead>
+                            <TableHead className="text-primary font-semibold">Conversão (T/m³)</TableHead>
                           </TableRow>
-                        );
-                      }
-
-                      // Calcular totais por mês
-                      const totaisPorMes: Record<string, { toneladas: number; m3: number }> = {};
-                      toras.forEach(tora => {
-                        const mesAno = new Date(tora.data).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
-                        const torasSerradasDoLote = torasSerradas.filter(ts => ts.toraId === tora.id);
-                        const toneladasSerradas = torasSerradasDoLote.reduce((sum, ts) => sum + ts.toneladas, 0);
-                        const producoesDoLote = producao.filter(p => p.toraId === tora.id);
-                        const m3Total = producoesDoLote.reduce((sum, p) => sum + p.m3, 0);
-                        
-                        if (!totaisPorMes[mesAno]) {
-                          totaisPorMes[mesAno] = { toneladas: 0, m3: 0 };
-                        }
-                        totaisPorMes[mesAno].toneladas += toneladasSerradas;
-                        totaisPorMes[mesAno].m3 += m3Total;
-                      });
-
-                      const mesesOrdenados = Object.keys(totaisPorMes).sort((a, b) => {
-                        const [mesA, anoA] = a.split('/');
-                        const [mesB, anoB] = b.split('/');
-                        return new Date(Number(anoB), Number(mesB) - 1).getTime() - new Date(Number(anoA), Number(mesA) - 1).getTime();
-                      });
-
-                      return (
-                        <>
-                          {conversoes.map((conv, idx) => (
+                        </TableHeader>
+                        <TableBody>
+                          {dadosMes.conversoes.map((conv, idx) => (
                             <TableRow key={idx}>
                               <TableCell className="font-medium">{conv.descricao}</TableCell>
                               <TableCell>{conv.toneladas.toFixed(2)} T</TableCell>
@@ -1109,35 +1136,23 @@ export default function Producao() {
                               </TableCell>
                             </TableRow>
                           ))}
-                          {/* Separador */}
-                          <TableRow>
-                            <TableCell colSpan={4} className="bg-muted/30 py-2">
-                              <span className="font-semibold text-muted-foreground">Totais Mensais</span>
+                          {/* Total do mês */}
+                          <TableRow className="bg-primary/10 border-t-2 border-primary/30">
+                            <TableCell className="font-bold text-foreground">
+                              Total {mesAtual}
+                            </TableCell>
+                            <TableCell className="font-bold">{dadosMes.toneladas.toFixed(2)} T</TableCell>
+                            <TableCell className="font-bold">{dadosMes.m3.toFixed(2)} m³</TableCell>
+                            <TableCell className="font-bold text-primary text-xl">
+                              {conversaoMensal.toFixed(2)} T/m³
                             </TableCell>
                           </TableRow>
-                          {/* Totais por mês */}
-                          {mesesOrdenados.map((mes) => {
-                            const dados = totaisPorMes[mes];
-                            const conversaoMensal = dados.m3 > 0 ? dados.toneladas / dados.m3 : 0;
-                            return (
-                              <TableRow key={mes} className="bg-muted/10">
-                                <TableCell className="font-semibold text-foreground">
-                                  {mes}
-                                </TableCell>
-                                <TableCell className="font-semibold">{dados.toneladas.toFixed(2)} T</TableCell>
-                                <TableCell className="font-semibold">{dados.m3.toFixed(2)} m³</TableCell>
-                                <TableCell className="font-bold text-primary text-lg">
-                                  {conversaoMensal.toFixed(2)} T/m³
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </>
-                      );
-                    })()}
-                  </TableBody>
-                </Table>
-              </div>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
 
