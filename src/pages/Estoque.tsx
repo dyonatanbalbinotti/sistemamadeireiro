@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Weight, PieChart as PieChartIcon, AlertTriangle } from "lucide-react";
+import { Package, Weight, PieChart as PieChartIcon, AlertTriangle, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { calcularEstoqueSerradoSupabase, calcularEstoqueTorasSupabase } from "@/lib/supabaseStorage";
 import { EstoqueSerrado, EstoqueToras } from "@/types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -29,6 +30,7 @@ export default function Estoque() {
   const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
   const [alertasAtivos, setAlertasAtivos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [buscaSerrado, setBuscaSerrado] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,6 +109,14 @@ export default function Estoque() {
 
   const totalM3 = estoqueSerrado.reduce((acc, item) => acc + item.m3Total, 0);
   const totalUnidades = estoqueSerrado.reduce((acc, item) => acc + item.quantidadeUnidades, 0);
+
+  const estoqueSerradoFiltrado = useMemo(() => {
+    if (!buscaSerrado.trim()) return estoqueSerrado;
+    const termo = buscaSerrado.toLowerCase().trim();
+    return estoqueSerrado.filter(item => 
+      item.nome.toLowerCase().includes(termo)
+    );
+  }, [estoqueSerrado, buscaSerrado]);
 
   if (loading || loadingEmpresaId) {
     return (
@@ -213,8 +223,17 @@ export default function Estoque() {
         <div className="grid gap-6 lg:grid-cols-2">
           <HoverScale scale={1.01}>
             <Card className="shadow-card border-border/50 h-full">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                 <CardTitle className="text-foreground">Estoque de Madeira Serrada</CardTitle>
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar produto..."
+                    value={buscaSerrado}
+                    onChange={(e) => setBuscaSerrado(e.target.value)}
+                    className="pl-9 h-9"
+                  />
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="rounded-lg border border-border overflow-hidden">
@@ -227,17 +246,17 @@ export default function Estoque() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {estoqueSerrado.map((item) => (
+                      {estoqueSerradoFiltrado.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell className="font-medium">{item.nome}</TableCell>
                           <TableCell>{item.quantidadeUnidades.toFixed(0)} un</TableCell>
                           <TableCell className="font-semibold text-primary">{item.m3Total.toFixed(2)} m³</TableCell>
                         </TableRow>
                       ))}
-                      {estoqueSerrado.length === 0 && (
+                      {estoqueSerradoFiltrado.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                            Nenhum item em estoque
+                            {buscaSerrado ? "Nenhum produto encontrado" : "Nenhum item em estoque"}
                           </TableCell>
                         </TableRow>
                       )}
