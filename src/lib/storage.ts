@@ -75,10 +75,11 @@ export const calcularEstoqueSerrado = (): EstoqueSerrado[] => {
   
   // Adicionar produção
   producao.forEach(p => {
-    const key = `${p.tipo}-${p.largura}-${p.espessura}-${p.comprimento}`;
+    const key = `${p.produtoNome}-${p.tipo}-${p.largura}-${p.espessura}-${p.comprimento}`;
     if (!estoqueMap.has(key)) {
       estoqueMap.set(key, {
         id: key,
+        nome: p.produtoNome,
         tipo: p.tipo,
         largura: p.largura,
         espessura: p.espessura,
@@ -96,7 +97,7 @@ export const calcularEstoqueSerrado = (): EstoqueSerrado[] => {
   vendas.filter(v => v.tipo === 'serrada').forEach(v => {
     const prod = producao.find(p => p.id === v.produtoId);
     if (prod) {
-      const key = `${prod.tipo}-${prod.largura}-${prod.espessura}-${prod.comprimento}`;
+      const key = `${prod.produtoNome}-${prod.tipo}-${prod.largura}-${prod.espessura}-${prod.comprimento}`;
       const item = estoqueMap.get(key);
       if (item) {
         if (v.unidadeMedida === 'unidade') {

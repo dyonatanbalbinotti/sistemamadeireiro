@@ -59,6 +59,7 @@ export interface Venda {
 
 export interface EstoqueSerrado {
   id: string;
+  nome: string;
   tipo: string;
   largura: number;
   espessura: number;

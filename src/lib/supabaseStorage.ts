@@ -34,10 +34,11 @@ export const calcularEstoqueSerradoSupabase = async (): Promise<EstoqueSerrado[]
       const produto = p.produtos as any;
       if (!produto) return;
 
-      const key = `${produto.tipo}-${produto.largura}-${produto.espessura}-${produto.comprimento}`;
+      const key = `${produto.nome}-${produto.tipo}-${produto.largura}-${produto.espessura}-${produto.comprimento}`;
       if (!estoqueMap.has(key)) {
         estoqueMap.set(key, {
           id: key,
+          nome: produto.nome,
           tipo: produto.tipo,
           largura: produto.largura,
           espessura: produto.espessura,
@@ -56,7 +57,7 @@ export const calcularEstoqueSerradoSupabase = async (): Promise<EstoqueSerrado[]
       const prod = producao?.find(p => p.produto_id === v.produto_id);
       if (prod && prod.produtos) {
         const produto = prod.produtos as any;
-        const key = `${produto.tipo}-${produto.largura}-${produto.espessura}-${produto.comprimento}`;
+        const key = `${produto.nome}-${produto.tipo}-${produto.largura}-${produto.espessura}-${produto.comprimento}`;
         const item = estoqueMap.get(key);
         if (item) {
           if (v.unidade_medida === 'unidade') {
