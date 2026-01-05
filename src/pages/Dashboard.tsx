@@ -163,9 +163,17 @@ export default function Dashboard() {
               return pYear === year && pMonth === month;
             });
             const total = monthProduction.reduce((sum, p) => sum + parseFloat(p.m3.toString()), 0);
+            
+            // Contar dias únicos com produção
+            const diasUnicos = new Set(monthProduction.map(p => {
+              const prodDateStr = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+              return prodDateStr;
+            }));
+            
             return {
               mes: format(new Date(year, month - 1), 'MMM', { locale: ptBR }),
-              total: parseFloat(total.toFixed(2))
+              total: parseFloat(total.toFixed(2)),
+              diasComProducao: diasUnicos.size
             };
           });
           setProducaoMensalData(producaoPorMes);
@@ -715,7 +723,29 @@ export default function Dashboard() {
                             borderRadius: '6px',
                             fontSize: '12px'
                           }}
-                          formatter={(value: number) => [`${value.toFixed(2)} m³`, 'Produção']}
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div style={{ 
+                                  backgroundColor: 'hsl(var(--card))', 
+                                  border: '1px solid hsl(var(--border))',
+                                  borderRadius: '6px',
+                                  padding: '8px 12px',
+                                  fontSize: '12px'
+                                }}>
+                                  <p className="font-semibold text-foreground">{data.mes}</p>
+                                  <p className="text-muted-foreground">
+                                    Produção: <span className="text-foreground font-medium">{data.total.toFixed(2)} m³</span>
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    Dias com produção: <span className="text-foreground font-medium">{data.diasComProducao} {data.diasComProducao === 1 ? 'dia' : 'dias'}</span>
+                                  </p>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
                         />
                         <Bar dataKey="total" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
                       </BarChart>
