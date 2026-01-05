@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Package, Weight, PieChart as PieChartIcon, AlertTriangle, Search, Layers } from "lucide-react";
@@ -313,23 +314,27 @@ export default function Estoque() {
                         <TableHead>Volume (m³)</TableHead>
                       </TableRow>
                     </TableHeader>
-                    <TableBody>
-                      {estoqueSerradoFiltrado.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.nome}</TableCell>
-                          <TableCell>{item.quantidadeUnidades.toFixed(0)} un</TableCell>
-                          <TableCell className="font-semibold text-primary">{item.m3Total.toFixed(2)} m³</TableCell>
-                        </TableRow>
-                      ))}
-                      {estoqueSerradoFiltrado.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
-                            {buscaSerrado ? "Nenhum produto encontrado" : "Nenhum item em estoque"}
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
                   </Table>
+                  <ScrollArea className="h-[300px]">
+                    <Table>
+                      <TableBody>
+                        {estoqueSerradoFiltrado.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.nome}</TableCell>
+                            <TableCell>{item.quantidadeUnidades.toFixed(0)} un</TableCell>
+                            <TableCell className="font-semibold text-primary">{item.m3Total.toFixed(2)} m³</TableCell>
+                          </TableRow>
+                        ))}
+                        {estoqueSerradoFiltrado.length === 0 && (
+                          <TableRow>
+                            <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                              {buscaSerrado ? "Nenhum produto encontrado" : "Nenhum item em estoque"}
+                            </TableCell>
+                          </TableRow>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
                 </div>
               </CardContent>
             </Card>
