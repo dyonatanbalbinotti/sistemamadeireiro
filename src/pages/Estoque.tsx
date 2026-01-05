@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Package, Weight, PieChart as PieChartIcon, AlertTriangle, Search } from "lucide-react";
+import { Package, Weight, PieChart as PieChartIcon, AlertTriangle, Search, Layers } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { calcularEstoqueSerradoSupabase, calcularEstoqueTorasSupabase } from "@/lib/supabaseStorage";
 import { EstoqueSerrado, EstoqueToras } from "@/types";
@@ -27,6 +27,7 @@ export default function Estoque() {
   const { empresaId, loading: loadingEmpresaId, error: empresaError } = useEmpresaId();
   const [estoqueSerrado, setEstoqueSerrado] = useState<EstoqueSerrado[]>([]);
   const [estoqueToras, setEstoqueToras] = useState<EstoqueToras | null>(null);
+  const [estoqueCavaco, setEstoqueCavaco] = useState<{ total: number; percentual: number }>({ total: 0, percentual: 0 });
   const [alertas, setAlertas] = useState<AlertaEstoque[]>([]);
   const [alertasAtivos, setAlertasAtivos] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,6 +51,9 @@ export default function Estoque() {
         setEstoqueToras(toras);
         setAlertas((alertasData.data as AlertaEstoque[]) || []);
 
+        // Calcular estoque de cavaco
+        await calcularEstoqueCavaco();
+
         // Verificar alertas
         verificarAlertas(serrado, toras, (alertasData.data as AlertaEstoque[]) || []);
       } catch (error) {
@@ -63,6 +67,49 @@ export default function Estoque() {
       fetchData();
     }
   }, [empresaId]);
+
+  const calcularEstoqueCavaco = async () => {
+    try {
+      const [torasRes, producaoRes, torasSerradasRes, vendasCavacoRes] = await Promise.all([
+        supabase.from('toras').select('*'),
+        supabase.from('producao').select('*'),
+        supabase.from('toras_serradas').select('*'),
+        supabase.from('vendas_cavaco').select('*')
+      ]);
+
+      const torasData = torasRes.data || [];
+      const producaoData = producaoRes.data || [];
+      const torasSerradasData = torasSerradasRes.data || [];
+      const vendasCavacoData = vendasCavacoRes.data || [];
+
+      let totalCavaco = 0;
+      let totalProcessado = 0;
+
+      torasData.forEach(tora => {
+        const producoesDaTora = producaoData.filter(p => p.tora_id === tora.id);
+        const m3Total = producoesDaTora.reduce((sum, p) => sum + Number(p.m3), 0);
+        
+        const torasSerradasDoLote = torasSerradasData.filter(ts => ts.tora_id === tora.id);
+        const toneladasSerradas = torasSerradasDoLote.reduce((sum, ts) => sum + Number(ts.toneladas), 0);
+        
+        const pesoPorM3 = Number(tora.peso_por_m3) || 0.6;
+        const toneladasMadeirasSerradas = pesoPorM3 * m3Total;
+        
+        const vendasCavacoDoLote = vendasCavacoData.filter(vc => vc.tora_id === tora.id);
+        const toneladasVendidasCavaco = vendasCavacoDoLote.reduce((sum, vc) => sum + Number(vc.toneladas), 0);
+        
+        const cavacoEstoque = Math.max(0, toneladasSerradas - toneladasMadeirasSerradas - toneladasVendidasCavaco);
+        
+        totalCavaco += cavacoEstoque;
+        totalProcessado += toneladasSerradas;
+      });
+
+      const percentual = totalProcessado > 0 ? (totalCavaco / totalProcessado) * 100 : 0;
+      setEstoqueCavaco({ total: totalCavaco, percentual });
+    } catch (error) {
+      console.error('Erro ao calcular estoque de cavaco:', error);
+    }
+  };
 
   const verificarAlertas = (
     serrado: EstoqueSerrado[], 
@@ -179,7 +226,7 @@ export default function Estoque() {
         </FadeIn>
       )}
 
-      <StaggerContainer className="grid gap-6 md:grid-cols-2">
+      <StaggerContainer className="grid gap-6 md:grid-cols-3">
         <StaggerItem>
           <HoverScale>
             <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-border/50 shadow-card h-full">
@@ -212,6 +259,27 @@ export default function Estoque() {
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {estoqueToras?.quantidadeToras.toFixed(0) || 0} toras • {((estoqueToras?.toneladas || 0) * 1000).toFixed(2)} kg
+                </p>
+              </CardContent>
+            </Card>
+          </HoverScale>
+        </StaggerItem>
+
+        <StaggerItem>
+          <HoverScale>
+            <Card className="bg-gradient-to-br from-chart-orange/10 to-chart-orange/5 border-border/50 shadow-card h-full">
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  Cavaco em Estoque
+                </CardTitle>
+                <Layers className="h-5 w-5 text-chart-orange" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-primary">
+                  {estoqueCavaco.total.toFixed(2)} T
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {estoqueCavaco.percentual.toFixed(2)}% do total
                 </p>
               </CardContent>
             </Card>
@@ -320,43 +388,6 @@ export default function Estoque() {
         </div>
       </FadeIn>
 
-      <FadeIn delay={0.4}>
-        <HoverScale scale={1.005}>
-          <Card className="shadow-card border-border/50">
-            <CardHeader>
-              <CardTitle className="text-foreground">Estoque de Toras</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="rounded-lg border border-border overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead>Descrição</TableHead>
-                      <TableHead>Quantidade</TableHead>
-                      <TableHead>Toneladas</TableHead>
-                      <TableHead>Quilogramas</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <TableRow>
-                      <TableCell className="font-medium">{estoqueToras?.descricao || 'Toras'}</TableCell>
-                      <TableCell className="font-semibold text-primary">
-                        {estoqueToras?.quantidadeToras.toFixed(0) || 0} toras
-                      </TableCell>
-                      <TableCell className="font-semibold text-secondary">
-                        {estoqueToras?.toneladas.toFixed(2) || '0.00'} T
-                      </TableCell>
-                      <TableCell>
-                        {((estoqueToras?.toneladas || 0) * 1000).toFixed(2)} kg
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </div>
-            </CardContent>
-          </Card>
-        </HoverScale>
-      </FadeIn>
     </div>
   );
 }
