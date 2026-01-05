@@ -221,9 +221,7 @@ export default function Estoque() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Dimensões (cm)</TableHead>
-                        <TableHead>Comprimento (m)</TableHead>
+                        <TableHead>Produto</TableHead>
                         <TableHead>Quantidade</TableHead>
                         <TableHead>Volume (m³)</TableHead>
                       </TableRow>
@@ -231,16 +229,14 @@ export default function Estoque() {
                     <TableBody>
                       {estoqueSerrado.map((item) => (
                         <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.tipo}</TableCell>
-                          <TableCell>{item.largura} × {item.espessura}</TableCell>
-                          <TableCell>{item.comprimento}</TableCell>
+                          <TableCell className="font-medium">{item.nome}</TableCell>
                           <TableCell>{item.quantidadeUnidades.toFixed(0)} un</TableCell>
                           <TableCell className="font-semibold text-primary">{item.m3Total.toFixed(2)} m³</TableCell>
                         </TableRow>
                       ))}
                       {estoqueSerrado.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                          <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
                             Nenhum item em estoque
                           </TableCell>
                         </TableRow>
