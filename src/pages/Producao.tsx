@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -669,53 +670,57 @@ export default function Producao() {
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {produtos
-                      .filter(produto => 
+                </Table>
+                <ScrollArea className="h-[300px]">
+                  <Table>
+                    <TableBody>
+                      {produtos
+                        .filter(produto => 
+                          produto.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
+                          produto.tipo.toLowerCase().includes(buscaProduto.toLowerCase())
+                        )
+                        .map((produto) => (
+                        <TableRow key={produto.id}>
+                          <TableCell className="font-medium">{produto.nome}</TableCell>
+                          <TableCell>{produto.tipo}</TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {produto.largura}×{produto.espessura}×{produto.comprimento}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleEditProduto(produto)}
+                                className="h-8 w-8"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => handleDeleteProduto(produto.id)}
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {produtos.filter(produto => 
                         produto.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
                         produto.tipo.toLowerCase().includes(buscaProduto.toLowerCase())
-                      )
-                      .map((produto) => (
-                      <TableRow key={produto.id}>
-                        <TableCell className="font-medium">{produto.nome}</TableCell>
-                        <TableCell>{produto.tipo}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {produto.largura}×{produto.espessura}×{produto.comprimento}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => handleEditProduto(produto)}
-                              className="h-8 w-8"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => handleDeleteProduto(produto.id)}
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {produtos.filter(produto => 
-                      produto.nome.toLowerCase().includes(buscaProduto.toLowerCase()) ||
-                      produto.tipo.toLowerCase().includes(buscaProduto.toLowerCase())
-                    ).length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                          {buscaProduto ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                      ).length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                            {buscaProduto ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
               </div>
             </CardContent>
           </Card>
@@ -1214,57 +1219,61 @@ export default function Producao() {
                       <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
-                  <TableBody>
-                    {(() => {
-                      const producaoFiltrada = getProducaoFiltrada();
-                      
-                      if (producaoFiltrada.length === 0) {
-                        return (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                              Nenhuma produção encontrada no período selecionado
+                </Table>
+                <ScrollArea className="h-[300px]">
+                  <Table>
+                    <TableBody>
+                      {(() => {
+                        const producaoFiltrada = getProducaoFiltrada();
+                        
+                        if (producaoFiltrada.length === 0) {
+                          return (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                                Nenhuma produção encontrada no período selecionado
+                              </TableCell>
+                            </TableRow>
+                          );
+                        }
+                        
+                        return producaoFiltrada.map((prod) => (
+                          <TableRow key={prod.id}>
+                            <TableCell>{formatDateBR(prod.data)}</TableCell>
+                            <TableCell className="font-medium">{prod.produtoNome}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {prod.largura}×{prod.espessura}×{prod.comprimento}
+                            </TableCell>
+                            <TableCell>{prod.quantidade}</TableCell>
+                            <TableCell className="font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {prod.toraDescricao || "-"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={() => handleEdit(prod)}
+                                  className="h-8 w-8"
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={() => handleDelete(prod.id)}
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
-                        );
-                      }
-                      
-                      return producaoFiltrada.map((prod) => (
-                        <TableRow key={prod.id}>
-                          <TableCell>{formatDateBR(prod.data)}</TableCell>
-                          <TableCell className="font-medium">{prod.produtoNome}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {prod.largura}×{prod.espessura}×{prod.comprimento}
-                          </TableCell>
-                          <TableCell>{prod.quantidade}</TableCell>
-                          <TableCell className="font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {prod.toraDescricao || "-"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                onClick={() => handleEdit(prod)}
-                                className="h-8 w-8"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                size="icon"
-                                variant="outline"
-                                onClick={() => handleDelete(prod.id)}
-                                className="h-8 w-8 text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ));
-                    })()}
-                  </TableBody>
-                </Table>
+                        ));
+                      })()}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
               </div>
               {(() => {
                 const producaoFiltrada = getProducaoFiltrada();
