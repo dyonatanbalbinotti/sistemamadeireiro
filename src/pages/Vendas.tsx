@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { ShoppingCart, Edit, Trash2, CalendarIcon, Layers, FileText, TreeDeciduous, Leaf } from "lucide-react";
+import { ShoppingCart, Edit, Trash2, CalendarIcon, Layers, FileText, TreeDeciduous, Leaf, ChevronLeft, ChevronRight } from "lucide-react";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
@@ -83,6 +83,10 @@ export default function Vendas() {
   // Campos para filtros de relatório
   const [dataInicial, setDataInicial] = useState<Date | undefined>(undefined);
   const [dataFinal, setDataFinal] = useState<Date | undefined>(undefined);
+  
+  // Estados para paginação
+  const [paginaVendas, setPaginaVendas] = useState(1);
+  const itensPorPagina = 10;
 
   // Calcular total metro estéreo automaticamente
   const totalMetroEstereo = (() => {
@@ -308,6 +312,11 @@ export default function Vendas() {
       setValorUnitario("");
     }
   }, [valorM3, quantidadePecas]);
+
+  // Resetar paginação quando muda tipo de venda ou filtros
+  useEffect(() => {
+    setPaginaVendas(1);
+  }, [tipoVenda, dataInicial, dataFinal]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2007,62 +2016,160 @@ export default function Vendas() {
   const renderHistorico = () => {
     const vendasFiltradas = getVendasFiltradas();
     
+    // Paginação
+    const totalPaginas = Math.ceil(vendasFiltradas.length / itensPorPagina);
+    const indiceInicio = (paginaVendas - 1) * itensPorPagina;
+    const indiceFim = indiceInicio + itensPorPagina;
+    const vendasPaginadas = vendasFiltradas.slice(indiceInicio, indiceFim);
+    
+    const PaginacaoControles = () => (
+      vendasFiltradas.length > itensPorPagina ? (
+        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
+          <span className="text-sm text-muted-foreground">
+            Mostrando {indiceInicio + 1} a {Math.min(indiceFim, vendasFiltradas.length)} de {vendasFiltradas.length}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPaginaVendas(prev => Math.max(1, prev - 1))}
+              disabled={paginaVendas === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm font-medium px-2">
+              {paginaVendas} / {totalPaginas}
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPaginaVendas(prev => Math.min(totalPaginas, prev + 1))}
+              disabled={paginaVendas === totalPaginas}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ) : null
+    );
+    
     if (tipoVenda === 'madeira') {
       return (
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Data</TableHead>
-              <TableHead>Produto</TableHead>
-              <TableHead>Quantidade</TableHead>
-              <TableHead>m³</TableHead>
-              <TableHead>Valor Unit.</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vendasFiltradas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  {vendas.length === 0 ? 'Nenhuma venda registrada' : 'Nenhuma venda encontrada no período selecionado'}
-                </TableCell>
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>Data</TableHead>
+                <TableHead>Produto</TableHead>
+                <TableHead>Quantidade</TableHead>
+                <TableHead>m³</TableHead>
+                <TableHead>Valor Unit.</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
-            ) : (
-              vendasFiltradas.map((venda: Venda) => {
-                const prod = produtos.find(p => p.id === venda.produtoId);
-                
-                let quantidadePecas = 0;
-                let m3Vendido = 0;
-                
-                if (venda.unidadeMedida === 'unidade') {
-                  quantidadePecas = venda.quantidade;
-                  m3Vendido = prod ? (prod.largura * prod.espessura * prod.comprimento * venda.quantidade) : 0;
-                } else if (venda.unidadeMedida === 'm3') {
-                  m3Vendido = venda.quantidade;
-                  quantidadePecas = prod ? venda.quantidade / (prod.largura * prod.espessura * prod.comprimento) : 0;
-                }
-                
-                return (
+            </TableHeader>
+            <TableBody>
+              {vendasPaginadas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    {vendas.length === 0 ? 'Nenhuma venda registrada' : 'Nenhuma venda encontrada no período selecionado'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                vendasPaginadas.map((venda: Venda) => {
+                  const prod = produtos.find(p => p.id === venda.produtoId);
+                  
+                  let quantidadePecas = 0;
+                  let m3Vendido = 0;
+                  
+                  if (venda.unidadeMedida === 'unidade') {
+                    quantidadePecas = venda.quantidade;
+                    m3Vendido = prod ? (prod.largura * prod.espessura * prod.comprimento * venda.quantidade) : 0;
+                  } else if (venda.unidadeMedida === 'm3') {
+                    m3Vendido = venda.quantidade;
+                    quantidadePecas = prod ? venda.quantidade / (prod.largura * prod.espessura * prod.comprimento) : 0;
+                  }
+                  
+                  return (
+                    <TableRow key={venda.id}>
+                      <TableCell>{formatDateBR(venda.data)}</TableCell>
+                      <TableCell className="font-medium">
+                        {prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {venda.unidadeMedida === 'unidade' ? `${quantidadePecas} un` : `${quantidadePecas.toFixed(0)} un`}
+                      </TableCell>
+                      <TableCell className="font-medium text-primary">
+                        {m3Vendido.toFixed(2)} m³
+                      </TableCell>
+                      <TableCell>R$ {venda.valorUnitario.toFixed(2)}</TableCell>
+                      <TableCell className="font-semibold text-primary">R$ {venda.valorTotal.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => handleEdit(venda)}
+                            className="h-8 w-8"
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            onClick={() => handleDelete(venda.id)}
+                            className="h-8 w-8 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+          <PaginacaoControles />
+        </>
+      );
+    } else if (tipoVenda === 'cavaco') {
+      return (
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>Data</TableHead>
+                <TableHead>Lote (Tora)</TableHead>
+                <TableHead>Toneladas</TableHead>
+                <TableHead>Valor/Ton</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vendasPaginadas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    {vendasCavaco.length === 0 ? 'Nenhuma venda de cavaco registrada' : 'Nenhuma venda encontrada no período selecionado'}
+                  </TableCell>
+                </TableRow>
+              ) : (
+                vendasPaginadas.map((venda: any) => (
                   <TableRow key={venda.id}>
                     <TableCell>{formatDateBR(venda.data)}</TableCell>
                     <TableCell className="font-medium">
-                      {prod ? `${prod.tipo} ${prod.largura}×${prod.espessura}×${prod.comprimento}` : 'N/A'}
+                      {venda.toras?.descricao || 'N/A'}
                     </TableCell>
-                    <TableCell>
-                      {venda.unidadeMedida === 'unidade' ? `${quantidadePecas} un` : `${quantidadePecas.toFixed(0)} un`}
-                    </TableCell>
-                    <TableCell className="font-medium text-primary">
-                      {m3Vendido.toFixed(2)} m³
-                    </TableCell>
-                    <TableCell>R$ {venda.valorUnitario.toFixed(2)}</TableCell>
-                    <TableCell className="font-semibold text-primary">R$ {venda.valorTotal.toFixed(2)}</TableCell>
+                    <TableCell>{Number(venda.toneladas).toFixed(2)} T</TableCell>
+                    <TableCell>R$ {Number(venda.valor_tonelada).toFixed(2)}</TableCell>
+                    <TableCell className="font-semibold text-primary">R$ {Number(venda.valor_total).toFixed(2)}</TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button
                           size="icon"
                           variant="outline"
-                          onClick={() => handleEdit(venda)}
+                          onClick={() => handleEditCavaco(venda)}
                           className="h-8 w-8"
                         >
                           <Edit className="h-4 w-4" />
@@ -2070,7 +2177,7 @@ export default function Vendas() {
                         <Button
                           size="icon"
                           variant="outline"
-                          onClick={() => handleDelete(venda.id)}
+                          onClick={() => handleDeleteCavaco(venda.id)}
                           className="h-8 w-8 text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -2078,175 +2185,126 @@ export default function Vendas() {
                       </div>
                     </TableCell>
                   </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      );
-    } else if (tipoVenda === 'cavaco') {
-      return (
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Data</TableHead>
-              <TableHead>Lote (Tora)</TableHead>
-              <TableHead>Toneladas</TableHead>
-              <TableHead>Valor/Ton</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vendasFiltradas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {vendasCavaco.length === 0 ? 'Nenhuma venda de cavaco registrada' : 'Nenhuma venda encontrada no período selecionado'}
-                </TableCell>
-              </TableRow>
-            ) : (
-              vendasFiltradas.map((venda: any) => (
-                <TableRow key={venda.id}>
-                  <TableCell>{formatDateBR(venda.data)}</TableCell>
-                  <TableCell className="font-medium">
-                    {venda.toras?.descricao || 'N/A'}
-                  </TableCell>
-                  <TableCell>{Number(venda.toneladas).toFixed(2)} T</TableCell>
-                  <TableCell>R$ {Number(venda.valor_tonelada).toFixed(2)}</TableCell>
-                  <TableCell className="font-semibold text-primary">R$ {Number(venda.valor_total).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleEditCavaco(venda)}
-                        className="h-8 w-8"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleDeleteCavaco(venda.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          <PaginacaoControles />
+        </>
       );
     } else if (tipoVenda === 'serragem') {
       return (
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Data</TableHead>
-              <TableHead>Toneladas</TableHead>
-              <TableHead>Valor/Ton</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vendasFiltradas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  {vendasSerragem.length === 0 ? 'Nenhuma venda de serragem registrada' : 'Nenhuma venda encontrada no período selecionado'}
-                </TableCell>
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>Data</TableHead>
+                <TableHead>Toneladas</TableHead>
+                <TableHead>Valor/Ton</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
-            ) : (
-              vendasFiltradas.map((venda: any) => (
-                <TableRow key={venda.id}>
-                  <TableCell>{formatDateBR(venda.data)}</TableCell>
-                  <TableCell>{Number(venda.toneladas).toFixed(2)} T</TableCell>
-                  <TableCell>R$ {Number(venda.valor_tonelada).toFixed(2)}</TableCell>
-                  <TableCell className="font-semibold text-primary">R$ {Number(venda.valor_total).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleEditSerragem(venda)}
-                        className="h-8 w-8"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleDeleteSerragem(venda.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {vendasPaginadas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    {vendasSerragem.length === 0 ? 'Nenhuma venda de serragem registrada' : 'Nenhuma venda encontrada no período selecionado'}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                vendasPaginadas.map((venda: any) => (
+                  <TableRow key={venda.id}>
+                    <TableCell>{formatDateBR(venda.data)}</TableCell>
+                    <TableCell>{Number(venda.toneladas).toFixed(2)} T</TableCell>
+                    <TableCell>R$ {Number(venda.valor_tonelada).toFixed(2)}</TableCell>
+                    <TableCell className="font-semibold text-primary">R$ {Number(venda.valor_total).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => handleEditSerragem(venda)}
+                          className="h-8 w-8"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => handleDeleteSerragem(venda.id)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          <PaginacaoControles />
+        </>
       );
     } else {
       return (
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50">
-              <TableHead>Data</TableHead>
-              <TableHead>Valor ME</TableHead>
-              <TableHead>A×L×C</TableHead>
-              <TableHead>Total ME</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vendasFiltradas.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  {vendasCasqueiro.length === 0 ? 'Nenhuma venda de casqueiro registrada' : 'Nenhuma venda encontrada no período selecionado'}
-                </TableCell>
+        <>
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead>Data</TableHead>
+                <TableHead>Valor ME</TableHead>
+                <TableHead>A×L×C</TableHead>
+                <TableHead>Total ME</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
-            ) : (
-              vendasFiltradas.map((venda: any) => (
-                <TableRow key={venda.id}>
-                  <TableCell>{formatDateBR(venda.data)}</TableCell>
-                  <TableCell>R$ {Number(venda.valor_metro_estereo).toFixed(2)}</TableCell>
-                  <TableCell className="font-medium">
-                    {Number(venda.altura).toFixed(2)}×{Number(venda.largura).toFixed(2)}×{Number(venda.comprimento).toFixed(2)}
-                  </TableCell>
-                  <TableCell className="font-medium text-primary">{Number(venda.total_metro_estereo).toFixed(2)} m³</TableCell>
-                  <TableCell className="font-semibold text-primary">R$ {Number(venda.valor_total).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleEditCasqueiro(venda)}
-                        className="h-8 w-8"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="outline"
-                        onClick={() => handleDeleteCasqueiro(venda.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {vendasPaginadas.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    {vendasCasqueiro.length === 0 ? 'Nenhuma venda de casqueiro registrada' : 'Nenhuma venda encontrada no período selecionado'}
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                vendasPaginadas.map((venda: any) => (
+                  <TableRow key={venda.id}>
+                    <TableCell>{formatDateBR(venda.data)}</TableCell>
+                    <TableCell>R$ {Number(venda.valor_metro_estereo).toFixed(2)}</TableCell>
+                    <TableCell className="font-medium">
+                      {Number(venda.altura).toFixed(2)}×{Number(venda.largura).toFixed(2)}×{Number(venda.comprimento).toFixed(2)}
+                    </TableCell>
+                    <TableCell className="font-medium text-primary">{Number(venda.total_metro_estereo).toFixed(2)} m³</TableCell>
+                    <TableCell className="font-semibold text-primary">R$ {Number(venda.valor_total).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => handleEditCasqueiro(venda)}
+                          className="h-8 w-8"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          onClick={() => handleDeleteCasqueiro(venda.id)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+          <PaginacaoControles />
+        </>
       );
     }
   };
