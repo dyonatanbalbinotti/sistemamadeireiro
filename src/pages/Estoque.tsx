@@ -309,9 +309,9 @@ export default function Estoque() {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>Produto</TableHead>
-                        <TableHead>Quantidade</TableHead>
-                        <TableHead>Volume (m³)</TableHead>
+                        <TableHead className="w-[45%]">Produto</TableHead>
+                        <TableHead className="w-[25%] text-center">Quantidade</TableHead>
+                        <TableHead className="w-[30%] text-right">Volume (m³)</TableHead>
                       </TableRow>
                     </TableHeader>
                   </Table>
@@ -320,9 +320,9 @@ export default function Estoque() {
                       <TableBody>
                         {estoqueSerradoFiltrado.map((item) => (
                           <TableRow key={item.id}>
-                            <TableCell className="font-medium">{item.nome}</TableCell>
-                            <TableCell>{item.quantidadeUnidades.toFixed(0)} un</TableCell>
-                            <TableCell className="font-semibold text-primary">{item.m3Total.toFixed(2)} m³</TableCell>
+                            <TableCell className="w-[45%] font-medium">{item.nome}</TableCell>
+                            <TableCell className="w-[25%] text-center">{item.quantidadeUnidades.toFixed(0)} un</TableCell>
+                            <TableCell className="w-[30%] text-right font-semibold text-primary">{item.m3Total.toFixed(2)} m³</TableCell>
                           </TableRow>
                         ))}
                         {estoqueSerradoFiltrado.length === 0 && (
