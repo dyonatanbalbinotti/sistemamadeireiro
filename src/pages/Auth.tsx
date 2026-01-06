@@ -6,10 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, AlertTriangle, Lock } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle, Lock, ArrowLeft, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import dwLogo from "@/assets/dw-logo-new.png";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -17,6 +18,8 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [mode, setMode] = useState<'login' | 'forgot-password'>('login');
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   
   const { user, secureSignIn, isLocked, lockoutEndTime, loginAttempts } = useSecureAuth();
   const { toast } = useToast();
@@ -85,8 +88,140 @@ const Auth = () => {
     setIsLoading(false);
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFieldErrors({});
+
+    if (!email.trim()) {
+      setFieldErrors({ email: "Digite seu email" });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: error.message,
+        });
+      } else {
+        setResetEmailSent(true);
+        toast({
+          title: "Email enviado!",
+          description: "Verifique sua caixa de entrada para redefinir sua senha.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Ocorreu um erro ao enviar o email de recuperação.",
+      });
+    }
+
+    setIsLoading(false);
+  };
+
   const attemptsRemaining = Math.max(0, 5 - loginAttempts);
 
+  // Forgot Password Mode
+  if (mode === 'forgot-password') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card className="w-full max-w-md glass-effect neon-border">
+            <CardHeader className="space-y-4">
+              <div className="flex justify-center">
+                <img 
+                  src={dwLogo} 
+                  alt="DW Corporation Logo" 
+                  className="h-16 w-auto dark:drop-shadow-[0_0_20px_rgba(0,255,255,0.8)]" 
+                />
+              </div>
+              <CardTitle className="text-2xl text-center font-tech bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
+                Recuperar Senha
+              </CardTitle>
+              <CardDescription className="text-center text-muted-foreground">
+                {resetEmailSent 
+                  ? "Email de recuperação enviado!" 
+                  : "Digite seu email para receber o link de recuperação"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {resetEmailSent ? (
+                <div className="space-y-4">
+                  <Alert className="border-green-500/50 bg-green-500/10">
+                    <Mail className="h-4 w-4 text-green-500" />
+                    <AlertDescription className="text-green-500">
+                      Enviamos um email para <strong>{email}</strong> com instruções para redefinir sua senha.
+                    </AlertDescription>
+                  </Alert>
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => {
+                      setMode('login');
+                      setResetEmailSent(false);
+                    }}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Voltar ao login
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-email">Email</Label>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      className={fieldErrors.email ? "border-destructive" : ""}
+                      autoComplete="email"
+                    />
+                    {fieldErrors.email && (
+                      <p className="text-sm text-destructive">{fieldErrors.email}</p>
+                    )}
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full neon-glow" 
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Enviando..." : "Enviar link de recuperação"}
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="ghost" 
+                    className="w-full" 
+                    onClick={() => setMode('login')}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Voltar ao login
+                  </Button>
+                </form>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Login Mode
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <motion.div
@@ -148,7 +283,17 @@ const Auth = () => {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Senha</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Senha</Label>
+                  <Button
+                    type="button"
+                    variant="link"
+                    className="px-0 h-auto text-xs text-muted-foreground hover:text-primary"
+                    onClick={() => setMode('forgot-password')}
+                  >
+                    Esqueceu a senha?
+                  </Button>
+                </div>
                 <div className="relative">
                   <Input
                     id="password"
