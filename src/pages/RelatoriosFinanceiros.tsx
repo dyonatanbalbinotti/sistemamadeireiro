@@ -502,71 +502,76 @@ export default function RelatoriosFinanceiros() {
         </Card>
       </div>
 
-      {/* Gráfico de Barras */}
-      <Card className="shadow-card border-border/50">
-        <CardHeader>
-          <CardTitle className="text-foreground">Comparativo Mensal</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dadosFinanceiros}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="mes" className="text-muted-foreground" tick={{ fontSize: 12 }} />
-                <YAxis className="text-muted-foreground" tick={{ fontSize: 12 }} tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`} />
-                <Tooltip 
-                  formatter={(value: number) => [`R$ ${value.toFixed(2)}`, '']}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Legend />
-                <Bar dataKey="despesas" name="Despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="receitas" name="Receitas" fill="#16a34a" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Gráficos lado a lado */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Gráfico de Barras */}
+        <Card className="shadow-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-foreground text-base">Comparativo Mensal</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dadosFinanceiros}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="mes" className="text-muted-foreground" tick={{ fontSize: 10 }} />
+                  <YAxis className="text-muted-foreground" tick={{ fontSize: 10 }} tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`} width={50} />
+                  <Tooltip 
+                    formatter={(value: number) => [`R$ ${value.toFixed(2)}`, '']}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Bar dataKey="despesas" name="Despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="receitas" name="Receitas" fill="#16a34a" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Gráfico de Linha - Evolução do Saldo */}
-      <Card className="shadow-card border-border/50">
-        <CardHeader>
-          <CardTitle className="text-foreground">Evolução do Saldo</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={dadosFinanceiros}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="mes" className="text-muted-foreground" tick={{ fontSize: 12 }} />
-                <YAxis className="text-muted-foreground" tick={{ fontSize: 12 }} tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`} />
-                <Tooltip 
-                  formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Saldo']}
-                  contentStyle={{ 
-                    backgroundColor: 'hsl(var(--card))', 
-                    border: '1px solid hsl(var(--border))',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Legend />
-                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-                <Line 
-                  type="monotone" 
-                  dataKey="saldo" 
-                  name="Saldo" 
-                  stroke="hsl(var(--primary))" 
-                  strokeWidth={3}
-                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 5 }}
-                  activeDot={{ r: 8, fill: 'hsl(var(--primary))' }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Gráfico de Linha - Evolução do Saldo */}
+        <Card className="shadow-card border-border/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-foreground text-base">Evolução do Saldo</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dadosFinanceiros}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="mes" className="text-muted-foreground" tick={{ fontSize: 10 }} />
+                  <YAxis className="text-muted-foreground" tick={{ fontSize: 10 }} tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`} width={50} />
+                  <Tooltip 
+                    formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Saldo']}
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--card))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                  <Line 
+                    type="monotone" 
+                    dataKey="saldo" 
+                    name="Saldo" 
+                    stroke="hsl(var(--primary))" 
+                    strokeWidth={2}
+                    dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, fill: 'hsl(var(--primary))' }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="shadow-card border-border/50">
         <CardHeader>
@@ -639,18 +644,20 @@ export default function RelatoriosFinanceiros() {
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/50">
-                  <TableHead>Data</TableHead>
-                  <TableHead>Tipo</TableHead>
+                  <TableHead className="w-[120px]">Data</TableHead>
+                  <TableHead className="w-[100px]">Tipo</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead className="text-right w-[140px]">Valor</TableHead>
                 </TableRow>
               </TableHeader>
-              <ScrollArea className="h-[300px]">
+            </Table>
+            <ScrollArea className="h-[300px]">
+              <Table>
                 <TableBody>
                   {transacoesMesAtual.map((transacao, index) => (
                     <TableRow key={index}>
-                      <TableCell>{transacao.data}</TableCell>
-                      <TableCell>
+                      <TableCell className="w-[120px]">{transacao.data}</TableCell>
+                      <TableCell className="w-[100px]">
                         <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
                           transacao.tipo === 'Receita' 
                             ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
@@ -660,7 +667,7 @@ export default function RelatoriosFinanceiros() {
                         </span>
                       </TableCell>
                       <TableCell>{transacao.descricao}</TableCell>
-                      <TableCell className={`text-right font-semibold ${
+                      <TableCell className={`text-right w-[140px] font-semibold ${
                         transacao.tipo === 'Receita' ? 'text-green-600' : 'text-destructive'
                       }`}>
                         R$ {transacao.valor.toFixed(2)}
@@ -668,8 +675,8 @@ export default function RelatoriosFinanceiros() {
                     </TableRow>
                   ))}
                 </TableBody>
-              </ScrollArea>
-            </Table>
+              </Table>
+            </ScrollArea>
           </div>
           {transacoesMesAtual.length > 0 && (
             <div className="mt-4 p-4 bg-muted/50 rounded-lg flex justify-between text-sm">
