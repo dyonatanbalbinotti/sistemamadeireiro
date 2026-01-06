@@ -8,6 +8,49 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { formatDateBR } from "@/lib/dateUtils";
 
+// Componente para o input de peso por m³ com atualização apenas ao pressionar Enter
+const PesoPorM3Input = ({ 
+  toraId, 
+  valorInicial, 
+  onUpdate 
+}: { 
+  toraId: string; 
+  valorInicial: number; 
+  onUpdate: (toraId: string, valor: string) => void 
+}) => {
+  const [valor, setValor] = useState(valorInicial.toString());
+
+  useEffect(() => {
+    setValor(valorInicial.toString());
+  }, [valorInicial]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur();
+      onUpdate(toraId, valor);
+    }
+  };
+
+  const handleBlur = () => {
+    // Restaurar valor original se não foi confirmado com Enter
+    setValor(valorInicial.toString());
+  };
+
+  return (
+    <Input
+      type="number"
+      step="0.01"
+      min="0"
+      value={valor}
+      onChange={(e) => setValor(e.target.value)}
+      onKeyDown={handleKeyDown}
+      onBlur={handleBlur}
+      className="w-20 text-center"
+      title="Pressione Enter para confirmar"
+    />
+  );
+};
+
 export default function Cavaco() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -275,13 +318,10 @@ export default function Cavaco() {
                       <TableCell>{item.toneladasCarga.toFixed(2)} T</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={item.pesoPorM3}
-                            onChange={(e) => handlePesoPorM3Change(item.id, e.target.value)}
-                            className="w-20 text-center"
+                          <PesoPorM3Input
+                            toraId={item.id}
+                            valorInicial={item.pesoPorM3}
+                            onUpdate={handlePesoPorM3Change}
                           />
                           <span className="text-sm text-muted-foreground">T</span>
                         </div>
