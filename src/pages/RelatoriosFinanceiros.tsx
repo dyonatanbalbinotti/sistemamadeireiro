@@ -11,6 +11,8 @@ import { toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
 import { formatDateBR } from "@/lib/dateUtils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -500,6 +502,35 @@ export default function RelatoriosFinanceiros() {
         </Card>
       </div>
 
+      {/* Gráfico de Barras */}
+      <Card className="shadow-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-foreground">Comparativo Mensal</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={dadosFinanceiros}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="mes" className="text-muted-foreground" tick={{ fontSize: 12 }} />
+                <YAxis className="text-muted-foreground" tick={{ fontSize: 12 }} tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`} />
+                <Tooltip 
+                  formatter={(value: number) => [`R$ ${value.toFixed(2)}`, '']}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Legend />
+                <Bar dataKey="despesas" name="Despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="receitas" name="Receitas" fill="#16a34a" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="shadow-card border-border/50">
         <CardHeader>
           <CardTitle className="text-foreground">Dados Mensais</CardTitle>
@@ -577,28 +608,30 @@ export default function RelatoriosFinanceiros() {
                   <TableHead className="text-right">Valor</TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody>
-                {transacoesMesAtual.map((transacao, index) => (
-                  <TableRow key={index}>
-                    <TableCell>{transacao.data}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                        transacao.tipo === 'Receita' 
-                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                          : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              <ScrollArea className="h-[300px]">
+                <TableBody>
+                  {transacoesMesAtual.map((transacao, index) => (
+                    <TableRow key={index}>
+                      <TableCell>{transacao.data}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                          transacao.tipo === 'Receita' 
+                            ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                            : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                        }`}>
+                          {transacao.tipo}
+                        </span>
+                      </TableCell>
+                      <TableCell>{transacao.descricao}</TableCell>
+                      <TableCell className={`text-right font-semibold ${
+                        transacao.tipo === 'Receita' ? 'text-green-600' : 'text-destructive'
                       }`}>
-                        {transacao.tipo}
-                      </span>
-                    </TableCell>
-                    <TableCell>{transacao.descricao}</TableCell>
-                    <TableCell className={`text-right font-semibold ${
-                      transacao.tipo === 'Receita' ? 'text-green-600' : 'text-destructive'
-                    }`}>
-                      R$ {transacao.valor.toFixed(2)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
+                        R$ {transacao.valor.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </ScrollArea>
             </Table>
           </div>
           {transacoesMesAtual.length > 0 && (
