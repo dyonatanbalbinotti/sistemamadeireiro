@@ -668,10 +668,10 @@ export default function Producao() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Dimensões</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableHead className="w-[30%]">Nome</TableHead>
+                      <TableHead className="w-[20%]">Tipo</TableHead>
+                      <TableHead className="w-[30%]">Dimensões</TableHead>
+                      <TableHead className="w-[20%] text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                 </Table>
@@ -685,13 +685,13 @@ export default function Producao() {
                         )
                         .map((produto) => (
                         <TableRow key={produto.id}>
-                          <TableCell className="font-medium">{produto.nome}</TableCell>
-                          <TableCell>{produto.tipo}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {produto.largura}×{produto.espessura}×{produto.comprimento}
+                          <TableCell className="w-[30%] font-medium">{produto.nome}</TableCell>
+                          <TableCell className="w-[20%]">{produto.tipo}</TableCell>
+                          <TableCell className="w-[30%] text-sm text-muted-foreground font-mono">
+                            {produto.largura.toFixed(3)}×{produto.espessura.toFixed(3)}×{produto.comprimento}
                           </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
+                          <TableCell className="w-[20%]">
+                            <div className="flex gap-2 justify-center">
                               <Button
                                 size="icon"
                                 variant="outline"
