@@ -12,7 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { formatDateBR } from "@/lib/dateUtils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine } from "recharts";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -526,6 +526,43 @@ export default function RelatoriosFinanceiros() {
                 <Bar dataKey="despesas" name="Despesas" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="receitas" name="Receitas" fill="#16a34a" radius={[4, 4, 0, 0]} />
               </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gráfico de Linha - Evolução do Saldo */}
+      <Card className="shadow-card border-border/50">
+        <CardHeader>
+          <CardTitle className="text-foreground">Evolução do Saldo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={dadosFinanceiros}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="mes" className="text-muted-foreground" tick={{ fontSize: 12 }} />
+                <YAxis className="text-muted-foreground" tick={{ fontSize: 12 }} tickFormatter={(value) => `R$${(value / 1000).toFixed(0)}k`} />
+                <Tooltip 
+                  formatter={(value: number) => [`R$ ${value.toFixed(2)}`, 'Saldo']}
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px'
+                  }}
+                />
+                <Legend />
+                <ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                <Line 
+                  type="monotone" 
+                  dataKey="saldo" 
+                  name="Saldo" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={3}
+                  dot={{ fill: 'hsl(var(--primary))', strokeWidth: 2, r: 5 }}
+                  activeDot={{ r: 8, fill: 'hsl(var(--primary))' }}
+                />
+              </LineChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
