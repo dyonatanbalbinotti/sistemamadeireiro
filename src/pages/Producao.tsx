@@ -1225,13 +1225,13 @@ export default function Producao() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50">
-                      <TableHead>Data</TableHead>
-                      <TableHead>Tipo</TableHead>
-                      <TableHead>Dimensões</TableHead>
-                      <TableHead>Qtd</TableHead>
-                      <TableHead>m³</TableHead>
-                      <TableHead>Tora</TableHead>
-                      <TableHead>Ações</TableHead>
+                      <TableHead className="w-[100px]">Data</TableHead>
+                      <TableHead className="w-[180px]">Tipo</TableHead>
+                      <TableHead className="w-[160px]">Dimensões</TableHead>
+                      <TableHead className="w-[80px] text-center">Qtd</TableHead>
+                      <TableHead className="w-[80px] text-right">m³</TableHead>
+                      <TableHead className="w-[180px]">Tora</TableHead>
+                      <TableHead className="w-[100px] text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                 </Table>
@@ -1253,18 +1253,18 @@ export default function Producao() {
                         
                         return producaoFiltrada.map((prod) => (
                           <TableRow key={prod.id}>
-                            <TableCell>{formatDateBR(prod.data)}</TableCell>
-                            <TableCell className="font-medium">{prod.produtoNome}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {prod.largura}×{prod.espessura}×{prod.comprimento}
+                            <TableCell className="w-[100px]">{formatDateBR(prod.data)}</TableCell>
+                            <TableCell className="w-[180px] font-medium">{prod.produtoNome}</TableCell>
+                            <TableCell className="w-[160px] text-sm text-muted-foreground font-mono">
+                              {prod.largura.toFixed(3)}×{prod.espessura.toFixed(3)}×{prod.comprimento}
                             </TableCell>
-                            <TableCell>{prod.quantidade}</TableCell>
-                            <TableCell className="font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="w-[80px] text-center">{prod.quantidade}</TableCell>
+                            <TableCell className="w-[80px] text-right font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
+                            <TableCell className="w-[180px] text-sm text-muted-foreground">
                               {prod.toraDescricao || "-"}
                             </TableCell>
-                            <TableCell>
-                              <div className="flex gap-2">
+                            <TableCell className="w-[100px]">
+                              <div className="flex gap-2 justify-center">
                                 <Button
                                   size="icon"
                                   variant="outline"
