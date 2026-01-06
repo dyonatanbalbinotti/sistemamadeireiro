@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { FileText, Calendar, DollarSign, TrendingUp, TrendingDown } from "lucide-react";
+import { FileText, Calendar, DollarSign, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import dwLogo from '@/assets/dw-logo-new.png';
@@ -42,12 +42,52 @@ export default function RelatoriosFinanceiros() {
   const [transacoes, setTransacoes] = useState<TransacaoDetalhada[]>([]);
   const [loading, setLoading] = useState(false);
   const [totais, setTotais] = useState({ despesas: 0, receitas: 0, saldo: 0 });
+  const [paginaTransacoes, setPaginaTransacoes] = useState(0);
+
+  // Agrupar transações por mês
+  const transacoesPorMes = transacoes.reduce((acc, transacao) => {
+    // Extrair mês/ano da data (formato dd/MM/yyyy)
+    const [dia, mes, ano] = transacao.data.split('/');
+    const mesAno = `${mes}/${ano}`;
+    if (!acc[mesAno]) {
+      acc[mesAno] = [];
+    }
+    acc[mesAno].push(transacao);
+    return acc;
+  }, {} as Record<string, TransacaoDetalhada[]>);
+
+  const mesesDisponiveis = Object.keys(transacoesPorMes).sort((a, b) => {
+    const [mesA, anoA] = a.split('/');
+    const [mesB, anoB] = b.split('/');
+    return new Date(parseInt(anoB), parseInt(mesB) - 1).getTime() - new Date(parseInt(anoA), parseInt(mesA) - 1).getTime();
+  });
+
+  const mesAtual = mesesDisponiveis[paginaTransacoes];
+  const transacoesMesAtual = mesAtual ? transacoesPorMes[mesAtual] || [] : [];
+
+  // Calcular totais do mês atual
+  const totaisMesAtual = transacoesMesAtual.reduce(
+    (acc, t) => {
+      if (t.tipo === 'Receita') {
+        acc.receitas += t.valor;
+      } else {
+        acc.despesas += t.valor;
+      }
+      return acc;
+    },
+    { despesas: 0, receitas: 0 }
+  );
 
   useEffect(() => {
     if (dataInicio && dataFim) {
       carregarDados();
     }
   }, [dataInicio, dataFim]);
+
+  // Resetar página quando dados mudam
+  useEffect(() => {
+    setPaginaTransacoes(0);
+  }, [transacoes]);
 
   const carregarDados = async () => {
     if (!dataInicio || !dataFim) return;
@@ -497,8 +537,34 @@ export default function RelatoriosFinanceiros() {
       </Card>
 
       <Card className="shadow-card border-border/50">
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-foreground">Transações Detalhadas</CardTitle>
+          {mesesDisponiveis.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPaginaTransacoes(prev => Math.max(0, prev - 1))}
+                disabled={paginaTransacoes === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium min-w-[80px] text-center">
+                {mesAtual}
+              </span>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setPaginaTransacoes(prev => Math.min(mesesDisponiveis.length - 1, prev + 1))}
+                disabled={paginaTransacoes === mesesDisponiveis.length - 1}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <span className="text-xs text-muted-foreground ml-2">
+                {paginaTransacoes + 1} de {mesesDisponiveis.length}
+              </span>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="rounded-lg border border-border overflow-hidden">
@@ -512,7 +578,7 @@ export default function RelatoriosFinanceiros() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transacoes.map((transacao, index) => (
+                {transacoesMesAtual.map((transacao, index) => (
                   <TableRow key={index}>
                     <TableCell>{transacao.data}</TableCell>
                     <TableCell>
@@ -535,6 +601,24 @@ export default function RelatoriosFinanceiros() {
               </TableBody>
             </Table>
           </div>
+          {transacoesMesAtual.length > 0 && (
+            <div className="mt-4 p-4 bg-muted/50 rounded-lg flex justify-between text-sm">
+              <div>
+                <span className="text-muted-foreground">Despesas do mês: </span>
+                <span className="font-semibold text-destructive">R$ {totaisMesAtual.despesas.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Receitas do mês: </span>
+                <span className="font-semibold text-green-600">R$ {totaisMesAtual.receitas.toFixed(2)}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Saldo do mês: </span>
+                <span className={`font-semibold ${totaisMesAtual.receitas - totaisMesAtual.despesas >= 0 ? 'text-green-600' : 'text-destructive'}`}>
+                  R$ {(totaisMesAtual.receitas - totaisMesAtual.despesas).toFixed(2)}
+                </span>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
