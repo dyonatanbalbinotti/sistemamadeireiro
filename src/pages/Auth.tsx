@@ -285,14 +285,14 @@ const Auth = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">Senha</Label>
-                  <Button
-                    type="button"
-                    variant="link"
-                    className="px-0 h-auto text-xs text-muted-foreground hover:text-primary"
-                    onClick={() => setMode('forgot-password')}
+                  <a
+                    href="https://chat.whatsapp.com/B6ag4e3ineULuAiAOkoyvb"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-muted-foreground hover:text-primary transition-colors"
                   >
                     Esqueceu a senha?
-                  </Button>
+                  </a>
                 </div>
                 <div className="relative">
                   <Input
