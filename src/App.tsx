@@ -19,6 +19,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Admin from "./pages/Admin";
 import Pedidos from "./pages/Pedidos";
 import RelatoriosFinanceiros from "./pages/RelatoriosFinanceiros";
+import ResetPassword from "./pages/ResetPassword";
 import Install from "./pages/Install";
 import AuditLogs from "./pages/AuditLogs";
 import { SecurityHeaders } from "@/components/SecurityHeaders";
@@ -54,6 +55,7 @@ const AnimatedRoutes = () => {
       >
         <Routes location={location}>
           <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute requireAdmin><Layout><Admin /></Layout></ProtectedRoute>} />
           <Route path="/auditoria" element={<ProtectedRoute requireAdmin><Layout><AuditLogs /></Layout></ProtectedRoute>} />
