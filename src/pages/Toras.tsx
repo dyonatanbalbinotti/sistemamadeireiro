@@ -34,6 +34,7 @@ export default function Toras() {
   // Form states - Toras Serradas
   const [toraIdSerrada, setToraIdSerrada] = useState("");
   const [quantidadeTorasSerradas, setQuantidadeTorasSerradas] = useState("");
+  const [dataToraSerrada, setDataToraSerrada] = useState("");
   const [editingToraSerradaId, setEditingToraSerradaId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -259,6 +260,7 @@ export default function Toras() {
         const { error } = await supabase
           .from('toras_serradas')
           .update({
+            data: dataToraSerrada || getTodayBR(),
             tora_id: toraIdSerrada,
             peso: pesoTotal,
             toneladas: pesoTotal / 1000,
@@ -270,6 +272,7 @@ export default function Toras() {
 
         setTorasSerradas(torasSerradas.map(ts => ts.id === editingToraSerradaId ? {
           ...ts,
+          data: dataToraSerrada || getTodayBR(),
           toraId: toraIdSerrada,
           peso: pesoTotal,
           toneladas: pesoTotal / 1000,
@@ -311,6 +314,7 @@ export default function Toras() {
       
       setToraIdSerrada("");
       setQuantidadeTorasSerradas("");
+      setDataToraSerrada("");
       setEditingToraSerradaId(null);
     } catch (error) {
       console.error('Erro ao salvar tora serrada:', error);
@@ -362,6 +366,7 @@ export default function Toras() {
   const handleEditToraSerrada = (toraSerrada: ToraSerrada) => {
     setToraIdSerrada(toraSerrada.toraId);
     setQuantidadeTorasSerradas(toraSerrada.quantidadeTorasSerradas?.toString() || "");
+    setDataToraSerrada(toraSerrada.data);
     setEditingToraSerradaId(toraSerrada.id);
   };
 
@@ -617,6 +622,20 @@ export default function Toras() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitToraSerrada} className="space-y-4">
+                {editingToraSerradaId && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="dataToraSerrada">Data</Label>
+                      <Input
+                        id="dataToraSerrada"
+                        type="date"
+                        value={dataToraSerrada}
+                        onChange={(e) => setDataToraSerrada(e.target.value)}
+                        className="border-input"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="toraSerrada">Selecione o Lote</Label>
@@ -657,6 +676,7 @@ export default function Toras() {
                       setEditingToraSerradaId(null);
                       setToraIdSerrada("");
                       setQuantidadeTorasSerradas("");
+                      setDataToraSerrada("");
                     }}
                     className="ml-2"
                   >
