@@ -28,6 +28,7 @@ export default function Toras() {
   const [pesoCargaTora, setPesoCargaTora] = useState("");
   const [quantidadeTorasCarga, setQuantidadeTorasCarga] = useState("");
   const [valorPorTonelada, setValorPorTonelada] = useState("");
+  const [dataTora, setDataTora] = useState("");
   const [editingToraId, setEditingToraId] = useState<string | null>(null);
 
   // Form states - Toras Serradas
@@ -124,6 +125,7 @@ export default function Toras() {
         const { error } = await supabase
           .from('toras')
           .update({
+            data: dataTora || getTodayBR(),
             numero_lote: numeroLote,
             descricao: descricaoTora,
             peso: pesoCarga,
@@ -140,6 +142,7 @@ export default function Toras() {
 
         setToras(toras.map(t => t.id === editingToraId ? {
           ...t,
+          data: dataTora || getTodayBR(),
           numeroLote: numeroLote,
           descricao: descricaoTora,
           peso: pesoCarga,
@@ -200,6 +203,7 @@ export default function Toras() {
       setPesoCargaTora("");
       setQuantidadeTorasCarga("");
       setValorPorTonelada("");
+      setDataTora("");
       setEditingToraId(null);
     } catch (error) {
       console.error('Erro ao salvar tora:', error);
@@ -320,6 +324,7 @@ export default function Toras() {
     setPesoCargaTora(tora.pesoCarga?.toString() || "");
     setQuantidadeTorasCarga(tora.quantidadeToras?.toString() || "");
     setValorPorTonelada(tora.valorPorTonelada?.toString() || "");
+    setDataTora(tora.data);
     setEditingToraId(tora.id);
   };
 
@@ -425,6 +430,20 @@ export default function Toras() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmitTora} className="space-y-4">
+                {editingToraId && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="dataTora">Data</Label>
+                      <Input
+                        id="dataTora"
+                        type="date"
+                        value={dataTora}
+                        onChange={(e) => setDataTora(e.target.value)}
+                        className="border-input"
+                      />
+                    </div>
+                  </div>
+                )}
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="numeroLote">Número do Lote</Label>
