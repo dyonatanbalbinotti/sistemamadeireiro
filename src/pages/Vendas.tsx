@@ -358,9 +358,15 @@ export default function Vendas() {
 
     try {
       if (editingId) {
+        const year = dataVenda.getFullYear();
+        const month = String(dataVenda.getMonth() + 1).padStart(2, '0');
+        const day = String(dataVenda.getDate()).padStart(2, '0');
+        const dataFormatada = `${year}-${month}-${day}`;
+        
         const { error } = await supabase
           .from('vendas')
           .update({
+            data: dataFormatada,
             produto_id: produtoM3,
             tipo,
             quantidade: qtd,
@@ -374,6 +380,7 @@ export default function Vendas() {
 
         setVendas(vendas.map(v => v.id === editingId ? {
           ...v,
+          data: dataFormatada,
           produtoId: produtoM3,
           tipo,
           quantidade: qtd,
@@ -580,9 +587,15 @@ export default function Vendas() {
           return;
         }
         
+        const year = dataVenda.getFullYear();
+        const month = String(dataVenda.getMonth() + 1).padStart(2, '0');
+        const day = String(dataVenda.getDate()).padStart(2, '0');
+        const dataFormatada = `${year}-${month}-${day}`;
+        
         const { error } = await supabase
           .from('vendas_cavaco')
           .update({
+            data: dataFormatada,
             toneladas: toneladas,
             valor_tonelada: valor,
             valor_total: valorTotal,
@@ -593,6 +606,7 @@ export default function Vendas() {
 
         setVendasCavaco(vendasCavaco.map(v => v.id === editingCavacoId ? {
           ...v,
+          data: dataFormatada,
           toneladas: toneladas,
           valor_tonelada: valor,
           valor_total: valorTotal,
