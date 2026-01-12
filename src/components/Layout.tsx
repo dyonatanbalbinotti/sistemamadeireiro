@@ -25,21 +25,22 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isFuncionario } = useAuth();
 
   const navItems = [
-    { to: "/", icon: LayoutDashboard, label: "Dashboard", roles: ['admin', 'user'] },
+    { to: "/", icon: LayoutDashboard, label: "Dashboard" },
     ...(isAdmin ? [
-      { to: "/admin", icon: Settings, label: "Admin", roles: ['admin'] },
-      { to: "/auditoria", icon: Shield, label: "Auditoria", roles: ['admin'] },
+      { to: "/admin", icon: Settings, label: "Admin" },
+      { to: "/auditoria", icon: Shield, label: "Auditoria" },
     ] : []),
-    { to: "/toras", icon: TreeDeciduous, label: "Toras", roles: ['admin', 'user'] },
-    { to: "/pedidos", icon: ClipboardList, label: "Pedidos", roles: ['admin', 'user'] },
-    { to: "/producao", icon: Factory, label: "Produção", roles: ['admin', 'user'] },
-    { to: "/vendas", icon: ShoppingCart, label: "Vendas", roles: ['admin', 'user'] },
-    { to: "/estoque", icon: Package, label: "Estoque", roles: ['admin', 'user'] },
-    { to: "/residuos", icon: Layers, label: "Resíduos", roles: ['admin', 'user'] },
-    { to: "/relatorios-financeiros", icon: FileText, label: "Relatórios", roles: ['admin', 'user'] },
+    { to: "/toras", icon: TreeDeciduous, label: "Toras" },
+    { to: "/pedidos", icon: ClipboardList, label: "Pedidos" },
+    { to: "/producao", icon: Factory, label: "Produção" },
+    { to: "/vendas", icon: ShoppingCart, label: "Vendas" },
+    { to: "/estoque", icon: Package, label: "Estoque" },
+    { to: "/residuos", icon: Layers, label: "Resíduos" },
+    // Relatórios não é visível para funcionários
+    ...(!isFuncionario ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
   ];
 
   return (

@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { UserPlus, Trash2, User, Mail, Loader2 } from "lucide-react";
+import { UserPlus, Trash2, User, Loader2, Key } from "lucide-react";
 
 interface Funcionario {
   id: string;
@@ -43,11 +43,17 @@ export default function ManageFuncionariosDialog({
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
   
-  // Form states
+  // Form states - Create
   const [showForm, setShowForm] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newNome, setNewNome] = useState("");
+
+  // Form states - Reset password
+  const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
+  const [resetPasswordName, setResetPasswordName] = useState<string>("");
+  const [resetNewPassword, setResetNewPassword] = useState("");
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   useEffect(() => {
     if (open && empresaId) {
@@ -164,6 +170,72 @@ export default function ManageFuncionariosDialog({
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!resetNewPassword) {
+      toast({
+        variant: "destructive",
+        title: "Campo obrigatório",
+        description: "Digite a nova senha.",
+      });
+      return;
+    }
+
+    if (resetNewPassword.length < 6) {
+      toast({
+        variant: "destructive",
+        title: "Senha inválida",
+        description: "A senha deve ter no mínimo 6 caracteres.",
+      });
+      return;
+    }
+
+    setResettingPassword(true);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/reset-employee-password`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            employeeId: resetPasswordId,
+            newPassword: resetNewPassword,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao trocar senha');
+      }
+
+      toast({
+        title: "Sucesso!",
+        description: `Senha de ${resetPasswordName} alterada com sucesso.`,
+      });
+
+      // Reset form
+      setResetPasswordId(null);
+      setResetPasswordName("");
+      setResetNewPassword("");
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.message,
+      });
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
   const handleDeleteFuncionario = async (funcionarioId: string, funcionarioNome: string) => {
     if (!confirm(`Tem certeza que deseja remover o funcionário "${funcionarioNome}"?\n\nEsta ação é irreversível.`)) {
       return;
@@ -211,13 +283,62 @@ export default function ManageFuncionariosDialog({
             Gerenciar Funcionários
           </DialogTitle>
           <DialogDescription>
-            Adicione ou remova funcionários da sua empresa.
+            Adicione, remova ou altere senhas dos funcionários.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Reset Password Form */}
+          {resetPasswordId && (
+            <div className="space-y-4 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Key className="h-4 w-4" />
+                Trocar senha de {resetPasswordName}
+              </h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="resetNewPassword">Nova Senha</Label>
+                <Input
+                  id="resetNewPassword"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={resetNewPassword}
+                  onChange={(e) => setResetNewPassword(e.target.value)}
+                />
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setResetPasswordId(null);
+                    setResetPasswordName("");
+                    setResetNewPassword("");
+                  }}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleResetPassword}
+                  disabled={resettingPassword}
+                  className="flex-1"
+                >
+                  {resettingPassword ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Alterando...
+                    </>
+                  ) : (
+                    "Alterar Senha"
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Add Employee Button/Form */}
-          {!showForm ? (
+          {!showForm && !resetPasswordId ? (
             <Button
               onClick={() => setShowForm(true)}
               className="w-full gap-2"
@@ -225,7 +346,7 @@ export default function ManageFuncionariosDialog({
               <UserPlus className="h-4 w-4" />
               Adicionar Funcionário
             </Button>
-          ) : (
+          ) : showForm ? (
             <div className="space-y-4 p-4 rounded-lg bg-muted/50 border">
               <div className="space-y-2">
                 <Label htmlFor="newNome">Nome</Label>
@@ -288,7 +409,7 @@ export default function ManageFuncionariosDialog({
                 </Button>
               </div>
             </div>
-          )}
+          ) : null}
 
           <Separator />
 
@@ -330,14 +451,30 @@ export default function ManageFuncionariosDialog({
                         </div>
                       </div>
                       
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => handleDeleteFuncionario(func.id, func.nome)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setResetPasswordId(func.id);
+                            setResetPasswordName(func.nome);
+                            setShowForm(false);
+                          }}
+                          title="Trocar senha"
+                        >
+                          <Key className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleDeleteFuncionario(func.id, func.nome)}
+                          title="Remover funcionário"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

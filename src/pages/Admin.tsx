@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toZonedTime } from "date-fns-tz";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import AdminFuncionariosList from "@/components/AdminFuncionariosList";
 
 interface Usuario {
   id: string;
@@ -539,7 +541,14 @@ export default function Admin() {
         </h1>
       </div>
 
-      <Card className="glass-effect neon-border">
+      <Tabs defaultValue="usuarios" className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="usuarios">Usuários</TabsTrigger>
+          <TabsTrigger value="funcionarios">Funcionários</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="usuarios" className="mt-6">
+          <Card className="glass-effect neon-border">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Gerenciamento de Usuários</span>
@@ -776,7 +785,13 @@ export default function Admin() {
             </Table>
           </div>
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="funcionarios" className="mt-6">
+          <AdminFuncionariosList />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={openResetPassword} onOpenChange={setOpenResetPassword}>
         <DialogContent>
