@@ -6,10 +6,11 @@ import { useNavigate } from "react-router-dom";
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  userRole: 'admin' | 'user' | null;
+  userRole: 'admin' | 'user' | 'funcionario' | null;
   userName: string | null;
   loading: boolean;
   isAdmin: boolean;
+  isFuncionario: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, nome: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -20,12 +21,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
+  const [userRole, setUserRole] = useState<'admin' | 'user' | 'funcionario' | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const isAdmin = userRole === 'admin';
+  const isFuncionario = userRole === 'funcionario';
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -43,10 +45,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               .eq('user_id', session.user.id)
               .maybeSingle();
             
-            // Aceitar apenas admin ou user
+            // Aceitar admin, funcionario ou user
             const role = roleData?.role;
             if (role === 'admin') {
               setUserRole('admin');
+            } else if (role === 'funcionario') {
+              setUserRole('funcionario');
             } else {
               setUserRole('user');
             }
@@ -90,6 +94,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const role = roleData?.role;
           if (role === 'admin') {
             setUserRole('admin');
+          } else if (role === 'funcionario') {
+            setUserRole('funcionario');
           } else {
             setUserRole('user');
           }
@@ -171,6 +177,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userName,
       loading, 
       isAdmin,
+      isFuncionario,
       signIn, 
       signUp, 
       signOut 
