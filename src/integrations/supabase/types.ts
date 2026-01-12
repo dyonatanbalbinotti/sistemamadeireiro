@@ -478,6 +478,7 @@ export type Database = {
           created_at: string
           empresa_id: string | null
           id: string
+          motivo_bloqueio: string | null
           nome: string
           status: string | null
         }
@@ -486,6 +487,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string | null
           id: string
+          motivo_bloqueio?: string | null
           nome: string
           status?: string | null
         }
@@ -494,6 +496,7 @@ export type Database = {
           created_at?: string
           empresa_id?: string | null
           id?: string
+          motivo_bloqueio?: string | null
           nome?: string
           status?: string | null
         }

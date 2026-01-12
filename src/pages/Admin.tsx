@@ -60,6 +60,13 @@ export default function Admin() {
   const [newPassword, setNewPassword] = useState("");
   const [resettingPassword, setResettingPassword] = useState(false);
   
+  // Estados para bloqueio com motivo
+  const [openBlockDialog, setOpenBlockDialog] = useState(false);
+  const [blockUserId, setBlockUserId] = useState<string>("");
+  const [blockUserName, setBlockUserName] = useState<string>("");
+  const [motivoBloqueio, setMotivoBloqueio] = useState("");
+  const [blocking, setBlocking] = useState(false);
+  
   const { toast } = useToast();
 
   useEffect(() => {
@@ -185,20 +192,28 @@ export default function Admin() {
     }
   };
 
-  const handleToggleStatus = async (userId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'operacional' ? 'invalido' : 'operacional';
+  const handleToggleStatus = async (userId: string, userName: string, currentStatus: string) => {
+    // Se vai bloquear, abrir dialog para adicionar motivo
+    if (currentStatus === 'operacional') {
+      setBlockUserId(userId);
+      setBlockUserName(userName);
+      setMotivoBloqueio("");
+      setOpenBlockDialog(true);
+      return;
+    }
     
+    // Se vai desbloquear, apenas atualiza
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ status: newStatus })
+        .update({ status: 'operacional', motivo_bloqueio: null })
         .eq('id', userId);
 
       if (error) throw error;
 
       toast({
         title: "Sucesso!",
-        description: `Status alterado para ${newStatus}.`,
+        description: `Usuário desbloqueado com sucesso.`,
       });
 
       loadUsuarios();
@@ -208,6 +223,40 @@ export default function Admin() {
         title: "Erro",
         description: "Erro ao alterar status: " + error.message,
       });
+    }
+  };
+
+  const handleBlockUser = async () => {
+    setBlocking(true);
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          status: 'invalido', 
+          motivo_bloqueio: motivoBloqueio || null 
+        })
+        .eq('id', blockUserId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso!",
+        description: `Usuário bloqueado com sucesso.`,
+      });
+
+      setOpenBlockDialog(false);
+      setBlockUserId("");
+      setBlockUserName("");
+      setMotivoBloqueio("");
+      loadUsuarios();
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao bloquear usuário: " + error.message,
+      });
+    } finally {
+      setBlocking(false);
     }
   };
 
@@ -739,7 +788,7 @@ export default function Admin() {
                         <Button
                           variant={usuario.status === 'operacional' ? 'default' : 'destructive'}
                           size="sm"
-                          onClick={() => handleToggleStatus(usuario.id, usuario.status)}
+                          onClick={() => handleToggleStatus(usuario.id, usuario.nome, usuario.status)}
                           className="font-medium"
                         >
                           {usuario.status === 'operacional' ? 'Operacional' : 'Inválido'}
@@ -833,6 +882,51 @@ export default function Admin() {
             </Button>
             <Button onClick={handleResetPassword} disabled={resettingPassword}>
               {resettingPassword ? "Alterando..." : "Alterar Senha"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para bloquear usuário com motivo */}
+      <Dialog open={openBlockDialog} onOpenChange={setOpenBlockDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Bloquear Usuário</DialogTitle>
+            <DialogDescription>
+              Bloqueando: <strong>{blockUserName}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="motivoBloqueio">Motivo do Bloqueio (opcional)</Label>
+              <Input
+                id="motivoBloqueio"
+                value={motivoBloqueio}
+                onChange={(e) => setMotivoBloqueio(e.target.value)}
+                placeholder="Ex: Anuidade vencida, pagamento pendente..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Esta mensagem será exibida ao usuário quando tentar acessar o sistema.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setOpenBlockDialog(false);
+                setMotivoBloqueio("");
+              }}
+              disabled={blocking}
+            >
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleBlockUser} 
+              disabled={blocking}
+            >
+              {blocking ? "Bloqueando..." : "Bloquear Usuário"}
             </Button>
           </DialogFooter>
         </DialogContent>
