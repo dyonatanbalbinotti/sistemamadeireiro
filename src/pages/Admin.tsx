@@ -28,7 +28,7 @@ interface Usuario {
     cnpj: string | null;
     data_vencimento_anuidade: string | null;
   };
-  role?: 'admin' | 'empresa';
+  role?: 'admin' | 'empresa' | 'funcionario' | 'user';
 }
 
 // Planos disponíveis
@@ -507,11 +507,18 @@ export default function Admin() {
     }
   };
 
-  const filteredUsuarios = usuarios.filter(usuario =>
-    usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    usuario.empresa?.nome_empresa.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filtrar apenas usuários (admin/empresa), excluindo funcionários
+  const filteredUsuarios = usuarios.filter(usuario => {
+    // Excluir funcionários da lista de gerenciamento de usuários
+    if (usuario.role !== 'admin' && usuario.role !== 'empresa' && usuario.role !== 'user') {
+      return false;
+    }
+    
+    // Aplicar filtro de busca
+    return usuario.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      usuario.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      usuario.empresa?.nome_empresa.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   if (loading) {
     return (

@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -13,8 +14,36 @@ export default function ProtectedRoute({
   requireAdmin = false,
 }: ProtectedRouteProps) {
   const { user, userRole, loading } = useAuth();
+  const [userStatus, setUserStatus] = useState<string | null>(null);
+  const [statusLoading, setStatusLoading] = useState(true);
 
-  if (loading) {
+  useEffect(() => {
+    const fetchUserStatus = async () => {
+      if (!user) {
+        setStatusLoading(false);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from('profiles')
+          .select('status')
+          .eq('id', user.id)
+          .maybeSingle();
+        
+        setUserStatus(data?.status || 'operacional');
+      } catch (error) {
+        console.error('Erro ao buscar status:', error);
+        setUserStatus('operacional');
+      } finally {
+        setStatusLoading(false);
+      }
+    };
+
+    fetchUserStatus();
+  }, [user]);
+
+  if (loading || statusLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <motion.div
@@ -49,6 +78,28 @@ export default function ProtectedRoute({
         >
           <h2 className="text-2xl font-bold text-destructive mb-2">Acesso Negado</h2>
           <p className="text-muted-foreground">Você não tem permissão para acessar esta página.</p>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Bloquear acesso se o status do usuário for "invalido" (exceto admins)
+  if (userRole !== 'admin' && userStatus === 'invalido') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-md px-4"
+        >
+          <div className="text-6xl mb-4">🔒</div>
+          <h2 className="text-2xl font-bold text-destructive mb-2">Acesso Bloqueado</h2>
+          <p className="text-muted-foreground mb-4">
+            Seu acesso ao sistema está temporariamente bloqueado.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Entre em contato com o administrador para regularizar sua situação.
+          </p>
         </motion.div>
       </div>
     );
