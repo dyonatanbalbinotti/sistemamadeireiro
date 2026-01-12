@@ -15,6 +15,7 @@ export default function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, userRole, loading } = useAuth();
   const [userStatus, setUserStatus] = useState<string | null>(null);
+  const [motivoBloqueio, setMotivoBloqueio] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
 
   useEffect(() => {
@@ -27,11 +28,12 @@ export default function ProtectedRoute({
       try {
         const { data } = await supabase
           .from('profiles')
-          .select('status')
+          .select('status, motivo_bloqueio')
           .eq('id', user.id)
           .maybeSingle();
         
         setUserStatus(data?.status || 'operacional');
+        setMotivoBloqueio(data?.motivo_bloqueio || null);
       } catch (error) {
         console.error('Erro ao buscar status:', error);
         setUserStatus('operacional');
@@ -94,9 +96,19 @@ export default function ProtectedRoute({
         >
           <div className="text-6xl mb-4">🔒</div>
           <h2 className="text-2xl font-bold text-destructive mb-2">Acesso Bloqueado</h2>
-          <p className="text-muted-foreground mb-4">
-            Seu acesso ao sistema está temporariamente bloqueado.
-          </p>
+          
+          {motivoBloqueio ? (
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4 mb-4">
+              <p className="text-sm font-medium text-destructive">
+                Motivo: {motivoBloqueio}
+              </p>
+            </div>
+          ) : (
+            <p className="text-muted-foreground mb-4">
+              Seu acesso ao sistema está temporariamente bloqueado.
+            </p>
+          )}
+          
           <p className="text-sm text-muted-foreground">
             Entre em contato com o administrador para regularizar sua situação.
           </p>
