@@ -26,11 +26,13 @@ import {
   Phone,
   MapPin,
   Building2,
-  FileText
+  FileText,
+  Users
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import EditProfileDialog from "@/components/EditProfileDialog";
 import EditEmpresaDialog from "@/components/EditEmpresaDialog";
+import ManageFuncionariosDialog from "@/components/ManageFuncionariosDialog";
 
 export default function UserAccountDrawer() {
   const { user, userName, userRole, signOut, isAdmin } = useAuth();
@@ -39,12 +41,14 @@ export default function UserAccountDrawer() {
   const [open, setOpen] = useState(false);
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [editEmpresaOpen, setEditEmpresaOpen] = useState(false);
+  const [manageFuncionariosOpen, setManageFuncionariosOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [localUserName, setLocalUserName] = useState<string | null>(userName);
+  const [isEmpresaOwner, setIsEmpresaOwner] = useState(false);
 
-  // Fetch avatar URL from profiles
+  // Fetch avatar URL from profiles and check if user is empresa owner
   useEffect(() => {
-    const fetchAvatar = async () => {
+    const fetchUserData = async () => {
       if (!user) return;
       
       const { data } = await supabase
@@ -57,10 +61,19 @@ export default function UserAccountDrawer() {
         setAvatarUrl(data.avatar_url);
         setLocalUserName(data.nome);
       }
+
+      // Check if user is the owner of an empresa
+      const { data: empresaData } = await supabase
+        .from('empresas')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      setIsEmpresaOwner(!!empresaData);
     };
 
     if (user) {
-      fetchAvatar();
+      fetchUserData();
     }
   }, [user]);
 
@@ -347,6 +360,23 @@ export default function UserAccountDrawer() {
                 <ChevronRight className="h-4 w-4 text-muted-foreground" />
               </Button>
               
+              {/* Manage Employees - Only for empresa owners */}
+              {isEmpresaOwner && (
+                <Button
+                  variant="ghost"
+                  className="w-full justify-between h-12 px-3"
+                  onClick={() => setManageFuncionariosOpen(true)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center justify-center h-9 w-9 rounded-full bg-muted">
+                      <Users className="h-4 w-4 text-foreground" />
+                    </div>
+                    <span className="text-sm font-medium">Gerenciar Funcionários</span>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              )}
+
               {isAdmin && (
                 <Button
                   variant="ghost"
@@ -399,6 +429,12 @@ export default function UserAccountDrawer() {
         onOpenChange={setEditEmpresaOpen}
         empresa={empresa}
         onEmpresaUpdate={refetchEmpresa}
+      />
+
+      <ManageFuncionariosDialog
+        open={manageFuncionariosOpen}
+        onOpenChange={setManageFuncionariosOpen}
+        empresaId={empresa?.id || null}
       />
     </>
   );
