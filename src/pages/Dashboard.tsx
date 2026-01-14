@@ -6,6 +6,7 @@ import { Line, LineChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContai
 import { Skeleton } from "@/components/ui/skeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import type { EstoqueSerrado, EstoqueToras } from "@/types";
 import { subDays, subMonths, format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
@@ -15,6 +16,7 @@ import EmptyState from "@/components/EmptyState";
 import { FadeIn, StaggerContainer, StaggerItem, HoverScale } from "@/components/MotionWrapper";
 
 export default function Dashboard() {
+  const { isFuncionario } = useAuth();
   const [estoqueSerrado, setEstoqueSerrado] = useState(0);
   const [estoqueToras, setEstoqueToras] = useState(0);
   const [totalItens, setTotalItens] = useState(0);
@@ -767,17 +769,18 @@ export default function Dashboard() {
         </div>
       </FadeIn>
 
-      {/* Fluxo Financeiro */}
-      <FadeIn delay={0.5}>
-        <HoverScale scale={1.005}>
-          <Card className="enterprise-card border-0">
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="chart-title flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  Fluxo Financeiro
-                </CardTitle>
-                <Select value={periodoFinanceiro} onValueChange={setPeriodoFinanceiro}>
+      {/* Fluxo Financeiro - Não visível para funcionários */}
+      {!isFuncionario && (
+        <FadeIn delay={0.5}>
+          <HoverScale scale={1.005}>
+            <Card className="enterprise-card border-0">
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="chart-title flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    Fluxo Financeiro
+                  </CardTitle>
+                  <Select value={periodoFinanceiro} onValueChange={setPeriodoFinanceiro}>
                   <SelectTrigger className="w-36 h-8 text-xs">
                     <SelectValue placeholder="Período" />
                   </SelectTrigger>
@@ -868,6 +871,7 @@ export default function Dashboard() {
           </Card>
         </HoverScale>
       </FadeIn>
+      )}
     </div>
   );
 }
