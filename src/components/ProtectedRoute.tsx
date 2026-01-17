@@ -1,5 +1,5 @@
 import { ReactNode, useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +13,8 @@ export default function ProtectedRoute({
   children,
   requireAdmin = false,
 }: ProtectedRouteProps) {
-  const { user, userRole, loading } = useAuth();
+  const { user, userRole, isGerente, isFinanceiro, loading } = useAuth();
+  const location = useLocation();
   const [userStatus, setUserStatus] = useState<string | null>(null);
   const [motivoBloqueio, setMotivoBloqueio] = useState<string | null>(null);
   const [statusLoading, setStatusLoading] = useState(true);
@@ -83,6 +84,19 @@ export default function ProtectedRoute({
         </motion.div>
       </div>
     );
+  }
+
+  // Rotas operacionais (bloqueadas para Financeiro)
+  const operationalRoutes = ['/', '/toras', '/pedidos', '/producao', '/vendas', '/estoque', '/residuos'];
+  
+  // Se é funcionário financeiro tentando acessar rotas operacionais
+  if (isFinanceiro && operationalRoutes.includes(location.pathname)) {
+    return <Navigate to="/relatorios-financeiros" replace />;
+  }
+
+  // Se é funcionário gerente tentando acessar relatórios
+  if (isGerente && location.pathname === '/relatorios-financeiros') {
+    return <Navigate to="/" replace />;
   }
 
   // Bloquear acesso se o status do usuário for "invalido" (exceto admins)

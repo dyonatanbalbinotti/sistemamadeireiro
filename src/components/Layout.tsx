@@ -25,22 +25,28 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation();
-  const { isAdmin, isFuncionario } = useAuth();
+  const { isAdmin, isFuncionario, isGerente, isFinanceiro } = useAuth();
 
+  // Gerente: acesso operacional (todas as abas exceto Relatórios)
+  // Financeiro: acesso apenas a Relatórios
   const navItems = [
-    { to: "/", icon: LayoutDashboard, label: "Dashboard" },
+    // Dashboard visível para todos exceto financeiro
+    ...(!isFinanceiro ? [{ to: "/", icon: LayoutDashboard, label: "Dashboard" }] : []),
     ...(isAdmin ? [
       { to: "/admin", icon: Settings, label: "Admin" },
       { to: "/auditoria", icon: Shield, label: "Auditoria" },
     ] : []),
-    { to: "/toras", icon: TreeDeciduous, label: "Toras" },
-    { to: "/pedidos", icon: ClipboardList, label: "Pedidos" },
-    { to: "/producao", icon: Factory, label: "Produção" },
-    { to: "/vendas", icon: ShoppingCart, label: "Vendas" },
-    { to: "/estoque", icon: Package, label: "Estoque" },
-    { to: "/residuos", icon: Layers, label: "Resíduos" },
-    // Relatórios não é visível para funcionários
-    ...(!isFuncionario ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
+    // Abas operacionais - visíveis para admin, user e gerente (não para financeiro)
+    ...(!isFinanceiro ? [
+      { to: "/toras", icon: TreeDeciduous, label: "Toras" },
+      { to: "/pedidos", icon: ClipboardList, label: "Pedidos" },
+      { to: "/producao", icon: Factory, label: "Produção" },
+      { to: "/vendas", icon: ShoppingCart, label: "Vendas" },
+      { to: "/estoque", icon: Package, label: "Estoque" },
+      { to: "/residuos", icon: Layers, label: "Resíduos" },
+    ] : []),
+    // Relatórios - visível para admin, user e financeiro (não para gerente)
+    ...(!isGerente ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
   ];
 
   return (

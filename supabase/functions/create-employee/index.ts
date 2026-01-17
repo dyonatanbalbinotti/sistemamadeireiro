@@ -59,7 +59,7 @@ serve(async (req) => {
       )
     }
 
-    const { email, password, nome, empresaId } = await req.json()
+    const { email, password, nome, empresaId, cargo } = await req.json()
 
     // Determinar qual empresa usar
     const targetEmpresaId = isAdmin && empresaId ? empresaId : empresaData?.id
@@ -71,7 +71,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('Creating employee:', { email, nome, empresaId: targetEmpresaId })
+    console.log('Creating employee:', { email, nome, empresaId: targetEmpresaId, cargo })
 
     // Criar usuário - o trigger handle_new_user vai criar o profile e o user_role automaticamente
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -91,11 +91,12 @@ serve(async (req) => {
 
     console.log('User created:', newUser.user.id)
 
-    // Atualizar profile para vincular à empresa e definir como funcionário
+    // Atualizar profile para vincular à empresa, definir cargo e como funcionário
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .update({
-        empresa_id: targetEmpresaId
+        empresa_id: targetEmpresaId,
+        cargo: cargo || null
       })
       .eq('id', newUser.user.id)
 

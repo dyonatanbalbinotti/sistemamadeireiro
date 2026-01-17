@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Dialog,
@@ -16,7 +17,14 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { UserPlus, Trash2, User, Loader2, Key } from "lucide-react";
+import { UserPlus, Trash2, User, Loader2, Key, Briefcase } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Funcionario {
   id: string;
@@ -24,6 +32,7 @@ interface Funcionario {
   email?: string;
   avatar_url?: string;
   status?: string;
+  cargo?: string | null;
 }
 
 interface ManageFuncionariosDialogProps {
@@ -48,6 +57,7 @@ export default function ManageFuncionariosDialog({
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newNome, setNewNome] = useState("");
+  const [newCargo, setNewCargo] = useState<'gerente' | 'financeiro'>('gerente');
 
   // Form states - Reset password
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
@@ -69,7 +79,7 @@ export default function ManageFuncionariosDialog({
       // Buscar funcionários vinculados à empresa
       const { data: profilesData, error } = await supabase
         .from('profiles')
-        .select('id, nome, avatar_url, status')
+        .select('id, nome, avatar_url, status, cargo')
         .eq('empresa_id', empresaId);
 
       if (error) throw error;
@@ -135,6 +145,7 @@ export default function ManageFuncionariosDialog({
             password: newPassword,
             nome: newNome,
             empresaId: empresaId,
+            cargo: newCargo,
           }),
         }
       );
@@ -154,6 +165,7 @@ export default function ManageFuncionariosDialog({
       setNewEmail("");
       setNewPassword("");
       setNewNome("");
+      setNewCargo('gerente');
       setShowForm(false);
       
       // Reload list
@@ -379,6 +391,33 @@ export default function ManageFuncionariosDialog({
                   onChange={(e) => setNewPassword(e.target.value)}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="newCargo">Cargo</Label>
+                <Select value={newCargo} onValueChange={(value: 'gerente' | 'financeiro') => setNewCargo(value)}>
+                  <SelectTrigger id="newCargo">
+                    <SelectValue placeholder="Selecione o cargo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gerente">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Gerente
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="financeiro">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Financeiro
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Gerente: acesso operacional (sem relatórios financeiros e dados da empresa).
+                  Financeiro: acesso apenas a Relatórios.
+                </p>
+              </div>
               
               <div className="flex gap-2">
                 <Button
@@ -388,6 +427,7 @@ export default function ManageFuncionariosDialog({
                     setNewEmail("");
                     setNewPassword("");
                     setNewNome("");
+                    setNewCargo('gerente');
                   }}
                   className="flex-1"
                 >
@@ -445,9 +485,21 @@ export default function ManageFuncionariosDialog({
                         </Avatar>
                         <div>
                           <p className="text-sm font-medium">{func.nome}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {func.status === 'invalido' ? 'Inativo' : 'Ativo'}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-xs text-muted-foreground">
+                              {func.status === 'invalido' ? 'Inativo' : 'Ativo'}
+                            </p>
+                            {func.cargo && (
+                              <span className={cn(
+                                "text-xs px-1.5 py-0.5 rounded",
+                                func.cargo === 'gerente' 
+                                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                  : "bg-green-500/10 text-green-600 dark:text-green-400"
+                              )}>
+                                {func.cargo === 'gerente' ? 'Gerente' : 'Financeiro'}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       
