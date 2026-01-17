@@ -8,9 +8,12 @@ interface AuthContextType {
   session: Session | null;
   userRole: 'admin' | 'user' | 'funcionario' | null;
   userName: string | null;
+  userCargo: 'gerente' | 'financeiro' | null;
   loading: boolean;
   isAdmin: boolean;
   isFuncionario: boolean;
+  isGerente: boolean;
+  isFinanceiro: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, nome: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -23,11 +26,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'user' | 'funcionario' | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userCargo, setUserCargo] = useState<'gerente' | 'financeiro' | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   const isAdmin = userRole === 'admin';
   const isFuncionario = userRole === 'funcionario';
+  const isGerente = isFuncionario && userCargo === 'gerente';
+  const isFinanceiro = isFuncionario && userCargo === 'financeiro';
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -55,18 +61,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               setUserRole('user');
             }
 
-            // Fetch user name from profiles
+            // Fetch user name and cargo from profiles
             const { data: profileData } = await supabase
               .from('profiles')
-              .select('nome')
+              .select('nome, cargo')
               .eq('id', session.user.id)
               .maybeSingle();
             
             setUserName(profileData?.nome || null);
+            setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | null);
           }, 0);
         } else {
           setUserRole(null);
           setUserName(null);
+          setUserCargo(null);
         }
         
         setLoading(false);
@@ -87,7 +95,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .maybeSingle(),
           supabase
             .from('profiles')
-            .select('nome')
+            .select('nome, cargo')
             .eq('id', session.user.id)
             .maybeSingle()
         ]).then(([{ data: roleData }, { data: profileData }]) => {
@@ -100,6 +108,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUserRole('user');
           }
           setUserName(profileData?.nome || null);
+          setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | null);
           setLoading(false);
         });
       } else {
@@ -175,9 +184,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       session, 
       userRole,
       userName,
+      userCargo,
       loading, 
       isAdmin,
       isFuncionario,
+      isGerente,
+      isFinanceiro,
       signIn, 
       signUp, 
       signOut 
