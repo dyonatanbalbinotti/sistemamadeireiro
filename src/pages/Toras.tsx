@@ -646,6 +646,8 @@ export default function Toras() {
                       <SelectContent>
                         {toras.map((tora) => (
                           <SelectItem key={tora.id} value={tora.id}>
+                            <span className="font-semibold text-primary">Lote {tora.numeroLote || '-'}</span>
+                            <span className="mx-2">•</span>
                             {tora.descricao} - {tora.toneladas.toFixed(2)} T
                           </SelectItem>
                         ))}
@@ -712,7 +714,12 @@ export default function Toras() {
                       return (
                         <TableRow key={ts.id}>
                           <TableCell>{formatDateBR(ts.data)}</TableCell>
-                          <TableCell className="font-medium">{tora?.descricao || 'N/A'}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-primary">Lote {tora?.numeroLote || '-'}</span>
+                              <span className="text-sm text-muted-foreground">{tora?.descricao || 'N/A'}</span>
+                            </div>
+                          </TableCell>
                           <TableCell>{ts.quantidadeTorasSerradas}</TableCell>
                           <TableCell>{ts.peso.toFixed(2)} kg</TableCell>
                           <TableCell className="font-semibold text-secondary">
