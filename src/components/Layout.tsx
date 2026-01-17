@@ -1,108 +1,31 @@
 import { ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
-import { cn } from "@/lib/utils";
-import { 
-  LayoutDashboard, 
-  Package, 
-  ShoppingCart, 
-  Factory,
-  Settings,
-  Layers,
-  TreeDeciduous,
-  ClipboardList,
-  FileText,
-  Shield
-} from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import FloatingSupport from "@/components/FloatingSupport";
 import UserAccountDrawer from "@/components/UserAccountDrawer";
-import dwLogo from "@/assets/dw-logo-new.png";
+import AppSidebar from "@/components/AppSidebar";
 
 interface LayoutProps {
   children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const location = useLocation();
-  const { isAdmin, isFuncionario, isGerente, isFinanceiro } = useAuth();
-
-  // Gerente: acesso operacional (todas as abas exceto Relatórios)
-  // Financeiro: acesso apenas a Relatórios
-  const navItems = [
-    // Dashboard visível para todos exceto financeiro
-    ...(!isFinanceiro ? [{ to: "/", icon: LayoutDashboard, label: "Dashboard" }] : []),
-    ...(isAdmin ? [
-      { to: "/admin", icon: Settings, label: "Admin" },
-      { to: "/auditoria", icon: Shield, label: "Auditoria" },
-    ] : []),
-    // Abas operacionais - visíveis para admin, user e gerente (não para financeiro)
-    ...(!isFinanceiro ? [
-      { to: "/toras", icon: TreeDeciduous, label: "Toras" },
-      { to: "/pedidos", icon: ClipboardList, label: "Pedidos" },
-      { to: "/producao", icon: Factory, label: "Produção" },
-      { to: "/vendas", icon: ShoppingCart, label: "Vendas" },
-      { to: "/estoque", icon: Package, label: "Estoque" },
-      { to: "/residuos", icon: Layers, label: "Resíduos" },
-    ] : []),
-    // Relatórios - visível para admin, user e financeiro (não para gerente)
-    ...(!isGerente ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
-  ];
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header - Reduced height, clean design */}
-      <header className="sticky top-0 z-50 bg-card/95 backdrop-blur-sm border-b border-border">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-14">
-            {/* Logo & Brand */}
-            <div className="flex items-center gap-3">
-              <img 
-                src={dwLogo} 
-                alt="DW Corporation Logo" 
-                className="h-8 w-8 object-contain" 
-              />
-              <div className="hidden sm:block">
-                <h1 className="text-sm font-semibold text-foreground">
-                  DwCorporation
-                </h1>
-                <p className="text-xs text-muted-foreground">Sistema Madeireiro</p>
-              </div>
-            </div>
+    <div className="min-h-screen flex w-full bg-background">
+      {/* Sidebar */}
+      <AppSidebar />
 
-            {/* Navigation - Clean, monochromatic */}
-            <nav className="flex items-center gap-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.to;
-                return (
-                  <Link
-                    key={item.to}
-                    to={item.to}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all duration-150",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                    )}
-                  >
-                    <Icon className={cn("h-4 w-4", !isActive && "opacity-70")} />
-                    <span className="hidden lg:inline">{item.label}</span>
-                  </Link>
-                );
-              })}
-            </nav>
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* Top Bar - Minimal with User Account */}
+        <header className="sticky top-0 z-40 h-14 bg-card/95 backdrop-blur-sm border-b border-border flex items-center justify-end px-6">
+          <UserAccountDrawer />
+        </header>
 
-            {/* User Account */}
-            <UserAccountDrawer />
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content - More white space */}
-      <main className="container mx-auto px-4 py-8">
-        {children}
-      </main>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {children}
+        </main>
+      </div>
 
       <OfflineIndicator />
       <FloatingSupport />
