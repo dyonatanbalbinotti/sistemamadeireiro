@@ -8,12 +8,13 @@ interface AuthContextType {
   session: Session | null;
   userRole: 'admin' | 'user' | 'funcionario' | null;
   userName: string | null;
-  userCargo: 'gerente' | 'financeiro' | null;
+  userCargo: 'gerente' | 'financeiro' | 'almoxarifado' | null;
   loading: boolean;
   isAdmin: boolean;
   isFuncionario: boolean;
   isGerente: boolean;
   isFinanceiro: boolean;
+  isAlmoxarifado: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, nome: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'user' | 'funcionario' | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
-  const [userCargo, setUserCargo] = useState<'gerente' | 'financeiro' | null>(null);
+  const [userCargo, setUserCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado' | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -34,6 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isFuncionario = userRole === 'funcionario';
   const isGerente = isFuncionario && userCargo === 'gerente';
   const isFinanceiro = isFuncionario && userCargo === 'financeiro';
+  const isAlmoxarifado = isFuncionario && userCargo === 'almoxarifado';
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -69,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               .maybeSingle();
             
             setUserName(profileData?.nome || null);
-            setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | null);
+            setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | null);
           }, 0);
         } else {
           setUserRole(null);
@@ -108,7 +110,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUserRole('user');
           }
           setUserName(profileData?.nome || null);
-          setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | null);
+          setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | null);
           setLoading(false);
         });
       } else {
@@ -190,6 +192,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isFuncionario,
       isGerente,
       isFinanceiro,
+      isAlmoxarifado,
       signIn, 
       signUp, 
       signOut 
