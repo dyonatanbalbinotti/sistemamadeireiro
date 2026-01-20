@@ -53,6 +53,497 @@ export type Database = {
         }
         Relationships: []
       }
+      almoxarifado_categorias: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          empresa_id: string
+          id: string
+          nome: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          empresa_id: string
+          id?: string
+          nome: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: string
+          id?: string
+          nome?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      almoxarifado_fornecedores: {
+        Row: {
+          ativo: boolean
+          cnpj_cpf: string | null
+          contato: string | null
+          created_at: string
+          email: string | null
+          empresa_id: string
+          endereco: string | null
+          id: string
+          nome: string
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnpj_cpf?: string | null
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_id: string
+          endereco?: string | null
+          id?: string
+          nome: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnpj_cpf?: string | null
+          contato?: string | null
+          created_at?: string
+          email?: string | null
+          empresa_id?: string
+          endereco?: string | null
+          id?: string
+          nome?: string
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      almoxarifado_itens: {
+        Row: {
+          ativo: boolean
+          categoria_id: string | null
+          codigo: string
+          created_at: string
+          descricao: string | null
+          empresa_id: string
+          estoque_atual: number
+          estoque_minimo: number | null
+          id: string
+          nome: string
+          unidade_medida: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id?: string | null
+          codigo: string
+          created_at?: string
+          descricao?: string | null
+          empresa_id: string
+          estoque_atual?: number
+          estoque_minimo?: number | null
+          id?: string
+          nome: string
+          unidade_medida?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string | null
+          codigo?: string
+          created_at?: string
+          descricao?: string | null
+          empresa_id?: string
+          estoque_atual?: number
+          estoque_minimo?: number | null
+          id?: string
+          nome?: string
+          unidade_medida?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almoxarifado_itens_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almoxarifado_movimentos: {
+        Row: {
+          created_at: string
+          empresa_id: string
+          estoque_anterior: number
+          estoque_posterior: number
+          id: string
+          item_id: string
+          nota_fiscal_id: string | null
+          observacao: string | null
+          ordem_compra_id: string | null
+          quantidade: number
+          tipo: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_id: string
+          estoque_anterior: number
+          estoque_posterior: number
+          id?: string
+          item_id: string
+          nota_fiscal_id?: string | null
+          observacao?: string | null
+          ordem_compra_id?: string | null
+          quantidade: number
+          tipo: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_id?: string
+          estoque_anterior?: number
+          estoque_posterior?: number
+          id?: string
+          item_id?: string
+          nota_fiscal_id?: string | null
+          observacao?: string | null
+          ordem_compra_id?: string | null
+          quantidade?: number
+          tipo?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almoxarifado_movimentos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almoxarifado_movimentos_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almoxarifado_movimentos_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almoxarifado_nf_itens: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          nota_fiscal_id: string
+          quantidade: number
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          nota_fiscal_id: string
+          quantidade: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          nota_fiscal_id?: string
+          quantidade?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almoxarifado_nf_itens_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almoxarifado_nf_itens_nota_fiscal_id_fkey"
+            columns: ["nota_fiscal_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_notas_fiscais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almoxarifado_notas_fiscais: {
+        Row: {
+          created_at: string
+          data_emissao: string
+          data_entrada_saida: string | null
+          empresa_id: string
+          fornecedor_id: string | null
+          id: string
+          numero_nf: string
+          observacao: string | null
+          ordem_compra_id: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          created_at?: string
+          data_emissao: string
+          data_entrada_saida?: string | null
+          empresa_id: string
+          fornecedor_id?: string | null
+          id?: string
+          numero_nf: string
+          observacao?: string | null
+          ordem_compra_id?: string | null
+          tipo: string
+          updated_at?: string
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          created_at?: string
+          data_emissao?: string
+          data_entrada_saida?: string | null
+          empresa_id?: string
+          fornecedor_id?: string | null
+          id?: string
+          numero_nf?: string
+          observacao?: string | null
+          ordem_compra_id?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almoxarifado_notas_fiscais_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almoxarifado_notas_fiscais_ordem_compra_id_fkey"
+            columns: ["ordem_compra_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almoxarifado_ordens_compra: {
+        Row: {
+          aprovado_por: string | null
+          created_at: string
+          data_aprovacao: string | null
+          data_envio: string | null
+          data_ordem: string
+          data_recebimento: string | null
+          empresa_id: string
+          fornecedor_id: string | null
+          id: string
+          numero_ordem: string
+          observacao: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          valor_total: number
+        }
+        Insert: {
+          aprovado_por?: string | null
+          created_at?: string
+          data_aprovacao?: string | null
+          data_envio?: string | null
+          data_ordem?: string
+          data_recebimento?: string | null
+          empresa_id: string
+          fornecedor_id?: string | null
+          id?: string
+          numero_ordem: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          valor_total?: number
+        }
+        Update: {
+          aprovado_por?: string | null
+          created_at?: string
+          data_aprovacao?: string | null
+          data_envio?: string | null
+          data_ordem?: string
+          data_recebimento?: string | null
+          empresa_id?: string
+          fornecedor_id?: string | null
+          id?: string
+          numero_ordem?: string
+          observacao?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almoxarifado_ordens_compra_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_fornecedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almoxarifado_ordens_itens: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          ordem_id: string
+          quantidade: number
+          quantidade_recebida: number
+          valor_total: number
+          valor_unitario: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          ordem_id: string
+          quantidade: number
+          quantidade_recebida?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          ordem_id?: string
+          quantidade?: number
+          quantidade_recebida?: number
+          valor_total?: number
+          valor_unitario?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almoxarifado_ordens_itens_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almoxarifado_ordens_itens_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_ordens_compra"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      almoxarifado_pedidos: {
+        Row: {
+          created_at: string
+          data_pedido: string
+          empresa_id: string
+          id: string
+          numero_pedido: string
+          observacao: string | null
+          setor: string | null
+          solicitante: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_pedido?: string
+          empresa_id: string
+          id?: string
+          numero_pedido: string
+          observacao?: string | null
+          setor?: string | null
+          solicitante: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data_pedido?: string
+          empresa_id?: string
+          id?: string
+          numero_pedido?: string
+          observacao?: string | null
+          setor?: string | null
+          solicitante?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      almoxarifado_pedidos_itens: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          pedido_id: string
+          quantidade_atendida: number
+          quantidade_solicitada: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          pedido_id: string
+          quantidade_atendida?: number
+          quantidade_solicitada: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          pedido_id?: string
+          quantidade_atendida?: number
+          quantidade_solicitada?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "almoxarifado_pedidos_itens_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_itens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "almoxarifado_pedidos_itens_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "almoxarifado_pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
