@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, ClipboardList, FileText, ArrowLeftRight, Search, ShoppingCart } from "lucide-react";
+import { Package, ClipboardList, FileText, ArrowLeftRight, Search, ShoppingCart, LayoutDashboard } from "lucide-react";
+import DashboardAlmoxarifado from "@/components/almoxarifado/DashboardAlmoxarifado";
 import CadastroItens from "@/components/almoxarifado/CadastroItens";
 import GeracaoPedidos from "@/components/almoxarifado/GeracaoPedidos";
 import LancamentoNF from "@/components/almoxarifado/LancamentoNF";
@@ -9,7 +10,7 @@ import ConsultaEstoque from "@/components/almoxarifado/ConsultaEstoque";
 import OrdensCompra from "@/components/almoxarifado/OrdensCompra";
 
 export default function Almoxarifado() {
-  const [activeTab, setActiveTab] = useState("itens");
+  const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
     <div className="space-y-6">
@@ -19,7 +20,11 @@ export default function Almoxarifado() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6 gap-2 h-auto p-1">
+        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 gap-2 h-auto p-1">
+          <TabsTrigger value="dashboard" className="flex items-center gap-2 py-2">
+            <LayoutDashboard className="h-4 w-4" />
+            <span className="hidden sm:inline">Dashboard</span>
+          </TabsTrigger>
           <TabsTrigger value="itens" className="flex items-center gap-2 py-2">
             <Package className="h-4 w-4" />
             <span className="hidden sm:inline">Cadastro</span>
@@ -45,6 +50,10 @@ export default function Almoxarifado() {
             <span className="hidden sm:inline">Ordens</span>
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard">
+          <DashboardAlmoxarifado onNavigate={setActiveTab} />
+        </TabsContent>
 
         <TabsContent value="itens">
           <CadastroItens />
