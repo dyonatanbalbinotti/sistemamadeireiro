@@ -57,7 +57,7 @@ export default function ManageFuncionariosDialog({
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newNome, setNewNome] = useState("");
-  const [newCargo, setNewCargo] = useState<'gerente' | 'financeiro'>('gerente');
+  const [newCargo, setNewCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado'>('gerente');
 
   // Form states - Reset password
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
@@ -394,7 +394,7 @@ export default function ManageFuncionariosDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="newCargo">Cargo</Label>
-                <Select value={newCargo} onValueChange={(value: 'gerente' | 'financeiro') => setNewCargo(value)}>
+                <Select value={newCargo} onValueChange={(value: 'gerente' | 'financeiro' | 'almoxarifado') => setNewCargo(value)}>
                   <SelectTrigger id="newCargo">
                     <SelectValue placeholder="Selecione o cargo" />
                   </SelectTrigger>
@@ -411,11 +411,18 @@ export default function ManageFuncionariosDialog({
                         Financeiro
                       </div>
                     </SelectItem>
+                    <SelectItem value="almoxarifado">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Almoxarifado
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
-                  Gerente: acesso operacional (sem relatórios financeiros e dados da empresa).
+                  Gerente: acesso operacional (sem relatórios/almoxarifado).
                   Financeiro: acesso apenas a Relatórios.
+                  Almoxarifado: acesso apenas ao módulo Almoxarifado.
                 </p>
               </div>
               

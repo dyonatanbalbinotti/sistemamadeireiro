@@ -13,7 +13,7 @@ export default function ProtectedRoute({
   children,
   requireAdmin = false,
 }: ProtectedRouteProps) {
-  const { user, userRole, isGerente, isFinanceiro, loading } = useAuth();
+  const { user, userRole, isGerente, isFinanceiro, isAlmoxarifado, loading } = useAuth();
   const location = useLocation();
   const [userStatus, setUserStatus] = useState<string | null>(null);
   const [motivoBloqueio, setMotivoBloqueio] = useState<string | null>(null);
@@ -86,17 +86,22 @@ export default function ProtectedRoute({
     );
   }
 
-  // Rotas operacionais (bloqueadas para Financeiro)
+  // Rotas operacionais (bloqueadas para Financeiro e Almoxarifado)
   const operationalRoutes = ['/', '/toras', '/pedidos', '/producao', '/vendas', '/estoque', '/residuos'];
   
-  // Se é funcionário financeiro tentando acessar rotas operacionais
-  if (isFinanceiro && operationalRoutes.includes(location.pathname)) {
+  // Se é funcionário financeiro tentando acessar rotas operacionais ou almoxarifado
+  if (isFinanceiro && (operationalRoutes.includes(location.pathname) || location.pathname === '/almoxarifado')) {
     return <Navigate to="/relatorios-financeiros" replace />;
   }
 
-  // Se é funcionário gerente tentando acessar relatórios
-  if (isGerente && location.pathname === '/relatorios-financeiros') {
+  // Se é funcionário gerente tentando acessar relatórios ou almoxarifado
+  if (isGerente && (location.pathname === '/relatorios-financeiros' || location.pathname === '/almoxarifado')) {
     return <Navigate to="/" replace />;
+  }
+
+  // Se é funcionário almoxarifado tentando acessar outras rotas
+  if (isAlmoxarifado && location.pathname !== '/almoxarifado') {
+    return <Navigate to="/almoxarifado" replace />;
   }
 
   // Bloquear acesso se o status do usuário for "invalido" (exceto admins)
