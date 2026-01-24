@@ -545,7 +545,9 @@ export default function OrdensCompra() {
                         {STATUS_CONFIG[ordem.status]?.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">{ordem.almoxarifado_ordens_itens?.length || 0}</TableCell>
+                    <TableCell className="text-center">
+                      {ordem.almoxarifado_ordens_itens?.reduce((sum, item) => sum + item.quantidade, 0) || 0}
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button
@@ -645,10 +647,6 @@ export default function OrdensCompra() {
                   <span className="text-muted-foreground">Fornecedor:</span>
                   <p className="font-medium">{selectedOrdem.almoxarifado_fornecedores?.nome || "-"}</p>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Valor Total:</span>
-                  <p className="font-medium text-primary">R$ {selectedOrdem.valor_total.toFixed(2)}</p>
-                </div>
                 {selectedOrdem.data_aprovacao && (
                   <div>
                     <span className="text-muted-foreground">Aprovação:</span>
@@ -681,8 +679,6 @@ export default function OrdensCompra() {
                     <TableRow>
                       <TableHead>Item</TableHead>
                       <TableHead className="text-right">Qtd</TableHead>
-                      <TableHead className="text-right">Unit.</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -692,8 +688,6 @@ export default function OrdensCompra() {
                           {item.almoxarifado_itens?.codigo} - {item.almoxarifado_itens?.nome}
                         </TableCell>
                         <TableCell className="text-right">{item.quantidade}</TableCell>
-                        <TableCell className="text-right">R$ {item.valor_unitario.toFixed(2)}</TableCell>
-                        <TableCell className="text-right font-medium">R$ {item.valor_total.toFixed(2)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
