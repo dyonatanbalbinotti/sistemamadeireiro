@@ -333,7 +333,12 @@ export default function GeracaoPedidos() {
                         {pedido.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{pedido.almoxarifado_pedidos_itens?.length || 0}</TableCell>
+                    <TableCell>
+                      {pedido.almoxarifado_pedidos_itens?.reduce(
+                        (sum, item) => sum + (item.quantidade_solicitada || 0), 
+                        0
+                      ) || 0}
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button
