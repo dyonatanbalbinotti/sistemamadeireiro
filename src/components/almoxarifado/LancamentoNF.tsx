@@ -153,37 +153,7 @@ export default function LancamentoNF() {
 
         if (itensError) throw itensError;
 
-        // Atualizar estoque
-        for (const item of nfItens) {
-          const { data: currentItem } = await supabase
-            .from("almoxarifado_itens")
-            .select("estoque_atual")
-            .eq("id", item.itemId)
-            .single();
-
-          if (currentItem) {
-            const novoEstoque = tipo === "entrada"
-              ? currentItem.estoque_atual + item.quantidade
-              : currentItem.estoque_atual - item.quantidade;
-
-            await supabase
-              .from("almoxarifado_itens")
-              .update({ estoque_atual: novoEstoque })
-              .eq("id", item.itemId);
-
-            // Registrar movimento
-            await supabase.from("almoxarifado_movimentos").insert({
-              empresa_id: empresaId,
-              item_id: item.itemId,
-              tipo,
-              quantidade: item.quantidade,
-              estoque_anterior: currentItem.estoque_atual,
-              estoque_posterior: novoEstoque,
-              nota_fiscal_id: nf.id,
-              user_id: user.id,
-            });
-          }
-        }
+        // NF é apenas para controle financeiro, não afeta o estoque
       }
     },
     onSuccess: () => {

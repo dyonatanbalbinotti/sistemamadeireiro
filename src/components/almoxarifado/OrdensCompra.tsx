@@ -77,7 +77,7 @@ export default function OrdensCompra() {
   const [numeroOrdem, setNumeroOrdem] = useState("");
   const [fornecedorId, setFornecedorId] = useState("");
   const [observacao, setObservacao] = useState("");
-  const [ordemItens, setOrdemItens] = useState<{ itemId: string; quantidade: number; valorUnitario: number }[]>([]);
+  const [ordemItens, setOrdemItens] = useState<{ itemId: string; quantidade: number }[]>([]);
   
   // Fornecedor form
   const [fornecedorNome, setFornecedorNome] = useState("");
@@ -207,15 +207,13 @@ export default function OrdensCompra() {
     mutationFn: async () => {
       if (!empresaId || !user) throw new Error("Dados insuficientes");
       
-      const valorTotal = ordemItens.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0);
-      
       const { data: ordem, error: ordemError } = await supabase
         .from("almoxarifado_ordens_compra")
         .insert({
           empresa_id: empresaId,
           numero_ordem: numeroOrdem,
           fornecedor_id: fornecedorId || null,
-          valor_total: valorTotal,
+          valor_total: 0,
           observacao: observacao || null,
           user_id: user.id,
         })
@@ -229,8 +227,8 @@ export default function OrdensCompra() {
           ordem_id: ordem.id,
           item_id: item.itemId,
           quantidade: item.quantidade,
-          valor_unitario: item.valorUnitario,
-          valor_total: item.quantidade * item.valorUnitario,
+          valor_unitario: 0,
+          valor_total: 0,
         }));
 
         const { error: itensError } = await supabase
@@ -318,7 +316,7 @@ export default function OrdensCompra() {
   };
 
   const addItem = () => {
-    setOrdemItens([...ordemItens, { itemId: "", quantidade: 1, valorUnitario: 0 }]);
+    setOrdemItens([...ordemItens, { itemId: "", quantidade: 1 }]);
   };
 
   const updateItem = (index: number, field: string, value: string | number) => {
@@ -331,7 +329,7 @@ export default function OrdensCompra() {
     setOrdemItens(ordemItens.filter((_, i) => i !== index));
   };
 
-  const valorTotal = ordemItens.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0);
+  
 
   if (loadingEmpresa || isLoading) {
     return <div className="flex justify-center p-8">Carregando...</div>;
@@ -490,16 +488,6 @@ export default function OrdensCompra() {
                           min="0"
                         />
                       </div>
-                      <div className="w-28">
-                        <Input
-                          type="number"
-                          placeholder="R$ Unit."
-                          value={item.valorUnitario}
-                          onChange={(e) => updateItem(index, "valorUnitario", parseFloat(e.target.value) || 0)}
-                          min="0"
-                          step="0.01"
-                        />
-                      </div>
                       <Button
                         type="button"
                         variant="ghost"
@@ -510,11 +498,6 @@ export default function OrdensCompra() {
                       </Button>
                     </div>
                   ))}
-                  {ordemItens.length > 0 && (
-                    <div className="text-right font-semibold text-lg">
-                      Total: R$ {valorTotal.toFixed(2)}
-                    </div>
-                  )}
                 </div>
 
                 <Button

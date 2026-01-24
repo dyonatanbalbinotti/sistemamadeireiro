@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, ClipboardList, FileText, ArrowLeftRight, Search, ShoppingCart, LayoutDashboard } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import DashboardAlmoxarifado from "@/components/almoxarifado/DashboardAlmoxarifado";
 import CadastroItens from "@/components/almoxarifado/CadastroItens";
 import GeracaoPedidos from "@/components/almoxarifado/GeracaoPedidos";
@@ -10,6 +11,7 @@ import ConsultaEstoque from "@/components/almoxarifado/ConsultaEstoque";
 import OrdensCompra from "@/components/almoxarifado/OrdensCompra";
 
 export default function Almoxarifado() {
+  const { isAlmoxarifado } = useAuth();
   const [activeTab, setActiveTab] = useState("dashboard");
 
   return (
@@ -20,7 +22,7 @@ export default function Almoxarifado() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3 lg:grid-cols-7 gap-2 h-auto p-1">
+        <TabsList className={`grid w-full ${isAlmoxarifado ? 'grid-cols-3 lg:grid-cols-6' : 'grid-cols-3 lg:grid-cols-7'} gap-2 h-auto p-1`}>
           <TabsTrigger value="dashboard" className="flex items-center gap-2 py-2">
             <LayoutDashboard className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -33,10 +35,12 @@ export default function Almoxarifado() {
             <ClipboardList className="h-4 w-4" />
             <span className="hidden sm:inline">Pedidos</span>
           </TabsTrigger>
-          <TabsTrigger value="nf" className="flex items-center gap-2 py-2">
-            <FileText className="h-4 w-4" />
-            <span className="hidden sm:inline">Notas Fiscais</span>
-          </TabsTrigger>
+          {!isAlmoxarifado && (
+            <TabsTrigger value="nf" className="flex items-center gap-2 py-2">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Notas Fiscais</span>
+            </TabsTrigger>
+          )}
           <TabsTrigger value="movimento" className="flex items-center gap-2 py-2">
             <ArrowLeftRight className="h-4 w-4" />
             <span className="hidden sm:inline">Movimento</span>
@@ -63,9 +67,11 @@ export default function Almoxarifado() {
           <GeracaoPedidos />
         </TabsContent>
 
-        <TabsContent value="nf">
-          <LancamentoNF />
-        </TabsContent>
+        {!isAlmoxarifado && (
+          <TabsContent value="nf">
+            <LancamentoNF />
+          </TabsContent>
+        )}
 
         <TabsContent value="movimento">
           <MovimentoEstoque />
