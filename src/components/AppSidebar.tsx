@@ -58,8 +58,8 @@ export default function AppSidebar() {
       { to: "/estoque", icon: Package, label: "Estoque" },
       { to: "/residuos", icon: Layers, label: "Resíduos" },
     ] : []),
-    // Almoxarifado - visível para admin e user (não para gerente, financeiro ou almoxarifado)
-    ...(!isGerente && !isFinanceiro && !isAlmoxarifado ? [{ to: "/almoxarifado", icon: Warehouse, label: "Almoxarifado" }] : []),
+    // Almoxarifado - visível para admin, user e financeiro (não para gerente ou almoxarifado)
+    ...(!isGerente && !isAlmoxarifado ? [{ to: "/almoxarifado", icon: Warehouse, label: "Almoxarifado" }] : []),
     // Relatórios - visível para admin, user e financeiro (não para gerente ou almoxarifado)
     ...(!isGerente && !isAlmoxarifado ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
   ];
