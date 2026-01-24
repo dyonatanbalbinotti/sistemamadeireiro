@@ -35,7 +35,7 @@ import EditEmpresaDialog from "@/components/EditEmpresaDialog";
 import ManageFuncionariosDialog from "@/components/ManageFuncionariosDialog";
 
 export default function UserAccountDrawer() {
-  const { user, userName, userRole, signOut, isAdmin, isFuncionario } = useAuth();
+  const { user, userName, userRole, userCargo, signOut, isAdmin, isFuncionario } = useAuth();
   const { theme, setTheme } = useTheme();
   const { empresa, refetch: refetchEmpresa } = useEmpresaData();
   const [open, setOpen] = useState(false);
@@ -101,7 +101,13 @@ export default function UserAccountDrawer() {
 
   const getRoleLabel = () => {
     if (userRole === 'admin') return 'Administrador';
-    if (userRole === 'funcionario') return 'Funcionário';
+    if (userRole === 'funcionario') {
+      // Mostrar o cargo específico do funcionário
+      if (userCargo === 'almoxarifado') return 'Almoxarifado';
+      if (userCargo === 'gerente') return 'Gerente';
+      if (userCargo === 'financeiro') return 'Financeiro';
+      return 'Funcionário';
+    }
     if (userRole === 'user') return 'Usuário';
     return 'Carregando...';
   };
