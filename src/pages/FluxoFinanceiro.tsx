@@ -75,20 +75,21 @@ const CATEGORIAS = [
   "Outros",
 ];
 
+// Professional and vibrant color palette for better visualization
 const CHART_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-  "hsl(262, 80%, 60%)",
-  "hsl(340, 82%, 52%)",
-  "hsl(25, 95%, 53%)",
-  "hsl(160, 60%, 45%)",
-  "hsl(200, 98%, 39%)",
-  "hsl(43, 96%, 56%)",
-  "hsl(280, 65%, 60%)",
-  "hsl(0, 0%, 45%)",
+  "#3B82F6", // Blue
+  "#10B981", // Emerald
+  "#F59E0B", // Amber
+  "#EF4444", // Red
+  "#8B5CF6", // Violet
+  "#EC4899", // Pink
+  "#06B6D4", // Cyan
+  "#F97316", // Orange
+  "#14B8A6", // Teal
+  "#6366F1", // Indigo
+  "#84CC16", // Lime
+  "#A855F7", // Purple
+  "#64748B", // Slate
 ];
 
 export default function FluxoFinanceiro() {
