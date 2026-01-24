@@ -13,7 +13,8 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
-  Warehouse
+  Warehouse,
+  Wallet
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import dwLogo from "@/assets/dw-logo-new.png";
@@ -60,6 +61,8 @@ export default function AppSidebar() {
     ] : []),
     // Almoxarifado - visível para admin, user e financeiro (não para gerente ou almoxarifado)
     ...(!isGerente && !isAlmoxarifado ? [{ to: "/almoxarifado", icon: Warehouse, label: "Almoxarifado" }] : []),
+    // Fluxo Financeiro - visível para admin, user (dono) e financeiro (não para gerente ou almoxarifado)
+    ...(!isGerente && !isAlmoxarifado ? [{ to: "/fluxo-financeiro", icon: Wallet, label: "Fluxo Financeiro" }] : []),
     // Relatórios - visível para admin, user e financeiro (não para gerente ou almoxarifado)
     ...(!isGerente && !isAlmoxarifado ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
   ];

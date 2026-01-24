@@ -643,6 +643,48 @@ export type Database = {
         }
         Relationships: []
       }
+      despesas: {
+        Row: {
+          categoria: string
+          created_at: string
+          data: string
+          descricao: string
+          empresa_id: string
+          id: string
+          observacao: string | null
+          tipo: string
+          updated_at: string
+          user_id: string
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          data?: string
+          descricao: string
+          empresa_id: string
+          id?: string
+          observacao?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id: string
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          data?: string
+          descricao?: string
+          empresa_id?: string
+          id?: string
+          observacao?: string | null
+          tipo?: string
+          updated_at?: string
+          user_id?: string
+          valor?: number
+        }
+        Relationships: []
+      }
       empresas: {
         Row: {
           cnpj: string | null
