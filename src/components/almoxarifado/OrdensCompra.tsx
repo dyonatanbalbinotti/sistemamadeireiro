@@ -62,8 +62,11 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
 
 export default function OrdensCompra() {
   const { empresaId, loading: loadingEmpresa } = useEmpresaId();
-  const { user } = useAuth();
+  const { user, isAlmoxarifado, isFinanceiro, isAdmin, userRole } = useAuth();
   const queryClient = useQueryClient();
+  
+  // Apenas financeiro ou admin podem aprovar ordens
+  const canApproveOrders = isFinanceiro || isAdmin || userRole === 'user';
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -578,18 +581,20 @@ export default function OrdensCompra() {
                         </Button>
                         {ordem.status === "pendente" && (
                           <>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Aprovar"
-                              onClick={() => updateStatus.mutate({ 
-                                id: ordem.id, 
-                                status: "aprovada",
-                                updateData: { data_aprovacao: new Date().toISOString().split("T")[0], aprovado_por: user?.id }
-                              })}
-                            >
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                            </Button>
+                            {canApproveOrders && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                title="Aprovar"
+                                onClick={() => updateStatus.mutate({ 
+                                  id: ordem.id, 
+                                  status: "aprovada",
+                                  updateData: { data_aprovacao: new Date().toISOString().split("T")[0], aprovado_por: user?.id }
+                                })}
+                              >
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="icon"
