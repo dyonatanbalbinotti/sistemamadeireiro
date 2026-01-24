@@ -17,7 +17,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { UserPlus, Trash2, User, Loader2, Key, Briefcase } from "lucide-react";
+import { UserPlus, Trash2, User, Loader2, Key, Briefcase, Pencil } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -63,6 +63,12 @@ export default function ManageFuncionariosDialog({
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
   const [resetPasswordName, setResetPasswordName] = useState<string>("");
   const [resetNewPassword, setResetNewPassword] = useState("");
+
+  // Form states - Edit employee
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingNome, setEditingNome] = useState("");
+  const [editingCargo, setEditingCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado'>('gerente');
+  const [updatingEmployee, setUpdatingEmployee] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
 
   useEffect(() => {
@@ -277,6 +283,50 @@ export default function ManageFuncionariosDialog({
     }
   };
 
+  const handleEditFuncionario = async () => {
+    if (!editingNome.trim()) {
+      toast({
+        variant: "destructive",
+        title: "Campo obrigatório",
+        description: "Digite o nome do funcionário.",
+      });
+      return;
+    }
+
+    setUpdatingEmployee(true);
+
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          nome: editingNome.trim(),
+          cargo: editingCargo 
+        })
+        .eq('id', editingId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso!",
+        description: "Funcionário atualizado com sucesso.",
+      });
+
+      setEditingId(null);
+      setEditingNome("");
+      setEditingCargo('gerente');
+      loadFuncionarios();
+
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Erro ao atualizar funcionário: " + error.message,
+      });
+    } finally {
+      setUpdatingEmployee(false);
+    }
+  };
+
   const getInitials = (nome: string) => {
     return nome
       .split(' ')
@@ -284,6 +334,24 @@ export default function ManageFuncionariosDialog({
       .join('')
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getCargoLabel = (cargo: string | null) => {
+    switch (cargo) {
+      case 'gerente': return 'Gerente';
+      case 'financeiro': return 'Financeiro';
+      case 'almoxarifado': return 'Almoxarifado';
+      default: return null;
+    }
+  };
+
+  const getCargoStyle = (cargo: string | null) => {
+    switch (cargo) {
+      case 'gerente': return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
+      case 'financeiro': return "bg-green-500/10 text-green-600 dark:text-green-400";
+      case 'almoxarifado': return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+      default: return "";
+    }
   };
 
   return (
@@ -349,8 +417,85 @@ export default function ManageFuncionariosDialog({
             </div>
           )}
 
+          {/* Edit Employee Form */}
+          {editingId && (
+            <div className="space-y-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <h4 className="text-sm font-medium flex items-center gap-2">
+                <Pencil className="h-4 w-4" />
+                Editar Funcionário
+              </h4>
+              
+              <div className="space-y-2">
+                <Label htmlFor="editNome">Nome</Label>
+                <Input
+                  id="editNome"
+                  placeholder="Nome do funcionário"
+                  value={editingNome}
+                  onChange={(e) => setEditingNome(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="editCargo">Cargo</Label>
+                <Select value={editingCargo} onValueChange={(value: 'gerente' | 'financeiro' | 'almoxarifado') => setEditingCargo(value)}>
+                  <SelectTrigger id="editCargo">
+                    <SelectValue placeholder="Selecione o cargo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gerente">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Gerente
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="financeiro">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Financeiro
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="almoxarifado">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Almoxarifado
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setEditingId(null);
+                    setEditingNome("");
+                    setEditingCargo('gerente');
+                  }}
+                  className="flex-1"
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleEditFuncionario}
+                  disabled={updatingEmployee}
+                  className="flex-1"
+                >
+                  {updatingEmployee ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    "Salvar"
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Add Employee Button/Form */}
-          {!showForm && !resetPasswordId ? (
+          {!showForm && !resetPasswordId && !editingId ? (
             <Button
               onClick={() => setShowForm(true)}
               className="w-full gap-2"
@@ -499,11 +644,9 @@ export default function ManageFuncionariosDialog({
                             {func.cargo && (
                               <span className={cn(
                                 "text-xs px-1.5 py-0.5 rounded",
-                                func.cargo === 'gerente' 
-                                  ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
-                                  : "bg-green-500/10 text-green-600 dark:text-green-400"
+                                getCargoStyle(func.cargo)
                               )}>
-                                {func.cargo === 'gerente' ? 'Gerente' : 'Financeiro'}
+                                {getCargoLabel(func.cargo)}
                               </span>
                             )}
                           </div>
@@ -516,9 +659,25 @@ export default function ManageFuncionariosDialog({
                           size="icon"
                           className="h-8 w-8 text-muted-foreground hover:text-foreground"
                           onClick={() => {
+                            setEditingId(func.id);
+                            setEditingNome(func.nome);
+                            setEditingCargo((func.cargo as 'gerente' | 'financeiro' | 'almoxarifado') || 'gerente');
+                            setShowForm(false);
+                            setResetPasswordId(null);
+                          }}
+                          title="Editar funcionário"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
                             setResetPasswordId(func.id);
                             setResetPasswordName(func.nome);
                             setShowForm(false);
+                            setEditingId(null);
                           }}
                           title="Trocar senha"
                         >
