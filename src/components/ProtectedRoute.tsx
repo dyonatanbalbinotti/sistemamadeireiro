@@ -89,8 +89,8 @@ export default function ProtectedRoute({
   // Rotas operacionais (bloqueadas para Financeiro e Almoxarifado)
   const operationalRoutes = ['/', '/toras', '/pedidos', '/producao', '/vendas', '/estoque', '/residuos'];
   
-  // Se é funcionário financeiro tentando acessar rotas operacionais ou almoxarifado
-  if (isFinanceiro && (operationalRoutes.includes(location.pathname) || location.pathname === '/almoxarifado')) {
+  // Se é funcionário financeiro tentando acessar rotas operacionais (mas pode acessar almoxarifado)
+  if (isFinanceiro && operationalRoutes.includes(location.pathname)) {
     return <Navigate to="/relatorios-financeiros" replace />;
   }
 
