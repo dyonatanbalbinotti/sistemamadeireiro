@@ -522,15 +522,14 @@ export default function OrdensCompra() {
                 <TableHead>Data</TableHead>
                 <TableHead>Fornecedor</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Valor Total</TableHead>
-                <TableHead>Itens</TableHead>
+                <TableHead className="text-center">Itens</TableHead>
                 <TableHead className="w-[150px]">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {ordens.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     Nenhuma ordem de compra
                   </TableCell>
@@ -546,10 +545,7 @@ export default function OrdensCompra() {
                         {STATUS_CONFIG[ordem.status]?.label}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      R$ {ordem.valor_total.toFixed(2)}
-                    </TableCell>
-                    <TableCell>{ordem.almoxarifado_ordens_itens?.length || 0}</TableCell>
+                    <TableCell className="text-center">{ordem.almoxarifado_ordens_itens?.length || 0}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button
