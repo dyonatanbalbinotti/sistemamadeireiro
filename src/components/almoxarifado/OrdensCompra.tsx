@@ -82,6 +82,49 @@ export default function OrdensCompra() {
   const [fornecedorTelefone, setFornecedorTelefone] = useState("");
   const [fornecedorEmail, setFornecedorEmail] = useState("");
 
+  // Máscaras de formatação
+  const formatCnpjCpf = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (digits.length <= 11) {
+      // CPF: 000.000.000-00
+      return digits
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+    } else {
+      // CNPJ: 00.000.000/0000-00
+      return digits
+        .substring(0, 14)
+        .replace(/(\d{2})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1.$2")
+        .replace(/(\d{3})(\d)/, "$1/$2")
+        .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+    }
+  };
+
+  const formatTelefone = (value: string) => {
+    const digits = value.replace(/\D/g, "").substring(0, 11);
+    if (digits.length <= 10) {
+      // Fixo: (00) 0000-0000
+      return digits
+        .replace(/(\d{2})(\d)/, "($1) $2")
+        .replace(/(\d{4})(\d)/, "$1-$2");
+    } else {
+      // Celular: (00) 00000-0000
+      return digits
+        .replace(/(\d{2})(\d)/, "($1) $2")
+        .replace(/(\d{5})(\d)/, "$1-$2");
+    }
+  };
+
+  const handleCnpjCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFornecedorCnpj(formatCnpjCpf(e.target.value));
+  };
+
+  const handleTelefoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setFornecedorTelefone(formatTelefone(e.target.value));
+  };
+
   const { data: fornecedores = [] } = useQuery({
     queryKey: ["almoxarifado-fornecedores", empresaId],
     queryFn: async () => {
@@ -322,8 +365,9 @@ export default function OrdensCompra() {
                   <Input
                     id="forn-cnpj"
                     value={fornecedorCnpj}
-                    onChange={(e) => setFornecedorCnpj(e.target.value)}
-                    placeholder="00.000.000/0000-00"
+                    onChange={handleCnpjCpfChange}
+                    placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                    maxLength={18}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -332,8 +376,9 @@ export default function OrdensCompra() {
                     <Input
                       id="forn-tel"
                       value={fornecedorTelefone}
-                      onChange={(e) => setFornecedorTelefone(e.target.value)}
+                      onChange={handleTelefoneChange}
                       placeholder="(00) 00000-0000"
+                      maxLength={15}
                     />
                   </div>
                   <div>
