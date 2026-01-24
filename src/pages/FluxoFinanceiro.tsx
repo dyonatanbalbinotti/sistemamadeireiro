@@ -43,9 +43,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts";
-import { Plus, Trash2, Edit, TrendingDown, Calendar, DollarSign, Filter } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth } from "date-fns";
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { Plus, Trash2, Edit, TrendingDown, Calendar, DollarSign, Filter, TrendingUp } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Despesa {
@@ -98,6 +98,7 @@ export default function FluxoFinanceiro() {
   const { toast } = useToast();
   
   const [despesas, setDespesas] = useState<Despesa[]>([]);
+  const [despesasAnuais, setDespesasAnuais] = useState<Despesa[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDespesa, setEditingDespesa] = useState<Despesa | null>(null);
@@ -115,6 +116,7 @@ export default function FluxoFinanceiro() {
   useEffect(() => {
     if (empresaId) {
       fetchDespesas();
+      fetchDespesasAnuais();
     }
   }, [empresaId, mesFiltro]);
 
@@ -145,6 +147,29 @@ export default function FluxoFinanceiro() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchDespesasAnuais = async () => {
+    if (!empresaId) return;
+    
+    try {
+      const anoAtual = parseISO(`${mesFiltro}-01`);
+      const dataInicio = startOfYear(anoAtual);
+      const dataFim = endOfYear(anoAtual);
+      
+      const { data, error } = await supabase
+        .from("despesas")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .gte("data", format(dataInicio, "yyyy-MM-dd"))
+        .lte("data", format(dataFim, "yyyy-MM-dd"))
+        .order("data", { ascending: true });
+      
+      if (error) throw error;
+      setDespesasAnuais(data || []);
+    } catch (error: any) {
+      console.error("Erro ao buscar despesas anuais:", error);
     }
   };
 
@@ -270,6 +295,24 @@ export default function FluxoFinanceiro() {
     .sort((a, b) => b.value - a.value);
 
   const totalDespesas = despesas.reduce((sum, d) => sum + Number(d.valor), 0);
+
+  // Agrupar despesas por mês para gráfico de evolução
+  const despesasPorMes = despesasAnuais.reduce((acc, d) => {
+    const mes = format(parseISO(d.data), "yyyy-MM");
+    acc[mes] = (acc[mes] || 0) + Number(d.valor);
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Gerar todos os meses do ano selecionado
+  const anoSelecionado = mesFiltro.split("-")[0];
+  const mesesDoAno = Array.from({ length: 12 }, (_, i) => {
+    const mes = `${anoSelecionado}-${String(i + 1).padStart(2, "0")}`;
+    return {
+      mes,
+      mesLabel: format(parseISO(`${mes}-01`), "MMM", { locale: ptBR }),
+      valor: despesasPorMes[mes] || 0,
+    };
+  });
 
   if (empresaLoading || loading) {
     return (
@@ -418,6 +461,51 @@ export default function FluxoFinanceiro() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Gráfico de Evolução Mensal */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-primary" />
+            Evolução Mensal - {anoSelecionado}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={mesesDoAno} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="mesLabel" 
+                tick={{ fontSize: 12 }} 
+                className="text-muted-foreground"
+              />
+              <YAxis 
+                tick={{ fontSize: 11 }} 
+                className="text-muted-foreground"
+                tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+              />
+              <Tooltip
+                formatter={(value: number) => [
+                  `R$ ${value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+                  "Despesas"
+                ]}
+                labelFormatter={(label) => `Mês: ${label}`}
+                contentStyle={{ 
+                  backgroundColor: 'hsl(var(--card))', 
+                  border: '1px solid hsl(var(--border))',
+                  borderRadius: '8px'
+                }}
+              />
+              <Bar 
+                dataKey="valor" 
+                fill="#EF4444" 
+                radius={[4, 4, 0, 0]}
+                name="Despesas"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
 
       {/* Chart and Table Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
