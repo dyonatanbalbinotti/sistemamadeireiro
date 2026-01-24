@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmpresaId } from "@/hooks/useEmpresaId";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -24,6 +25,7 @@ interface DashboardProps {
 
 export default function DashboardAlmoxarifado({ onNavigate }: DashboardProps) {
   const { empresaId, loading: loadingEmpresa } = useEmpresaId();
+  const { isAlmoxarifado } = useAuth();
 
   // Buscar itens do estoque
   const { data: itens = [] } = useQuery({
@@ -303,9 +305,6 @@ export default function DashboardAlmoxarifado({ onNavigate }: DashboardProps) {
                     >
                       {ordem.status}
                     </Badge>
-                    <p className="text-xs text-muted-foreground font-medium">
-                      R$ {ordem.valor_total?.toFixed(2)}
-                    </p>
                   </div>
                 </div>
               ))
