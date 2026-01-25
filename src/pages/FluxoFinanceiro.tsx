@@ -72,6 +72,7 @@ const CATEGORIAS = [
   "Empréstimo",
   "Aluguel",
   "Serviços Terceirizados",
+  "Toras",
   "Outros",
 ];
 
