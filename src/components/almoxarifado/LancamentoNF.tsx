@@ -152,8 +152,32 @@ export default function LancamentoNF() {
           .insert(itensData);
 
         if (itensError) throw itensError;
+      }
 
-        // NF é apenas para controle financeiro, não afeta o estoque
+      // Criar despesa automática no Fluxo Financeiro para NF de entrada
+      if (tipo === "entrada" && valorTotal > 0) {
+        const itensNomes = nfItens
+          .map(item => {
+            const itemInfo = itens.find(i => i.id === item.itemId);
+            return itemInfo ? `${itemInfo.nome} (${item.quantidade})` : '';
+          })
+          .filter(Boolean)
+          .join(', ');
+
+        const fornecedorNome = fornecedores.find(f => f.id === fornecedorId)?.nome || 'Sem fornecedor';
+
+        await supabase
+          .from('despesas')
+          .insert({
+            empresa_id: empresaId,
+            user_id: user.id,
+            tipo: 'despesa',
+            descricao: `NF ${numeroNF} - ${fornecedorNome}`,
+            valor: valorTotal,
+            categoria: 'Almoxarifado',
+            data: dataEmissao,
+            observacao: itensNomes ? `Itens: ${itensNomes}` : null,
+          });
       }
     },
     onSuccess: () => {
