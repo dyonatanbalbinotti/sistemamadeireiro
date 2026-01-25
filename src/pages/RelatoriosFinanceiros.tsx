@@ -99,11 +99,11 @@ export default function RelatoriosFinanceiros() {
       const dataInicioStr = format(dataInicio, 'yyyy-MM-dd');
       const dataFimStr = format(dataFim, 'yyyy-MM-dd');
 
-      // Buscar toras com valor (despesas)
-      const { data: torasData } = await supabase
-        .from('toras')
-        .select('data, descricao, valor_total_carga')
-        .not('valor_total_carga', 'is', null)
+      // Buscar despesas do Fluxo Financeiro
+      const { data: despesasData } = await supabase
+        .from('despesas')
+        .select('data, descricao, valor, categoria, observacao')
+        .eq('tipo', 'despesa')
         .gte('data', dataInicioStr)
         .lte('data', dataFimStr)
         .order('data', { ascending: true });
@@ -143,12 +143,13 @@ export default function RelatoriosFinanceiros() {
       // Processar transações detalhadas
       const transacoesProcessadas: TransacaoDetalhada[] = [];
 
-      torasData?.forEach(tora => {
+      // Processar despesas do Fluxo Financeiro
+      despesasData?.forEach(despesa => {
         transacoesProcessadas.push({
-          data: formatDateBR(tora.data),
+          data: formatDateBR(despesa.data),
           tipo: 'Despesa',
-          descricao: `Carga de Toras - ${tora.descricao}`,
-          valor: parseFloat(tora.valor_total_carga.toString())
+          descricao: `${despesa.categoria || 'Outros'} - ${despesa.descricao}`,
+          valor: parseFloat(despesa.valor.toString())
         });
       });
 
@@ -201,10 +202,11 @@ export default function RelatoriosFinanceiros() {
       // Calcular dados mensais
       const mesesMap = new Map<string, { despesas: number; receitas: number }>();
 
-      torasData?.forEach(tora => {
-        const mesAno = format(new Date(tora.data), 'MMM/yy', { locale: ptBR });
+      // Agregar despesas do Fluxo Financeiro por mês
+      despesasData?.forEach(despesa => {
+        const mesAno = format(new Date(despesa.data), 'MMM/yy', { locale: ptBR });
         const atual = mesesMap.get(mesAno) || { despesas: 0, receitas: 0 };
-        atual.despesas += parseFloat(tora.valor_total_carga.toString());
+        atual.despesas += parseFloat(despesa.valor.toString());
         mesesMap.set(mesAno, atual);
       });
 
