@@ -195,6 +195,27 @@ export default function Toras() {
           };
 
           setToras([novaTora, ...toras]);
+          
+          // Criar despesa automática no Fluxo Financeiro se houver valor
+          if (valorTotalCarga > 0) {
+            const { error: despesaError } = await supabase
+              .from('despesas')
+              .insert({
+                empresa_id: empresaId,
+                user_id: user.id,
+                tipo: 'despesa',
+                descricao: `Lote ${numeroLote} - ${descricaoTora}`,
+                valor: valorTotalCarga,
+                categoria: 'Toras',
+                data: getTodayBR(),
+                observacao: `${qtdToras} toras - ${toneladas.toFixed(2)} toneladas - R$ ${valorTon.toFixed(2)}/ton`,
+              });
+            
+            if (despesaError) {
+              console.error('Erro ao criar despesa automática:', despesaError);
+            }
+          }
+          
           toast.success(`Lote ${numeroLote} adicionado: ${qtdToras} toras`);
         }
       }
