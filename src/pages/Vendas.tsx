@@ -12,6 +12,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { toast } from "sonner";
+import pdfIcon from '@/assets/pdf-icon.png';
 import dwLogo from '@/assets/dw-logo-new.png';
 import { Venda } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
@@ -2454,7 +2455,7 @@ export default function Vendas() {
                 className="flex-1"
                 variant="outline"
               >
-                <FileText className="h-4 w-4 mr-2" />
+                <img src={pdfIcon} alt="PDF" className="h-4 w-4 mr-2" />
                 Exportar PDF
               </Button>
               <Button

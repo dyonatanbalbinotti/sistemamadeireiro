@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
-import dwLogo from '@/assets/dw-logo-new.png';
+import pdfIcon from '@/assets/pdf-icon.png';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 import { calcularCubagem } from "@/lib/storage";
@@ -1168,7 +1168,7 @@ export default function Producao() {
                       onClick={exportarPDF}
                       className="gap-2"
                     >
-                      <img src={dwLogo} alt="DW Logo" className="h-4 w-4" />
+                      <img src={pdfIcon} alt="PDF" className="h-4 w-4" />
                       PDF
                     </Button>
                     <Button
