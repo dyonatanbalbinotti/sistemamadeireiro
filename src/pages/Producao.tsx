@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import pdfIcon from '@/assets/pdf-icon.png';
+import excelIcon from '@/assets/excel-icon.png';
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { ChartContainer } from "@/components/ui/chart";
 import { calcularCubagem } from "@/lib/storage";
@@ -1177,7 +1178,7 @@ export default function Producao() {
                       onClick={exportarExcel}
                       className="gap-2"
                     >
-                      <FileSpreadsheet className="h-4 w-4" />
+                      <img src={excelIcon} alt="Excel" className="h-4 w-4" />
                       Excel
                     </Button>
                   </div>
