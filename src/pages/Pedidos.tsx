@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import dwLogo from '@/assets/dw-logo-new.png';
+import pdfIcon from '@/assets/pdf-icon.png';
 
 interface ItemPedido {
   id: string;
@@ -908,7 +908,7 @@ export default function Pedidos() {
         )}
 
         <Button onClick={exportarPDFPedidos} variant="outline" size="sm" className="h-9 ml-auto">
-          <img src={dwLogo} alt="DW Logo" className="h-4 w-4 mr-2" />
+          <img src={pdfIcon} alt="PDF" className="h-4 w-4 mr-2" />
           Exportar PDF
         </Button>
       </div>
@@ -973,7 +973,7 @@ export default function Pedidos() {
                       className="hover:bg-primary/10"
                       title="Gerar PDF"
                     >
-                      <FileText className="h-4 w-4" />
+                      <img src={pdfIcon} alt="PDF" className="h-4 w-4" />
                     </Button>
                     <Button
                       variant="ghost"

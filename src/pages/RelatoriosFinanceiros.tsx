@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { FileText, Calendar, DollarSign, TrendingUp, TrendingDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import pdfIcon from '@/assets/pdf-icon.png';
 import dwLogo from '@/assets/dw-logo-new.png';
 import { format, subMonths } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
@@ -455,7 +456,7 @@ export default function RelatoriosFinanceiros() {
               </Popover>
             </div>
             <Button onClick={exportarPDF} className="mt-8 bg-primary text-primary-foreground hover:bg-primary/90">
-              <img src={dwLogo} alt="DW Logo" className="h-4 w-4 mr-2" />
+              <img src={pdfIcon} alt="PDF" className="h-4 w-4 mr-2" />
               Exportar PDF
             </Button>
             <Button onClick={exportarExcel} variant="outline" className="mt-8">
