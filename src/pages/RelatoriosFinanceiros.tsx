@@ -6,7 +6,7 @@ import { FileText, Calendar, DollarSign, TrendingUp, TrendingDown, ChevronLeft, 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import pdfIcon from '@/assets/pdf-icon.png';
-import dwLogo from '@/assets/dw-logo-new.png';
+import excelIcon from '@/assets/excel-icon.png';
 import { format, subMonths } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { ptBR } from "date-fns/locale";
@@ -460,7 +460,7 @@ export default function RelatoriosFinanceiros() {
               Exportar PDF
             </Button>
             <Button onClick={exportarExcel} variant="outline" className="mt-8">
-              <img src={dwLogo} alt="DW Logo" className="h-4 w-4 mr-2" />
+              <img src={excelIcon} alt="Excel" className="h-4 w-4 mr-2" />
               Exportar Excel
             </Button>
           </div>
