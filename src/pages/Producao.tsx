@@ -124,7 +124,7 @@ export default function Producao() {
           .select(`
             *,
             produtos (nome, tipo, largura, espessura, comprimento),
-            toras (descricao)
+            toras (descricao, numero_lote)
           `)
           .order('created_at', { ascending: false });
         
@@ -142,6 +142,7 @@ export default function Producao() {
             m3: Number(p.m3),
             toraId: p.tora_id,
             toraDescricao: p.toras?.descricao,
+            toraLote: (p.toras as any)?.numero_lote,
           })));
         }
 
@@ -1044,7 +1045,7 @@ export default function Producao() {
             <CardContent>
               {(() => {
                 // Calcular totais por mês e agrupar conversões
-                const totaisPorMes: Record<string, { toneladas: number; m3: number; conversoes: Array<{descricao: string; toneladas: number; m3Total: number; conversao: number}> }> = {};
+                const totaisPorMes: Record<string, { toneladas: number; m3: number; conversoes: Array<{descricao: string; numeroLote?: string; toneladas: number; m3Total: number; conversao: number}> }> = {};
                 
                 toras.forEach(tora => {
                   const mesAno = new Date(tora.data).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
@@ -1062,6 +1063,7 @@ export default function Producao() {
                     totaisPorMes[mesAno].m3 += m3Total;
                     totaisPorMes[mesAno].conversoes.push({
                       descricao: tora.descricao,
+                      numeroLote: tora.numeroLote,
                       toneladas: toneladasSerradas,
                       m3Total,
                       conversao: m3Total > 0 ? toneladasSerradas / m3Total : 0
@@ -1132,7 +1134,11 @@ export default function Producao() {
                         <TableBody>
                           {dadosMes.conversoes.map((conv, idx) => (
                             <TableRow key={idx}>
-                              <TableCell className="font-medium">{conv.descricao}</TableCell>
+                              <TableCell className="font-medium">
+                                <span className="font-semibold text-primary">Lote {conv.numeroLote || '-'}</span>
+                                <span className="mx-2">•</span>
+                                {conv.descricao}
+                              </TableCell>
                               <TableCell>{conv.toneladas.toFixed(2)} T</TableCell>
                               <TableCell>{conv.m3Total.toFixed(2)} m³</TableCell>
                               <TableCell className="font-bold text-primary text-lg">
@@ -1265,7 +1271,13 @@ export default function Producao() {
                             <TableCell className="w-[80px] text-center">{prod.quantidade}</TableCell>
                             <TableCell className="w-[80px] text-right font-semibold text-primary">{prod.m3.toFixed(2)}</TableCell>
                             <TableCell className="w-[180px] text-sm text-muted-foreground">
-                              {prod.toraDescricao || "-"}
+                              {prod.toraId ? (
+                                <>
+                                  <span className="font-semibold text-primary">Lote {(prod as any).toraLote || '-'}</span>
+                                  <span className="mx-1">•</span>
+                                  {prod.toraDescricao}
+                                </>
+                              ) : "-"}
                             </TableCell>
                             <TableCell className="w-[100px]">
                               <div className="flex gap-2 justify-center">
