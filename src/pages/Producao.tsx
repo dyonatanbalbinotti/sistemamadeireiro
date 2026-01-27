@@ -107,6 +107,7 @@ export default function Producao() {
           setToras(torasData.map(t => ({
             id: t.id,
             data: t.data,
+            numeroLote: t.numero_lote || undefined,
             descricao: t.descricao,
             peso: Number(t.peso),
             toneladas: Number(t.toneladas),
@@ -981,6 +982,8 @@ export default function Producao() {
                       <SelectContent>
                         {toras.map((tora) => (
                           <SelectItem key={tora.id} value={tora.id}>
+                            <span className="font-semibold text-primary">Lote {tora.numeroLote || '-'}</span>
+                            <span className="mx-2">•</span>
                             {tora.descricao} - {tora.toneladas.toFixed(2)} T
                           </SelectItem>
                         ))}
