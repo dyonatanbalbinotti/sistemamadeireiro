@@ -520,6 +520,147 @@ export default function Producao() {
     toast.success('PDF exportado com sucesso!');
   };
 
+  const exportarConversaoPDF = async () => {
+    const doc = new jsPDF();
+    
+    // Calcular totais por mês (mesma lógica usada na renderização)
+    const totaisPorMes: Record<string, { toneladas: number; m3: number; conversoes: Array<{descricao: string; numeroLote?: string; toneladas: number; m3Total: number; conversao: number}> }> = {};
+    
+    toras.forEach(tora => {
+      const mesAno = new Date(tora.data).toLocaleDateString('pt-BR', { month: '2-digit', year: 'numeric' });
+      const torasSerradasDoLote = torasSerradas.filter(ts => ts.toraId === tora.id);
+      const toneladasSerradas = torasSerradasDoLote.reduce((sum, ts) => sum + ts.toneladas, 0);
+      const producoesDoLote = producao.filter(p => p.toraId === tora.id);
+      const m3Total = producoesDoLote.reduce((sum, p) => sum + p.m3, 0);
+      
+      if (!totaisPorMes[mesAno]) {
+        totaisPorMes[mesAno] = { toneladas: 0, m3: 0, conversoes: [] };
+      }
+      
+      if (m3Total > 0) {
+        totaisPorMes[mesAno].toneladas += toneladasSerradas;
+        totaisPorMes[mesAno].m3 += m3Total;
+        totaisPorMes[mesAno].conversoes.push({
+          descricao: tora.descricao,
+          numeroLote: tora.numeroLote,
+          toneladas: toneladasSerradas,
+          m3Total,
+          conversao: m3Total > 0 ? toneladasSerradas / m3Total : 0
+        });
+      }
+    });
+
+    const mesesOrdenados = Object.keys(totaisPorMes)
+      .filter(mes => totaisPorMes[mes].m3 > 0)
+      .sort((a, b) => {
+        const [mesA, anoA] = a.split('/');
+        const [mesB, anoB] = b.split('/');
+        return new Date(Number(anoB), Number(mesB) - 1).getTime() - new Date(Number(anoA), Number(mesA) - 1).getTime();
+      });
+
+    if (mesesOrdenados.length === 0) {
+      toast.error('Nenhuma conversão para exportar');
+      return;
+    }
+
+    // Adicionar cabeçalho
+    let startY = await addPDFHeader({ empresa, doc });
+    
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text('Relatório de Conversão por Lote de Toras', 14, startY + 5);
+    
+    let currentY = startY + 15;
+
+    // Calcular totais gerais
+    let totalGeralToneladas = 0;
+    let totalGeralM3 = 0;
+
+    mesesOrdenados.forEach((mesAno, index) => {
+      const dadosMes = totaisPorMes[mesAno];
+      const conversaoMensal = dadosMes.m3 > 0 ? dadosMes.toneladas / dadosMes.m3 : 0;
+
+      totalGeralToneladas += dadosMes.toneladas;
+      totalGeralM3 += dadosMes.m3;
+
+      // Verificar se precisa de nova página
+      if (currentY > 250) {
+        doc.addPage();
+        currentY = 20;
+      }
+
+      // Título do mês
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(`Mês: ${mesAno}`, 14, currentY);
+      currentY += 5;
+
+      // Tabela de conversões do mês
+      const tableData = dadosMes.conversoes.map(conv => [
+        `Lote ${conv.numeroLote || '-'} • ${conv.descricao}`,
+        `${conv.toneladas.toFixed(2)} T`,
+        `${conv.m3Total.toFixed(2)} m³`,
+        `${conv.conversao.toFixed(2)} T/m³`
+      ]);
+
+      // Adicionar linha de total do mês
+      tableData.push([
+        `Total ${mesAno}`,
+        `${dadosMes.toneladas.toFixed(2)} T`,
+        `${dadosMes.m3.toFixed(2)} m³`,
+        `${conversaoMensal.toFixed(2)} T/m³`
+      ]);
+
+      autoTable(doc, {
+        head: [['Lote (Tora)', 'Toneladas', 'm³ Serrados', 'Conversão (T/m³)']],
+        body: tableData,
+        startY: currentY,
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [79, 70, 229] },
+        bodyStyles: { valign: 'middle' },
+        didParseCell: (data) => {
+          // Destacar linha de total
+          if (data.row.index === tableData.length - 1) {
+            data.cell.styles.fontStyle = 'bold';
+            data.cell.styles.fillColor = [240, 240, 255];
+          }
+        },
+        margin: { bottom: 30 }
+      });
+
+      currentY = (doc as any).lastAutoTable.finalY + 10;
+    });
+
+    // Resumo geral
+    if (currentY > 230) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    const conversaoGeral = totalGeralM3 > 0 ? totalGeralToneladas / totalGeralM3 : 0;
+    
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text('Resumo Geral', 14, currentY);
+    currentY += 8;
+
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Total de Toneladas Serradas: ${totalGeralToneladas.toFixed(2)} T`, 14, currentY);
+    currentY += 6;
+    doc.text(`Total de m³ Produzidos: ${totalGeralM3.toFixed(2)} m³`, 14, currentY);
+    currentY += 6;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Conversão Média Geral: ${conversaoGeral.toFixed(2)} T/m³`, 14, currentY);
+
+    // Adicionar rodapé
+    await addPDFFooter({ empresa, doc });
+    
+    const dataAtual = format(new Date(), 'yyyy-MM-dd');
+    doc.save(`conversao-lotes-${dataAtual}.pdf`);
+    toast.success('PDF de conversão exportado com sucesso!');
+  };
+
   const exportarExcel = () => {
     const producaoFiltrada = getProducaoFiltrada();
     
@@ -1037,10 +1178,21 @@ export default function Producao() {
 
           <Card className="glass-effect neon-border shadow-elegant">
             <CardHeader>
-              <CardTitle className="text-foreground flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-primary" />
-                Conversão por Lote de Toras
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-primary" />
+                  Conversão por Lote de Toras
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={exportarConversaoPDF}
+                  className="gap-2"
+                >
+                  <img src={pdfIcon} alt="PDF" className="h-4 w-4" />
+                  Exportar PDF
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               {(() => {
