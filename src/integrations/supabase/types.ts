@@ -1046,6 +1046,39 @@ export type Database = {
           },
         ]
       }
+      suspicious_access_attempts: {
+        Row: {
+          attempt_type: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: unknown
+          target_id: string | null
+          target_table: string
+          user_id: string | null
+        }
+        Insert: {
+          attempt_type: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown
+          target_id?: string | null
+          target_table: string
+          user_id?: string | null
+        }
+        Update: {
+          attempt_type?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: unknown
+          target_id?: string | null
+          target_table?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       toras: {
         Row: {
           created_at: string
@@ -1339,7 +1372,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_empresas_access_rate_limit: { Args: never; Returns: boolean }
       check_login_rate_limit: { Args: { _email: string }; Returns: boolean }
+      detect_enumeration_attempt: {
+        Args: { _table_name: string; _target_id: string }
+        Returns: undefined
+      }
       get_current_user_empresa_id: { Args: never; Returns: string }
       get_user_empresa_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -1366,6 +1404,10 @@ export type Database = {
         Returns: undefined
       }
       user_belongs_to_empresa: {
+        Args: { _empresa_id: string }
+        Returns: boolean
+      }
+      user_can_access_empresa: {
         Args: { _empresa_id: string }
         Returns: boolean
       }
