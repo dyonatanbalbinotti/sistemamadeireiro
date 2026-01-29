@@ -156,8 +156,8 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Use /auth as redirect URL - the hash will be processed there
-      const redirectUrl = `${window.location.origin}/auth`;
+      // Redirect to /alterar-senha page for password reset
+      const redirectUrl = `${window.location.origin}/alterar-senha`;
       
       console.log('Sending password reset email to:', email);
       console.log('Redirect URL:', redirectUrl);
