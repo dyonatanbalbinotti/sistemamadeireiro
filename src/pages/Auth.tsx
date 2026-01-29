@@ -26,7 +26,7 @@ const Auth = () => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
-  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  
   
   const { user, secureSignIn, isLocked, lockoutEndTime, loginAttempts } = useSecureAuth();
   const { toast } = useToast();
@@ -176,14 +176,11 @@ const Auth = () => {
           description: data.error,
         });
       } else {
-        // Código gerado com sucesso
-        if (data?.code) {
-          setGeneratedCode(data.code);
-        }
+        // Código enviado com sucesso
         setMode('enter-code');
         toast({
-          title: "Código gerado!",
-          description: "Digite o código de 6 dígitos para continuar.",
+          title: "Código enviado!",
+          description: "Verifique seu email e digite o código de 6 dígitos.",
         });
       }
     } catch (error: any) {
@@ -444,14 +441,12 @@ const Auth = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {generatedCode && (
-                <Alert className="border-primary/50 bg-primary/10 mb-4">
-                  <KeyRound className="h-4 w-4 text-primary" />
-                  <AlertDescription className="text-primary">
-                    Seu código de recuperação é: <strong className="text-lg">{generatedCode}</strong>
-                  </AlertDescription>
-                </Alert>
-              )}
+              <Alert className="border-primary/50 bg-primary/10 mb-4">
+                <Mail className="h-4 w-4 text-primary" />
+                <AlertDescription className="text-primary">
+                  Enviamos um código de 6 dígitos para <strong>{email}</strong>. Verifique sua caixa de entrada e spam.
+                </AlertDescription>
+              </Alert>
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="reset-code">Código de 6 dígitos</Label>
@@ -484,7 +479,6 @@ const Auth = () => {
                   onClick={() => {
                     setMode('forgot-password');
                     setResetCode('');
-                    setGeneratedCode(null);
                   }}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
