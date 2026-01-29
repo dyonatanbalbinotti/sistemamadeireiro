@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Eye, EyeOff, AlertTriangle, Lock, ArrowLeft, Mail, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, AlertTriangle, Lock, ArrowLeft, Mail, CheckCircle, KeyRound } from "lucide-react";
 import { motion } from "framer-motion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import dwLogo from "@/assets/dw-logo-new.png";
@@ -17,14 +17,16 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [resetCode, setResetCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; confirmPassword?: string }>({});
-  const [mode, setMode] = useState<'login' | 'forgot-password' | 'reset-password'>('login');
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string; confirmPassword?: string; code?: string }>({});
+  const [mode, setMode] = useState<'login' | 'forgot-password' | 'enter-code' | 'reset-password'>('login');
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   
   const { user, secureSignIn, isLocked, lockoutEndTime, loginAttempts } = useSecureAuth();
   const { toast } = useToast();
@@ -156,38 +158,56 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Usar URL fixa da produção Vercel para garantir redirecionamento correto
-      const redirectUrl = 'https://dwcorporationsistemamadeireiro.vercel.app/alterar-senha';
-      
-      console.log('Sending password reset email to:', email);
-      console.log('Redirect URL:', redirectUrl);
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
+      // Usar nosso sistema customizado de reset de senha
+      const { data, error } = await supabase.functions.invoke('request-password-reset', {
+        body: { email: email.toLowerCase().trim() }
       });
 
       if (error) {
         toast({
           variant: "destructive",
           title: "Erro",
-          description: error.message,
+          description: error.message || "Erro ao solicitar recuperação de senha",
+        });
+      } else if (data?.error) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: data.error,
         });
       } else {
-        setResetEmailSent(true);
+        // Código gerado com sucesso
+        if (data?.code) {
+          setGeneratedCode(data.code);
+        }
+        setMode('enter-code');
         toast({
-          title: "Email enviado!",
-          description: "Verifique sua caixa de entrada para redefinir sua senha.",
+          title: "Código gerado!",
+          description: "Digite o código de 6 dígitos para continuar.",
         });
       }
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Ocorreu um erro ao enviar o email de recuperação.",
+        description: "Ocorreu um erro ao solicitar recuperação de senha.",
       });
     }
 
     setIsLoading(false);
+  };
+
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFieldErrors({});
+
+    if (!resetCode.trim() || resetCode.length !== 6) {
+      setFieldErrors({ code: "Digite o código de 6 dígitos" });
+      return;
+    }
+
+    // Código validado, ir para etapa de nova senha
+    setMode('reset-password');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -208,13 +228,26 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      // Usar nosso sistema customizado para resetar a senha
+      const { data, error } = await supabase.functions.invoke('verify-reset-code', {
+        body: { 
+          email: email.toLowerCase().trim(),
+          code: resetCode,
+          newPassword: password
+        }
+      });
 
       if (error) {
         toast({
           variant: "destructive",
           title: "Erro",
-          description: error.message,
+          description: error.message || "Erro ao alterar senha",
+        });
+      } else if (data?.error) {
+        toast({
+          variant: "destructive",
+          title: "Erro",
+          description: data.error,
         });
       } else {
         setResetSuccess(true);
@@ -222,10 +255,6 @@ const Auth = () => {
           title: "Senha alterada!",
           description: "Sua senha foi alterada com sucesso.",
         });
-        
-        // Sign out the user so they can log in with new password
-        await supabase.auth.signOut();
-        setHasRecoverySession(false);
       }
     } catch (error: any) {
       toast({
@@ -384,6 +413,91 @@ const Auth = () => {
     );
   }
 
+  // Enter Code Mode
+  if (mode === 'enter-code') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card className="w-full max-w-md glass-effect neon-border">
+            <CardHeader className="space-y-4">
+              <div className="flex justify-center">
+                <img 
+                  src={dwLogo} 
+                  alt="DW Corporation Logo" 
+                  className="h-16 w-auto dark:drop-shadow-[0_0_20px_rgba(0,255,255,0.8)]" 
+                />
+              </div>
+              <div className="flex justify-center">
+                <div className="p-3 rounded-full bg-primary/10">
+                  <KeyRound className="h-6 w-6 text-primary" />
+                </div>
+              </div>
+              <CardTitle className="text-2xl text-center font-tech bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
+                Código de Verificação
+              </CardTitle>
+              <CardDescription className="text-center text-muted-foreground">
+                Digite o código de 6 dígitos enviado para seu email
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {generatedCode && (
+                <Alert className="border-primary/50 bg-primary/10 mb-4">
+                  <KeyRound className="h-4 w-4 text-primary" />
+                  <AlertDescription className="text-primary">
+                    Seu código de recuperação é: <strong className="text-lg">{generatedCode}</strong>
+                  </AlertDescription>
+                </Alert>
+              )}
+              <form onSubmit={handleVerifyCode} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-code">Código de 6 dígitos</Label>
+                  <Input
+                    id="reset-code"
+                    type="text"
+                    placeholder="000000"
+                    value={resetCode}
+                    onChange={(e) => setResetCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    required
+                    maxLength={6}
+                    className={`text-center text-2xl tracking-widest ${fieldErrors.code ? "border-destructive" : ""}`}
+                    autoComplete="one-time-code"
+                  />
+                  {fieldErrors.code && (
+                    <p className="text-sm text-destructive">{fieldErrors.code}</p>
+                  )}
+                </div>
+                <Button 
+                  type="submit" 
+                  className="w-full neon-glow" 
+                  disabled={resetCode.length !== 6}
+                >
+                  Verificar Código
+                </Button>
+                <Button 
+                  type="button"
+                  variant="ghost" 
+                  className="w-full" 
+                  onClick={() => {
+                    setMode('forgot-password');
+                    setResetCode('');
+                    setGeneratedCode(null);
+                  }}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
+  }
+
   // Forgot Password Mode
   if (mode === 'forgot-password') {
     return (
@@ -406,68 +520,44 @@ const Auth = () => {
                 Recuperar Senha
               </CardTitle>
               <CardDescription className="text-center text-muted-foreground">
-                {resetEmailSent 
-                  ? "Email de recuperação enviado!" 
-                  : "Digite seu email para receber o link de recuperação"}
+                Digite seu email para receber o código de recuperação
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {resetEmailSent ? (
-                <div className="space-y-4">
-                  <Alert className="border-green-500/50 bg-green-500/10">
-                    <Mail className="h-4 w-4 text-green-500" />
-                    <AlertDescription className="text-green-500">
-                      Enviamos um email para <strong>{email}</strong> com instruções para redefinir sua senha.
-                    </AlertDescription>
-                  </Alert>
-                  <Button 
-                    variant="outline" 
-                    className="w-full" 
-                    onClick={() => {
-                      setMode('login');
-                      setResetEmailSent(false);
-                    }}
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Voltar ao login
-                  </Button>
+              <form onSubmit={handleForgotPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <Input
+                    id="reset-email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className={fieldErrors.email ? "border-destructive" : ""}
+                    autoComplete="email"
+                  />
+                  {fieldErrors.email && (
+                    <p className="text-sm text-destructive">{fieldErrors.email}</p>
+                  )}
                 </div>
-              ) : (
-                <form onSubmit={handleForgotPassword} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reset-email">Email</Label>
-                    <Input
-                      id="reset-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className={fieldErrors.email ? "border-destructive" : ""}
-                      autoComplete="email"
-                    />
-                    {fieldErrors.email && (
-                      <p className="text-sm text-destructive">{fieldErrors.email}</p>
-                    )}
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full neon-glow" 
-                    disabled={isLoading}
-                  >
-                    {isLoading ? "Enviando..." : "Enviar link de recuperação"}
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant="ghost" 
-                    className="w-full" 
-                    onClick={() => setMode('login')}
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    Voltar ao login
-                  </Button>
-                </form>
-              )}
+                <Button 
+                  type="submit" 
+                  className="w-full neon-glow" 
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Gerando código..." : "Gerar código de recuperação"}
+                </Button>
+                <Button 
+                  type="button"
+                  variant="ghost" 
+                  className="w-full" 
+                  onClick={() => setMode('login')}
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar ao login
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </motion.div>

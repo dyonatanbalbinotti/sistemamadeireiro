@@ -888,6 +888,33 @@ export type Database = {
         }
         Relationships: []
       }
+      password_reset_tokens: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          used: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          token: string
+          used?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
       pedidos: {
         Row: {
           concluido: boolean
@@ -1374,6 +1401,7 @@ export type Database = {
     Functions: {
       check_empresas_access_rate_limit: { Args: never; Returns: boolean }
       check_login_rate_limit: { Args: { _email: string }; Returns: boolean }
+      cleanup_expired_reset_tokens: { Args: never; Returns: undefined }
       detect_enumeration_attempt: {
         Args: { _table_name: string; _target_id: string }
         Returns: undefined
