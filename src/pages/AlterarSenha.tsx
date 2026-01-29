@@ -30,6 +30,11 @@ const AlterarSenha = () => {
     const checkRecoveryTokens = async () => {
       const hash = window.location.hash;
       
+      // Check if already in recovery mode from session storage
+      if (sessionStorage.getItem('password_recovery_mode') === 'true') {
+        setIsRecoveryMode(true);
+      }
+      
       if (hash) {
         const hashParams = new URLSearchParams(hash.substring(1));
         const type = hashParams.get('type');
@@ -45,6 +50,7 @@ const AlterarSenha = () => {
 
             if (!error) {
               setIsRecoveryMode(true);
+              sessionStorage.setItem('password_recovery_mode', 'true');
               // Clean URL
               window.history.replaceState(null, '', window.location.pathname);
             }
@@ -58,6 +64,7 @@ const AlterarSenha = () => {
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'PASSWORD_RECOVERY' && session) {
           setIsRecoveryMode(true);
+          sessionStorage.setItem('password_recovery_mode', 'true');
         }
       });
 
@@ -100,7 +107,8 @@ const AlterarSenha = () => {
 
       if (isRecoveryMode) {
         setResetSuccess(true);
-        // Sign out so user can login with new password
+        // Clear recovery mode and sign out so user can login with new password
+        sessionStorage.removeItem('password_recovery_mode');
         await supabase.auth.signOut();
       } else {
         toast({

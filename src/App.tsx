@@ -45,10 +45,21 @@ const pageVariants = {
 
 // Wrapper for AlterarSenha that handles both recovery mode (public) and authenticated mode
 const AlterarSenhaWrapper = () => {
+  const location = useLocation();
   const hash = window.location.hash;
-  const hasRecoveryToken = hash && hash.includes('type=recovery');
+  const search = location.search;
   
-  // If has recovery token in URL, show page without protection (for email link recovery)
+  // Check for recovery token in hash or search params
+  const hasRecoveryToken = (hash && hash.includes('type=recovery')) || 
+                           (search && search.includes('type=recovery')) ||
+                           sessionStorage.getItem('password_recovery_mode') === 'true';
+  
+  // Store recovery mode in session to persist across renders
+  if (hash && hash.includes('type=recovery')) {
+    sessionStorage.setItem('password_recovery_mode', 'true');
+  }
+  
+  // If has recovery token, show page without protection (for email link recovery)
   if (hasRecoveryToken) {
     return <AlterarSenha />;
   }
