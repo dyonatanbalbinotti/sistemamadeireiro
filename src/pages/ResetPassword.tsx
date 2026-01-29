@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, CheckCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, CheckCircle, Loader2, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import dwLogo from "@/assets/dw-logo-new.png";
@@ -30,7 +30,17 @@ const ResetPassword = () => {
       setIsValidating(true);
       
       try {
-        // Check URL hash for recovery tokens (Supabase format)
+        // First, check if there's a session (Supabase may have already processed the tokens)
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session) {
+          console.log('Session found, allowing password reset');
+          setIsValidSession(true);
+          setIsValidating(false);
+          return;
+        }
+
+        // If no session, check URL hash for recovery tokens (Supabase format)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const type = hashParams.get('type');
@@ -39,8 +49,7 @@ const ResetPassword = () => {
         console.log('Recovery validation:', { 
           hasAccessToken: !!accessToken, 
           type, 
-          hasRefreshToken: !!refreshToken,
-          hash: window.location.hash.substring(0, 50) + '...'
+          hasRefreshToken: !!refreshToken
         });
 
         // If we have recovery tokens in the URL, set the session
@@ -68,21 +77,14 @@ const ResetPassword = () => {
             window.history.replaceState(null, '', window.location.pathname);
           }
         } else {
-          // Check if there's already an active session (user might have refreshed)
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          if (session) {
-            console.log('Existing session found, allowing password reset');
-            setIsValidSession(true);
-          } else {
-            console.log('No valid recovery session found');
-            toast({
-              variant: "destructive",
-              title: "Link inválido",
-              description: "Este link de recuperação é inválido ou expirou. Por favor, solicite um novo link.",
-            });
-            navigate('/auth');
-          }
+          // No tokens and no session
+          console.log('No valid recovery session found');
+          toast({
+            variant: "destructive",
+            title: "Link inválido",
+            description: "Este link de recuperação é inválido ou expirou. Por favor, solicite um novo link.",
+          });
+          navigate('/auth');
         }
       } catch (error) {
         console.error('Error validating recovery session:', error);
@@ -97,7 +99,9 @@ const ResetPassword = () => {
       }
     };
 
-    validateRecoverySession();
+    // Small delay to allow Supabase to process tokens first
+    const timer = setTimeout(validateRecoverySession, 100);
+    return () => clearTimeout(timer);
   }, [navigate, toast]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -132,6 +136,9 @@ const ResetPassword = () => {
           title: "Senha alterada!",
           description: "Sua senha foi alterada com sucesso.",
         });
+        
+        // Sign out the user so they can log in with new password
+        await supabase.auth.signOut();
       }
     } catch (error: any) {
       toast({
@@ -237,11 +244,16 @@ const ResetPassword = () => {
                 className="h-16 w-auto dark:drop-shadow-[0_0_20px_rgba(0,255,255,0.8)]" 
               />
             </div>
+            <div className="flex justify-center">
+              <div className="p-3 rounded-full bg-primary/10">
+                <Lock className="h-6 w-6 text-primary" />
+              </div>
+            </div>
             <CardTitle className="text-2xl text-center font-tech bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
               Redefinir Senha
             </CardTitle>
             <CardDescription className="text-center text-muted-foreground">
-              Digite sua nova senha
+              Digite sua nova senha abaixo
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -252,7 +264,7 @@ const ResetPassword = () => {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Digite a nova senha"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -283,7 +295,7 @@ const ResetPassword = () => {
                   <Input
                     id="confirmPassword"
                     type={showConfirmPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Confirme a nova senha"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required
@@ -313,7 +325,7 @@ const ResetPassword = () => {
                 className="w-full neon-glow" 
                 disabled={isLoading}
               >
-                {isLoading ? "Salvando..." : "Salvar Nova Senha"}
+                {isLoading ? "Salvando..." : "Alterar Senha"}
               </Button>
             </form>
           </CardContent>
