@@ -43,6 +43,26 @@ const pageVariants = {
   },
 };
 
+// Wrapper for AlterarSenha that handles both recovery mode (public) and authenticated mode
+const AlterarSenhaWrapper = () => {
+  const hash = window.location.hash;
+  const hasRecoveryToken = hash && hash.includes('type=recovery');
+  
+  // If has recovery token in URL, show page without protection (for email link recovery)
+  if (hasRecoveryToken) {
+    return <AlterarSenha />;
+  }
+  
+  // Otherwise, require authentication and show with layout
+  return (
+    <ProtectedRoute>
+      <Layout>
+        <AlterarSenha />
+      </Layout>
+    </ProtectedRoute>
+  );
+};
+
 const AnimatedRoutes = () => {
   const location = useLocation();
 
@@ -71,7 +91,7 @@ const AnimatedRoutes = () => {
           <Route path="/relatorios-financeiros" element={<ProtectedRoute><Layout><RelatoriosFinanceiros /></Layout></ProtectedRoute>} />
           <Route path="/almoxarifado" element={<ProtectedRoute><Layout><Almoxarifado /></Layout></ProtectedRoute>} />
           <Route path="/fluxo-financeiro" element={<ProtectedRoute><Layout><FluxoFinanceiro /></Layout></ProtectedRoute>} />
-          <Route path="/alterar-senha" element={<ProtectedRoute><Layout><AlterarSenha /></Layout></ProtectedRoute>} />
+          <Route path="/alterar-senha" element={<AlterarSenhaWrapper />} />
           <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
