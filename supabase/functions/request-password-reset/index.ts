@@ -183,7 +183,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Código de recuperação enviado para seu email.'
+        code: token,
+        message: 'Código de recuperação gerado.'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

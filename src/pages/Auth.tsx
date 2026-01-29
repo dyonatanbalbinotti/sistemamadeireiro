@@ -26,7 +26,7 @@ const Auth = () => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
-  
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   
   const { user, secureSignIn, isLocked, lockoutEndTime, loginAttempts } = useSecureAuth();
   const { toast } = useToast();
@@ -176,11 +176,14 @@ const Auth = () => {
           description: data.error,
         });
       } else {
-        // Código enviado com sucesso
+        // Código gerado - mostrar na tela
+        if (data?.code) {
+          setGeneratedCode(data.code);
+        }
         setMode('enter-code');
         toast({
-          title: "Código enviado!",
-          description: "Verifique seu email e digite o código de 6 dígitos.",
+          title: "Código gerado!",
+          description: "Use o código exibido na tela para redefinir sua senha.",
         });
       }
     } catch (error: any) {
@@ -441,12 +444,17 @@ const Auth = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Alert className="border-primary/50 bg-primary/10 mb-4">
-                <Mail className="h-4 w-4 text-primary" />
-                <AlertDescription className="text-primary">
-                  Enviamos um código de 6 dígitos para <strong>{email}</strong>. Verifique sua caixa de entrada e spam.
-                </AlertDescription>
-              </Alert>
+              {generatedCode && (
+                <Alert className="border-green-500/50 bg-green-500/10 mb-4">
+                  <KeyRound className="h-4 w-4 text-green-500" />
+                  <AlertDescription className="text-green-500">
+                    <span className="block text-sm mb-2">Seu código de recuperação:</span>
+                    <span className="block text-3xl font-mono font-bold tracking-widest text-center">
+                      {generatedCode}
+                    </span>
+                  </AlertDescription>
+                </Alert>
+              )}
               <form onSubmit={handleVerifyCode} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="reset-code">Código de 6 dígitos</Label>
