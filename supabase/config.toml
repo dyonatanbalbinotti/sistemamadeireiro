@@ -1,1 +1,8 @@
 project_id = "tvomlkxchpkeoykppyia"
+
+[auth.email]
+# Custom email templates
+
+[auth.email.template.recovery]
+subject = "DwCorporation - Recuperar Senha"
+content_path = "./templates/recovery.html"
