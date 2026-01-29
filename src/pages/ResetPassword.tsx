@@ -26,83 +26,89 @@ const ResetPassword = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isMounted = true;
+
     const validateRecoverySession = async () => {
-      setIsValidating(true);
-      
-      try {
-        // First, check if there's a session (Supabase may have already processed the tokens)
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session) {
-          console.log('Session found, allowing password reset');
-          setIsValidSession(true);
-          setIsValidating(false);
-          return;
-        }
+      // Check URL hash first - tokens may still be there
+      const hash = window.location.hash;
+      const hashParams = new URLSearchParams(hash.substring(1));
+      const type = hashParams.get('type');
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
 
-        // If no session, check URL hash for recovery tokens (Supabase format)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        const type = hashParams.get('type');
-        const refreshToken = hashParams.get('refresh_token');
+      console.log('Recovery check:', { type, hasAccessToken: !!accessToken, hash: hash.substring(0, 50) });
 
-        console.log('Recovery validation:', { 
-          hasAccessToken: !!accessToken, 
-          type, 
-          hasRefreshToken: !!refreshToken
-        });
-
-        // If we have recovery tokens in the URL, set the session
-        if (accessToken && type === 'recovery') {
+      // If we have recovery tokens, try to set session manually
+      if (type === 'recovery' && accessToken) {
+        try {
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           });
 
-          if (error) {
-            console.error('Error setting recovery session:', error);
-            toast({
-              variant: "destructive",
-              title: "Link inválido",
-              description: "Este link de recuperação é inválido ou expirou.",
-            });
-            navigate('/auth');
+          if (!error && data.session && isMounted) {
+            console.log('Recovery session set from URL tokens');
+            setIsValidSession(true);
+            setIsValidating(false);
+            // Clean URL
+            window.history.replaceState(null, '', window.location.pathname);
             return;
           }
-
-          if (data.session) {
-            console.log('Recovery session set successfully');
-            setIsValidSession(true);
-            // Clear the hash from URL for cleaner look
-            window.history.replaceState(null, '', window.location.pathname);
-          }
-        } else {
-          // No tokens and no session
-          console.log('No valid recovery session found');
-          toast({
-            variant: "destructive",
-            title: "Link inválido",
-            description: "Este link de recuperação é inválido ou expirou. Por favor, solicite um novo link.",
-          });
-          navigate('/auth');
+        } catch (e) {
+          console.error('Error setting session from tokens:', e);
         }
-      } catch (error) {
-        console.error('Error validating recovery session:', error);
-        toast({
-          variant: "destructive",
-          title: "Erro",
-          description: "Ocorreu um erro ao validar o link de recuperação.",
-        });
-        navigate('/auth');
-      } finally {
-        setIsValidating(false);
       }
+
+      // Check if Supabase already has a session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session && isMounted) {
+        console.log('Existing session found');
+        setIsValidSession(true);
+        setIsValidating(false);
+        return;
+      }
+
+      // Listen for PASSWORD_RECOVERY event (Supabase auto-processes tokens)
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth event in ResetPassword:', event);
+        
+        if (event === 'PASSWORD_RECOVERY' && session && isMounted) {
+          console.log('PASSWORD_RECOVERY event received');
+          setIsValidSession(true);
+          setIsValidating(false);
+        } else if (event === 'SIGNED_IN' && session && isMounted) {
+          // Sometimes recovery comes as SIGNED_IN
+          console.log('SIGNED_IN event received during recovery');
+          setIsValidSession(true);
+          setIsValidating(false);
+        }
+      });
+
+      // Give Supabase time to process tokens from URL
+      setTimeout(() => {
+        if (isMounted && !isValidSession) {
+          // Final check
+          supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session && isMounted) {
+              setIsValidSession(true);
+            }
+            setIsValidating(false);
+          });
+        }
+      }, 1500);
+
+      return () => {
+        subscription.unsubscribe();
+      };
     };
 
-    // Small delay to allow Supabase to process tokens first
-    const timer = setTimeout(validateRecoverySession, 100);
-    return () => clearTimeout(timer);
-  }, [navigate, toast]);
+    validateRecoverySession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,9 +188,45 @@ const ResetPassword = () => {
     );
   }
 
-  // Don't render the form if session is not valid
-  if (!isValidSession && !resetSuccess) {
-    return null;
+  // Show error if session is not valid after validation
+  if (!isValidSession && !resetSuccess && !isValidating) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card className="w-full max-w-md glass-effect neon-border">
+            <CardHeader className="space-y-4">
+              <div className="flex justify-center">
+                <img 
+                  src={dwLogo} 
+                  alt="DW Corporation Logo" 
+                  className="h-16 w-auto dark:drop-shadow-[0_0_20px_rgba(0,255,255,0.8)]" 
+                />
+              </div>
+              <CardTitle className="text-2xl text-center font-tech bg-gradient-to-r from-primary to-cyan-400 bg-clip-text text-transparent">
+                Link Inválido
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert className="border-destructive/50 bg-destructive/10">
+                <AlertDescription className="text-destructive">
+                  Este link de recuperação é inválido ou expirou. Por favor, solicite um novo link.
+                </AlertDescription>
+              </Alert>
+              <Button 
+                className="w-full neon-glow" 
+                onClick={() => navigate('/auth')}
+              >
+                Voltar para o Login
+              </Button>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
+    );
   }
 
   if (resetSuccess) {
