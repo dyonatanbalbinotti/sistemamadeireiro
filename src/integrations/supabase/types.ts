@@ -1399,8 +1399,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_profile: { Args: { _profile_id: string }; Returns: boolean }
       check_empresas_access_rate_limit: { Args: never; Returns: boolean }
       check_login_rate_limit: { Args: { _email: string }; Returns: boolean }
+      check_profile_access_rate: { Args: never; Returns: boolean }
       cleanup_expired_reset_tokens: { Args: never; Returns: undefined }
       detect_enumeration_attempt: {
         Args: { _table_name: string; _target_id: string }
