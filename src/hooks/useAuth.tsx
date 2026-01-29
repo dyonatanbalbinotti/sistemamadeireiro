@@ -38,7 +38,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isAlmoxarifado = isFuncionario && userCargo === 'almoxarifado';
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    // Check for recovery tokens in URL hash IMMEDIATELY on mount
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery') {
+      console.log('Recovery tokens detected in URL, redirecting to /reset-password');
+      // Clear the hash and redirect
+      window.history.replaceState(null, '', '/reset-password');
+      navigate('/reset-password');
+    }
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log('Auth event:', event);
