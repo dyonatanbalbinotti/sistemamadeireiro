@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Lock, Eye, EyeOff, CheckCircle, ArrowLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import dwLogo from "@/assets/dw-logo-new.png";
 import { motion } from "framer-motion";
@@ -23,36 +23,51 @@ const AlterarSenha = () => {
   const [resetSuccess, setResetSuccess] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
 
-  // Check for recovery tokens in URL
+  // Check for recovery tokens in URL on mount
   useEffect(() => {
     const checkRecoveryTokens = async () => {
       const hash = window.location.hash;
+      const search = location.search;
+      
+      console.log('AlterarSenha: Checking recovery tokens');
+      console.log('Hash:', hash);
+      console.log('Search:', search);
+      console.log('Session storage:', sessionStorage.getItem('password_recovery_mode'));
       
       // Check if already in recovery mode from session storage
       if (sessionStorage.getItem('password_recovery_mode') === 'true') {
+        console.log('Recovery mode from session storage');
         setIsRecoveryMode(true);
+        setIsValidating(false);
+        return;
       }
       
-      if (hash) {
+      // Check URL hash for recovery tokens (format: #access_token=...&type=recovery)
+      if (hash && hash.includes('type=recovery')) {
+        console.log('Recovery tokens found in hash');
         const hashParams = new URLSearchParams(hash.substring(1));
-        const type = hashParams.get('type');
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
 
-        if (type === 'recovery' && accessToken) {
+        if (accessToken) {
           try {
+            console.log('Setting session with access token');
             const { error } = await supabase.auth.setSession({
               access_token: accessToken,
               refresh_token: refreshToken || '',
             });
 
             if (!error) {
+              console.log('Session set successfully');
               setIsRecoveryMode(true);
               sessionStorage.setItem('password_recovery_mode', 'true');
-              // Clean URL
-              window.history.replaceState(null, '', window.location.pathname);
+              // Clean URL without reloading
+              window.history.replaceState(null, '', '/alterar-senha');
+            } else {
+              console.error('Error setting session:', error);
             }
           } catch (e) {
             console.error('Error setting recovery session:', e);
@@ -60,9 +75,11 @@ const AlterarSenha = () => {
         }
       }
 
-      // Also listen for PASSWORD_RECOVERY event
+      // Also listen for PASSWORD_RECOVERY event from Supabase auth
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log('Auth state change:', event);
         if (event === 'PASSWORD_RECOVERY' && session) {
+          console.log('PASSWORD_RECOVERY event received');
           setIsRecoveryMode(true);
           sessionStorage.setItem('password_recovery_mode', 'true');
         }
@@ -74,7 +91,7 @@ const AlterarSenha = () => {
     };
 
     checkRecoveryTokens();
-  }, []);
+  }, [location]);
 
   const handleAlterarSenha = async (e: React.FormEvent) => {
     e.preventDefault();
