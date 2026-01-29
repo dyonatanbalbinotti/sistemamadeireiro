@@ -156,8 +156,8 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      // Redirect to /alterar-senha page for password reset
-      const redirectUrl = `${window.location.origin}/alterar-senha`;
+      // Usar URL fixa da produção Vercel para garantir redirecionamento correto
+      const redirectUrl = 'https://dwcorporationsistemamadeireiro.vercel.app/alterar-senha';
       
       console.log('Sending password reset email to:', email);
       console.log('Redirect URL:', redirectUrl);
