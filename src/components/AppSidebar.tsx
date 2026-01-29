@@ -14,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Warehouse,
-  Wallet
+  Wallet,
+  KeyRound
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import dwLogo from "@/assets/dw-logo-new.png";
@@ -31,6 +32,7 @@ export default function AppSidebar() {
   if (isAlmoxarifado) {
     const almoxarifadoItems = [
       { to: "/almoxarifado", icon: Warehouse, label: "Almoxarifado" },
+      { to: "/alterar-senha", icon: KeyRound, label: "Alterar Senha" },
     ];
 
     return (
@@ -65,6 +67,8 @@ export default function AppSidebar() {
     ...(!isGerente && !isAlmoxarifado ? [{ to: "/fluxo-financeiro", icon: Wallet, label: "Fluxo Financeiro" }] : []),
     // Relatórios - visível para admin, user e financeiro (não para gerente ou almoxarifado)
     ...(!isGerente && !isAlmoxarifado ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
+    // Alterar Senha - visível para todos
+    { to: "/alterar-senha", icon: KeyRound, label: "Alterar Senha" },
   ];
 
   const NavItem = ({ item }: { item: { to: string; icon: typeof LayoutDashboard; label: string } }) => {

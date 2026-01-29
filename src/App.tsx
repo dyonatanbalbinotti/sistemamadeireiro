@@ -24,6 +24,7 @@ import Install from "./pages/Install";
 import AuditLogs from "./pages/AuditLogs";
 import Almoxarifado from "./pages/Almoxarifado";
 import FluxoFinanceiro from "./pages/FluxoFinanceiro";
+import AlterarSenha from "./pages/AlterarSenha";
 import { SecurityHeaders } from "@/components/SecurityHeaders";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const AnimatedRoutes = () => {
           <Route path="/relatorios-financeiros" element={<ProtectedRoute><Layout><RelatoriosFinanceiros /></Layout></ProtectedRoute>} />
           <Route path="/almoxarifado" element={<ProtectedRoute><Layout><Almoxarifado /></Layout></ProtectedRoute>} />
           <Route path="/fluxo-financeiro" element={<ProtectedRoute><Layout><FluxoFinanceiro /></Layout></ProtectedRoute>} />
+          <Route path="/alterar-senha" element={<ProtectedRoute><Layout><AlterarSenha /></Layout></ProtectedRoute>} />
           <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
