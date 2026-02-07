@@ -1,12 +1,11 @@
 import { ReactNode } from "react";
-import { Outlet } from "react-router-dom";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import FloatingSupport from "@/components/FloatingSupport";
 import UserAccountDrawer from "@/components/UserAccountDrawer";
 import AppSidebar from "@/components/AppSidebar";
 
 interface LayoutProps {
-  children?: ReactNode;
+  children: ReactNode;
 }
 
 export default function Layout({ children }: LayoutProps) {
@@ -24,7 +23,7 @@ export default function Layout({ children }: LayoutProps) {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto p-6">
-          {children || <Outlet />}
+          {children}
         </main>
       </div>
 

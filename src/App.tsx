@@ -2,8 +2,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation, Outlet } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { AnimatePresence, motion } from "framer-motion";
 import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import Toras from "./pages/Toras";
@@ -26,50 +27,44 @@ import FluxoFinanceiro from "./pages/FluxoFinanceiro";
 import AlterarSenha from "./pages/AlterarSenha";
 import { SecurityHeaders } from "@/components/SecurityHeaders";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-    },
+const queryClient = new QueryClient();
+
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  enter: { 
+    opacity: 1, 
+    y: 0, 
+    transition: { duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] as const } 
   },
-});
-
-// Layout wrapper that stays mounted across route changes
-const ProtectedLayout = () => (
-  <ProtectedRoute>
-    <Layout>
-      <Outlet />
-    </Layout>
-  </ProtectedRoute>
-);
-
-const AdminLayout = () => (
-  <ProtectedRoute requireAdmin>
-    <Layout>
-      <Outlet />
-    </Layout>
-  </ProtectedRoute>
-);
+  exit: { 
+    opacity: 0, 
+    y: -8, 
+    transition: { duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] as const } 
+  },
+};
 
 // Wrapper for AlterarSenha that handles both recovery mode (public) and authenticated mode
 const AlterarSenhaWrapper = () => {
   const location = useLocation();
   const hash = window.location.hash;
   const search = location.search;
-
-  const hasRecoveryToken = (hash && hash.includes('type=recovery')) ||
+  
+  // Check for recovery token in hash or search params
+  const hasRecoveryToken = (hash && hash.includes('type=recovery')) || 
                            (search && search.includes('type=recovery')) ||
                            sessionStorage.getItem('password_recovery_mode') === 'true';
-
+  
+  // Store recovery mode in session to persist across renders
   if (hash && hash.includes('type=recovery')) {
     sessionStorage.setItem('password_recovery_mode', 'true');
   }
-
+  
+  // If has recovery token, show page without protection (for email link recovery)
   if (hasRecoveryToken) {
     return <AlterarSenha />;
   }
-
+  
+  // Otherwise, require authentication and show with layout
   return (
     <ProtectedRoute>
       <Layout>
@@ -79,37 +74,42 @@ const AlterarSenhaWrapper = () => {
   );
 };
 
-const AppRoutes = () => (
-  <Routes>
-    {/* Public routes */}
-    <Route path="/auth" element={<Auth />} />
-    <Route path="/reset-password" element={<ResetPassword />} />
-    <Route path="/install" element={<Install />} />
-    <Route path="/alterar-senha" element={<AlterarSenhaWrapper />} />
+const AnimatedRoutes = () => {
+  const location = useLocation();
 
-    {/* Protected routes with persistent Layout */}
-    <Route element={<ProtectedLayout />}>
-      <Route path="/" element={<Index />} />
-      <Route path="/toras" element={<Toras />} />
-      <Route path="/producao" element={<Producao />} />
-      <Route path="/vendas" element={<Vendas />} />
-      <Route path="/estoque" element={<Estoque />} />
-      <Route path="/residuos" element={<Cavaco />} />
-      <Route path="/pedidos" element={<Pedidos />} />
-      <Route path="/relatorios-financeiros" element={<RelatoriosFinanceiros />} />
-      <Route path="/almoxarifado" element={<Almoxarifado />} />
-      <Route path="/fluxo-financeiro" element={<FluxoFinanceiro />} />
-    </Route>
-
-    {/* Admin routes with persistent Layout */}
-    <Route element={<AdminLayout />}>
-      <Route path="/admin" element={<Admin />} />
-      <Route path="/auditoria" element={<AuditLogs />} />
-    </Route>
-
-    <Route path="*" element={<NotFound />} />
-  </Routes>
-);
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial="initial"
+        animate="enter"
+        exit="exit"
+        variants={pageVariants}
+        className="min-h-screen"
+      >
+        <Routes location={location}>
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute requireAdmin><Layout><Admin /></Layout></ProtectedRoute>} />
+          <Route path="/auditoria" element={<ProtectedRoute requireAdmin><Layout><AuditLogs /></Layout></ProtectedRoute>} />
+          <Route path="/toras" element={<ProtectedRoute><Layout><Toras /></Layout></ProtectedRoute>} />
+          <Route path="/producao" element={<ProtectedRoute><Layout><Producao /></Layout></ProtectedRoute>} />
+          <Route path="/vendas" element={<ProtectedRoute><Layout><Vendas /></Layout></ProtectedRoute>} />
+          <Route path="/estoque" element={<ProtectedRoute><Layout><Estoque /></Layout></ProtectedRoute>} />
+          <Route path="/residuos" element={<ProtectedRoute><Layout><Cavaco /></Layout></ProtectedRoute>} />
+          <Route path="/pedidos" element={<ProtectedRoute><Layout><Pedidos /></Layout></ProtectedRoute>} />
+          <Route path="/relatorios-financeiros" element={<ProtectedRoute><Layout><RelatoriosFinanceiros /></Layout></ProtectedRoute>} />
+          <Route path="/almoxarifado" element={<ProtectedRoute><Layout><Almoxarifado /></Layout></ProtectedRoute>} />
+          <Route path="/fluxo-financeiro" element={<ProtectedRoute><Layout><FluxoFinanceiro /></Layout></ProtectedRoute>} />
+          <Route path="/alterar-senha" element={<AlterarSenhaWrapper />} />
+          <Route path="/install" element={<Install />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -120,7 +120,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <AppRoutes />
+            <AnimatedRoutes />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
