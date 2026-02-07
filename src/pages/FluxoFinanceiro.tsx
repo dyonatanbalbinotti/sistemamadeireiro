@@ -44,8 +44,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Plus, Trash2, Edit, TrendingDown, Calendar, DollarSign, Filter, TrendingUp } from "lucide-react";
-import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns";
+import { Plus, Trash2, Edit, TrendingDown, Calendar, DollarSign, Filter, TrendingUp, ChevronLeft, ChevronRight } from "lucide-react";
+import { format, parseISO, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, addMonths, subYears, addYears } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 interface Despesa {
@@ -101,6 +101,7 @@ export default function FluxoFinanceiro() {
   
   const [despesas, setDespesas] = useState<Despesa[]>([]);
   const [despesasAnuais, setDespesasAnuais] = useState<Despesa[]>([]);
+  const [despesasGraficoPizza, setDespesasGraficoPizza] = useState<Despesa[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingDespesa, setEditingDespesa] = useState<Despesa | null>(null);
@@ -114,13 +115,28 @@ export default function FluxoFinanceiro() {
   
   // Filtro por mês
   const [mesFiltro, setMesFiltro] = useState(format(new Date(), "yyyy-MM"));
+  
+  // Estado independente para navegação dos gráficos
+  const [anoGraficoEvolucao, setAnoGraficoEvolucao] = useState(new Date().getFullYear());
+  const [mesGraficoPizza, setMesGraficoPizza] = useState(format(new Date(), "yyyy-MM"));
 
   useEffect(() => {
     if (empresaId) {
       fetchDespesas();
-      fetchDespesasAnuais();
     }
   }, [empresaId, mesFiltro]);
+
+  useEffect(() => {
+    if (empresaId) {
+      fetchDespesasAnuais();
+    }
+  }, [empresaId, anoGraficoEvolucao]);
+
+  useEffect(() => {
+    if (empresaId) {
+      fetchDespesasGraficoPizza();
+    }
+  }, [empresaId, mesGraficoPizza]);
 
   const fetchDespesas = async () => {
     if (!empresaId) return;
@@ -156,9 +172,30 @@ export default function FluxoFinanceiro() {
     if (!empresaId) return;
     
     try {
-      const anoAtual = parseISO(`${mesFiltro}-01`);
-      const dataInicio = startOfYear(anoAtual);
-      const dataFim = endOfYear(anoAtual);
+      const dataInicio = `${anoGraficoEvolucao}-01-01`;
+      const dataFim = `${anoGraficoEvolucao}-12-31`;
+      
+      const { data, error } = await supabase
+        .from("despesas")
+        .select("*")
+        .eq("empresa_id", empresaId)
+        .gte("data", dataInicio)
+        .lte("data", dataFim)
+        .order("data", { ascending: true });
+      
+      if (error) throw error;
+      setDespesasAnuais(data || []);
+    } catch (error: any) {
+      console.error("Erro ao buscar despesas anuais:", error);
+    }
+  };
+
+  const fetchDespesasGraficoPizza = async () => {
+    if (!empresaId) return;
+    
+    try {
+      const dataInicio = startOfMonth(parseISO(`${mesGraficoPizza}-01`));
+      const dataFim = endOfMonth(parseISO(`${mesGraficoPizza}-01`));
       
       const { data, error } = await supabase
         .from("despesas")
@@ -166,12 +203,12 @@ export default function FluxoFinanceiro() {
         .eq("empresa_id", empresaId)
         .gte("data", format(dataInicio, "yyyy-MM-dd"))
         .lte("data", format(dataFim, "yyyy-MM-dd"))
-        .order("data", { ascending: true });
+        .order("data", { ascending: false });
       
       if (error) throw error;
-      setDespesasAnuais(data || []);
+      setDespesasGraficoPizza(data || []);
     } catch (error: any) {
-      console.error("Erro ao buscar despesas anuais:", error);
+      console.error("Erro ao buscar despesas do gráfico pizza:", error);
     }
   };
 
@@ -285,16 +322,24 @@ export default function FluxoFinanceiro() {
     }
   };
 
-  // Agrupar por categoria para gráfico
-  const despesasPorCategoria = despesas.reduce((acc, d) => {
+  // Agrupar por categoria para gráfico de pizza (usa dados independentes)
+  const despesasPorCategoriaPizza = despesasGraficoPizza.reduce((acc, d) => {
     const cat = d.categoria;
     acc[cat] = (acc[cat] || 0) + Number(d.valor);
     return acc;
   }, {} as Record<string, number>);
 
-  const chartData = Object.entries(despesasPorCategoria)
+  const chartDataPizza = Object.entries(despesasPorCategoriaPizza)
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value);
+
+  // Dados da tabela usam o filtro principal
+  const chartData = Object.entries(
+    despesas.reduce((acc, d) => {
+      acc[d.categoria] = (acc[d.categoria] || 0) + Number(d.valor);
+      return acc;
+    }, {} as Record<string, number>)
+  ).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
 
   const totalDespesas = despesas.reduce((sum, d) => sum + Number(d.valor), 0);
 
@@ -306,9 +351,8 @@ export default function FluxoFinanceiro() {
   }, {} as Record<string, number>);
 
   // Gerar todos os meses do ano selecionado
-  const anoSelecionado = mesFiltro.split("-")[0];
   const mesesDoAno = Array.from({ length: 12 }, (_, i) => {
-    const mes = `${anoSelecionado}-${String(i + 1).padStart(2, "0")}`;
+    const mes = `${anoGraficoEvolucao}-${String(i + 1).padStart(2, "0")}`;
     return {
       mes,
       mesLabel: format(parseISO(`${mes}-01`), "MMM", { locale: ptBR }),
@@ -469,8 +513,16 @@ export default function FluxoFinanceiro() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-lg flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
-            Evolução Mensal - {anoSelecionado}
+            Evolução Mensal - {anoGraficoEvolucao}
           </CardTitle>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAnoGraficoEvolucao(a => a - 1)}>
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setAnoGraficoEvolucao(a => a + 1)}>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={220}>
@@ -513,15 +565,32 @@ export default function FluxoFinanceiro() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pie Chart */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-lg">Despesas por Categoria</CardTitle>
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                const prev = format(subMonths(parseISO(`${mesGraficoPizza}-01`), 1), "yyyy-MM");
+                setMesGraficoPizza(prev);
+              }}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground min-w-[80px] text-center">
+                {format(parseISO(`${mesGraficoPizza}-01`), "MMM/yy", { locale: ptBR })}
+              </span>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => {
+                const next = format(addMonths(parseISO(`${mesGraficoPizza}-01`), 1), "yyyy-MM");
+                setMesGraficoPizza(next);
+              }}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            {chartData.length > 0 ? (
+            {chartDataPizza.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
                 <PieChart>
                   <Pie
-                    data={chartData}
+                    data={chartDataPizza}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -530,7 +599,7 @@ export default function FluxoFinanceiro() {
                     fill="#8884d8"
                     dataKey="value"
                   >
-                    {chartData.map((_, index) => (
+                    {chartDataPizza.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                     ))}
                   </Pie>
