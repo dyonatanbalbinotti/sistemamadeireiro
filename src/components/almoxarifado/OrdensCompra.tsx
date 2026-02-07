@@ -13,7 +13,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Eye, CheckCircle, XCircle, Send, Package, ShoppingCart, Trash2, UserPlus } from "lucide-react";
+import { Plus, Eye, CheckCircle, XCircle, Send, Package, ShoppingCart, Trash2, UserPlus, Edit } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { formatDateBR } from "@/lib/dateUtils";
 
 interface Fornecedor {
@@ -72,6 +83,7 @@ export default function OrdensCompra() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [fornecedorDialogOpen, setFornecedorDialogOpen] = useState(false);
   const [selectedOrdem, setSelectedOrdem] = useState<Ordem | null>(null);
+  const [editingOrdem, setEditingOrdem] = useState<Ordem | null>(null);
   
   // Form states
   const [numeroOrdem, setNumeroOrdem] = useState("");
@@ -308,11 +320,96 @@ export default function OrdensCompra() {
     },
   });
 
+  const deleteOrdem = useMutation({
+    mutationFn: async (id: string) => {
+      // Delete items first
+      const { error: itensError } = await supabase
+        .from("almoxarifado_ordens_itens")
+        .delete()
+        .eq("ordem_id", id);
+      if (itensError) throw itensError;
+
+      const { error } = await supabase
+        .from("almoxarifado_ordens_compra")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["almoxarifado-ordens"] });
+      toast.success("Ordem excluída!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao excluir: " + error.message);
+    },
+  });
+
+  const updateOrdem = useMutation({
+    mutationFn: async () => {
+      if (!editingOrdem || !empresaId) throw new Error("Dados insuficientes");
+
+      const { error: ordemError } = await supabase
+        .from("almoxarifado_ordens_compra")
+        .update({
+          numero_ordem: numeroOrdem,
+          fornecedor_id: fornecedorId || null,
+          observacao: observacao || null,
+        })
+        .eq("id", editingOrdem.id);
+      if (ordemError) throw ordemError;
+
+      // Delete old items and insert new ones
+      const { error: deleteError } = await supabase
+        .from("almoxarifado_ordens_itens")
+        .delete()
+        .eq("ordem_id", editingOrdem.id);
+      if (deleteError) throw deleteError;
+
+      if (ordemItens.length > 0) {
+        const itensData = ordemItens.map((item) => ({
+          ordem_id: editingOrdem.id,
+          item_id: item.itemId,
+          quantidade: item.quantidade,
+          valor_unitario: 0,
+          valor_total: 0,
+        }));
+        const { error: itensError } = await supabase
+          .from("almoxarifado_ordens_itens")
+          .insert(itensData);
+        if (itensError) throw itensError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["almoxarifado-ordens"] });
+      toast.success("Ordem atualizada!");
+      resetForm();
+      setDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error("Erro: " + error.message);
+    },
+  });
+
+  const handleEditOrdem = (ordem: Ordem) => {
+    setEditingOrdem(ordem);
+    setNumeroOrdem(ordem.numero_ordem);
+    setFornecedorId(ordem.almoxarifado_fornecedores?.id || "");
+    setObservacao(ordem.observacao || "");
+    setOrdemItens(
+      ordem.almoxarifado_ordens_itens?.map((item) => ({
+        itemId: item.item_id,
+        quantidade: item.quantidade,
+      })) || []
+    );
+    setDialogOpen(true);
+  };
+
   const resetForm = () => {
     setNumeroOrdem("");
     setFornecedorId("");
     setObservacao("");
     setOrdemItens([]);
+    setEditingOrdem(null);
   };
 
   const addItem = () => {
@@ -416,7 +513,7 @@ export default function OrdensCompra() {
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Nova Ordem de Compra</DialogTitle>
+                <DialogTitle>{editingOrdem ? "Editar Ordem de Compra" : "Nova Ordem de Compra"}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -501,11 +598,11 @@ export default function OrdensCompra() {
                 </div>
 
                 <Button
-                  onClick={() => createOrdem.mutate()}
-                  disabled={!numeroOrdem || ordemItens.length === 0 || createOrdem.isPending}
+                  onClick={() => editingOrdem ? updateOrdem.mutate() : createOrdem.mutate()}
+                  disabled={!numeroOrdem || ordemItens.length === 0 || createOrdem.isPending || updateOrdem.isPending}
                   className="w-full"
                 >
-                  Criar Ordem
+                  {editingOrdem ? "Salvar Alterações" : "Criar Ordem"}
                 </Button>
               </div>
             </DialogContent>
@@ -562,6 +659,35 @@ export default function OrdensCompra() {
                         </Button>
                         {ordem.status === "pendente" && (
                           <>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Editar"
+                              onClick={() => handleEditOrdem(ordem)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" title="Excluir">
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Excluir ordem?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    A ordem {ordem.numero_ordem} será excluída permanentemente.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => deleteOrdem.mutate(ordem.id)}>
+                                    Excluir
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                             {canApproveOrders && (
                               <Button
                                 variant="ghost"
