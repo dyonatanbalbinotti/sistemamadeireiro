@@ -141,6 +141,34 @@ export default function Toras() {
 
         if (error) throw error;
 
+        // Atualizar despesa vinculada no Fluxo Financeiro
+        const toraOriginal = toras.find(t => t.id === editingToraId);
+        if (toraOriginal?.numeroLote) {
+          const descricaoOriginal = `Lote ${toraOriginal.numeroLote}`;
+          if (valorTotalCarga > 0) {
+            // Atualizar despesa existente
+            await supabase
+              .from('despesas')
+              .update({
+                descricao: `Lote ${numeroLote} - ${descricaoTora}`,
+                valor: valorTotalCarga,
+                data: dataTora || getTodayBR(),
+                observacao: `${qtdToras} toras - ${toneladas.toFixed(2)} toneladas - R$ ${valorTon.toFixed(2)}/ton`,
+              })
+              .eq('empresa_id', empresaId)
+              .eq('categoria', 'Toras')
+              .ilike('descricao', `${descricaoOriginal}%`);
+          } else {
+            // Remover despesa se valor zerou
+            await supabase
+              .from('despesas')
+              .delete()
+              .eq('empresa_id', empresaId)
+              .eq('categoria', 'Toras')
+              .ilike('descricao', `${descricaoOriginal}%`);
+          }
+        }
+
         setToras(toras.map(t => t.id === editingToraId ? {
           ...t,
           data: dataTora || getTodayBR(),

@@ -295,6 +295,8 @@ export default function FluxoFinanceiro() {
       
       handleCloseDialog();
       fetchDespesas();
+      fetchDespesasAnuais();
+      fetchDespesasGraficoPizza();
     } catch (error: any) {
       console.error("Erro ao salvar despesa:", error);
       toast({
@@ -312,6 +314,8 @@ export default function FluxoFinanceiro() {
       
       toast({ title: "Sucesso", description: "Despesa excluída!" });
       fetchDespesas();
+      fetchDespesasAnuais();
+      fetchDespesasGraficoPizza();
     } catch (error: any) {
       console.error("Erro ao excluir despesa:", error);
       toast({
