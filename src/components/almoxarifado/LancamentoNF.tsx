@@ -13,7 +13,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Plus, Eye, FileText, Trash2, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Plus, Eye, FileText, Trash2, ArrowDownCircle, ArrowUpCircle, Edit } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { formatDateBR } from "@/lib/dateUtils";
 
 interface Fornecedor {
@@ -57,6 +68,7 @@ export default function LancamentoNF() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [selectedNF, setSelectedNF] = useState<NotaFiscal | null>(null);
+  const [editingNF, setEditingNF] = useState<NotaFiscal | null>(null);
   
   // Form states
   const [numeroNF, setNumeroNF] = useState("");
@@ -201,6 +213,118 @@ export default function LancamentoNF() {
     setFornecedorId("");
     setObservacao("");
     setNfItens([]);
+    setEditingNF(null);
+  };
+
+  const deleteNF = useMutation({
+    mutationFn: async (id: string) => {
+      // Delete items first
+      const { error: itensError } = await supabase
+        .from("almoxarifado_nf_itens")
+        .delete()
+        .eq("nota_fiscal_id", id);
+      if (itensError) throw itensError;
+
+      // Delete associated despesa
+      const nf = notasFiscais.find(n => n.id === id);
+      if (nf) {
+        await supabase
+          .from("despesas")
+          .delete()
+          .eq("empresa_id", empresaId)
+          .ilike("descricao", `NF ${nf.numero_nf}%`);
+      }
+
+      const { error } = await supabase
+        .from("almoxarifado_notas_fiscais")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["almoxarifado-nfs"] });
+      toast.success("Nota Fiscal excluída!");
+    },
+    onError: (error: Error) => {
+      toast.error("Erro ao excluir: " + error.message);
+    },
+  });
+
+  const updateNF = useMutation({
+    mutationFn: async () => {
+      if (!editingNF || !empresaId || !user) throw new Error("Dados insuficientes");
+
+      const newValorTotal = nfItens.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0);
+
+      const { error: nfError } = await supabase
+        .from("almoxarifado_notas_fiscais")
+        .update({
+          numero_nf: numeroNF,
+          tipo,
+          data_emissao: dataEmissao,
+          data_entrada_saida: dataEntradaSaida || null,
+          fornecedor_id: fornecedorId || null,
+          valor_total: newValorTotal,
+          observacao: observacao || null,
+        })
+        .eq("id", editingNF.id);
+      if (nfError) throw nfError;
+
+      // Delete old items and insert new
+      await supabase.from("almoxarifado_nf_itens").delete().eq("nota_fiscal_id", editingNF.id);
+
+      if (nfItens.length > 0) {
+        const itensData = nfItens.map((item) => ({
+          nota_fiscal_id: editingNF.id,
+          item_id: item.itemId,
+          quantidade: item.quantidade,
+          valor_unitario: item.valorUnitario,
+          valor_total: item.quantidade * item.valorUnitario,
+        }));
+        await supabase.from("almoxarifado_nf_itens").insert(itensData);
+      }
+
+      // Update associated despesa
+      if (tipo === "entrada" && newValorTotal > 0) {
+        const fornecedorNome = fornecedores.find(f => f.id === fornecedorId)?.nome || 'Sem fornecedor';
+        await supabase
+          .from("despesas")
+          .update({
+            descricao: `NF ${numeroNF} - ${fornecedorNome}`,
+            valor: newValorTotal,
+            data: dataEmissao,
+          })
+          .eq("empresa_id", empresaId)
+          .ilike("descricao", `NF ${editingNF.numero_nf}%`);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["almoxarifado-nfs"] });
+      toast.success("Nota Fiscal atualizada!");
+      resetForm();
+      setDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error("Erro: " + error.message);
+    },
+  });
+
+  const handleEditNF = (nf: NotaFiscal) => {
+    setEditingNF(nf);
+    setNumeroNF(nf.numero_nf);
+    setTipo(nf.tipo as "entrada" | "saida");
+    setDataEmissao(nf.data_emissao);
+    setDataEntradaSaida(nf.data_entrada_saida || "");
+    setFornecedorId(nf.almoxarifado_fornecedores?.id || "");
+    setObservacao(nf.observacao || "");
+    setNfItens(
+      nf.almoxarifado_nf_itens?.map((item) => ({
+        itemId: item.item_id,
+        quantidade: item.quantidade,
+        valorUnitario: item.valor_unitario,
+      })) || []
+    );
+    setDialogOpen(true);
   };
 
   const addItem = () => {
@@ -239,7 +363,7 @@ export default function LancamentoNF() {
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Nova Nota Fiscal</DialogTitle>
+              <DialogTitle>{editingNF ? "Editar Nota Fiscal" : "Nova Nota Fiscal"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -381,11 +505,11 @@ export default function LancamentoNF() {
               </div>
 
               <Button
-                onClick={() => createNF.mutate()}
-                disabled={!numeroNF || nfItens.length === 0 || createNF.isPending}
+                onClick={() => editingNF ? updateNF.mutate() : createNF.mutate()}
+                disabled={!numeroNF || nfItens.length === 0 || createNF.isPending || updateNF.isPending}
                 className="w-full"
               >
-                Lançar NF
+                {editingNF ? "Salvar Alterações" : "Lançar NF"}
               </Button>
             </div>
           </DialogContent>
@@ -434,16 +558,47 @@ export default function LancamentoNF() {
                     </TableCell>
                     <TableCell>{nf.almoxarifado_nf_itens?.length || 0}</TableCell>
                     <TableCell>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedNF(nf);
-                          setViewDialogOpen(true);
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedNF(nf);
+                            setViewDialogOpen(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Editar"
+                          onClick={() => handleEditNF(nf)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" title="Excluir">
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Excluir Nota Fiscal?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                A NF {nf.numero_nf} será excluída permanentemente, incluindo a despesa associada.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => deleteNF.mutate(nf.id)}>
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
