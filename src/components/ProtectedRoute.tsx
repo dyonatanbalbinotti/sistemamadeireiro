@@ -13,7 +13,7 @@ export default function ProtectedRoute({
   children,
   requireAdmin = false,
 }: ProtectedRouteProps) {
-  const { user, userRole, isGerente, isFinanceiro, isAlmoxarifado, loading } = useAuth();
+  const { user, userRole, isGerente, isFinanceiro, isAlmoxarifado, isSupervisorGeral, loading } = useAuth();
   const location = useLocation();
   const [userStatus, setUserStatus] = useState<string | null>(null);
   const [motivoBloqueio, setMotivoBloqueio] = useState<string | null>(null);
@@ -86,22 +86,25 @@ export default function ProtectedRoute({
     );
   }
 
-  // Rotas operacionais (bloqueadas para Financeiro e Almoxarifado)
-  const operationalRoutes = ['/', '/toras', '/pedidos', '/producao', '/vendas', '/estoque', '/residuos'];
-  
-  // Se é funcionário financeiro tentando acessar rotas operacionais (mas pode acessar almoxarifado e fluxo-financeiro)
-  if (isFinanceiro && operationalRoutes.includes(location.pathname)) {
-    return <Navigate to="/relatorios-financeiros" replace />;
-  }
+  // Supervisor Geral tem acesso total - pular verificações de cargo
+  if (!isSupervisorGeral) {
+    // Rotas operacionais (bloqueadas para Financeiro e Almoxarifado)
+    const operationalRoutes = ['/', '/toras', '/pedidos', '/producao', '/vendas', '/estoque', '/residuos'];
+    
+    // Se é funcionário financeiro tentando acessar rotas operacionais (mas pode acessar almoxarifado e fluxo-financeiro)
+    if (isFinanceiro && operationalRoutes.includes(location.pathname)) {
+      return <Navigate to="/relatorios-financeiros" replace />;
+    }
 
-  // Se é funcionário gerente tentando acessar relatórios, almoxarifado ou fluxo financeiro
-  if (isGerente && (location.pathname === '/relatorios-financeiros' || location.pathname === '/almoxarifado' || location.pathname === '/fluxo-financeiro')) {
-    return <Navigate to="/" replace />;
-  }
+    // Se é funcionário gerente tentando acessar relatórios, almoxarifado ou fluxo financeiro
+    if (isGerente && (location.pathname === '/relatorios-financeiros' || location.pathname === '/almoxarifado' || location.pathname === '/fluxo-financeiro')) {
+      return <Navigate to="/" replace />;
+    }
 
-  // Se é funcionário almoxarifado tentando acessar outras rotas
-  if (isAlmoxarifado && location.pathname !== '/almoxarifado') {
-    return <Navigate to="/almoxarifado" replace />;
+    // Se é funcionário almoxarifado tentando acessar outras rotas
+    if (isAlmoxarifado && location.pathname !== '/almoxarifado') {
+      return <Navigate to="/almoxarifado" replace />;
+    }
   }
 
   // Bloquear acesso se o status do usuário for "invalido" (exceto admins)
