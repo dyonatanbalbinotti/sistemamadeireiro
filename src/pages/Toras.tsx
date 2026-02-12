@@ -143,29 +143,78 @@ export default function Toras() {
 
         // Atualizar despesa vinculada no Fluxo Financeiro
         const toraOriginal = toras.find(t => t.id === editingToraId);
-        if (toraOriginal?.numeroLote) {
-          const descricaoOriginal = `Lote ${toraOriginal.numeroLote}`;
-          if (valorTotalCarga > 0) {
-            // Atualizar despesa existente
+        if (toraOriginal) {
+          // Buscar despesa vinculada por múltiplas estratégias de match
+          const loteOriginal = toraOriginal.numeroLote || '';
+          const loteNovo = numeroLote || '';
+          
+          // Tentar encontrar a despesa vinculada
+          let despesaEncontrada = null;
+          
+          if (loteOriginal) {
+            const { data: despesas } = await supabase
+              .from('despesas')
+              .select('id')
+              .eq('empresa_id', empresaId)
+              .eq('categoria', 'Toras')
+              .ilike('descricao', `Lote ${loteOriginal}%`)
+              .limit(1);
+            
+            if (despesas && despesas.length > 0) {
+              despesaEncontrada = despesas[0];
+            }
+          }
+          
+          // Se não encontrou pelo lote original, tentar pela descrição da tora
+          if (!despesaEncontrada) {
+            const { data: despesas } = await supabase
+              .from('despesas')
+              .select('id')
+              .eq('empresa_id', empresaId)
+              .eq('categoria', 'Toras')
+              .ilike('descricao', `%${toraOriginal.descricao}%`)
+              .limit(1);
+            
+            if (despesas && despesas.length > 0) {
+              despesaEncontrada = despesas[0];
+            }
+          }
+          
+          if (despesaEncontrada) {
+            if (valorTotalCarga > 0) {
+              const { error: updateDespesaError } = await supabase
+                .from('despesas')
+                .update({
+                  descricao: `Lote ${loteNovo} - ${descricaoTora}`,
+                  valor: valorTotalCarga,
+                  data: dataTora || getTodayBR(),
+                  observacao: `${qtdToras} toras - ${toneladas.toFixed(2)} toneladas - R$ ${valorTon.toFixed(2)}/ton`,
+                })
+                .eq('id', despesaEncontrada.id);
+              
+              if (updateDespesaError) {
+                console.error('Erro ao atualizar despesa vinculada:', updateDespesaError);
+              }
+            } else {
+              await supabase
+                .from('despesas')
+                .delete()
+                .eq('id', despesaEncontrada.id);
+            }
+          } else if (valorTotalCarga > 0) {
+            // Criar nova despesa se não encontrou vinculada
             await supabase
               .from('despesas')
-              .update({
-                descricao: `Lote ${numeroLote} - ${descricaoTora}`,
+              .insert({
+                empresa_id: empresaId,
+                user_id: user.id,
+                tipo: 'despesa',
+                descricao: `Lote ${loteNovo} - ${descricaoTora}`,
                 valor: valorTotalCarga,
+                categoria: 'Toras',
                 data: dataTora || getTodayBR(),
                 observacao: `${qtdToras} toras - ${toneladas.toFixed(2)} toneladas - R$ ${valorTon.toFixed(2)}/ton`,
-              })
-              .eq('empresa_id', empresaId)
-              .eq('categoria', 'Toras')
-              .ilike('descricao', `${descricaoOriginal}%`);
-          } else {
-            // Remover despesa se valor zerou
-            await supabase
-              .from('despesas')
-              .delete()
-              .eq('empresa_id', empresaId)
-              .eq('categoria', 'Toras')
-              .ilike('descricao', `${descricaoOriginal}%`);
+              });
           }
         }
 
@@ -395,6 +444,27 @@ export default function Toras() {
       if (producoes && producoes.length > 0) {
         toast.error('Não é possível excluir esta tora pois existem produções vinculadas a ela');
         return;
+      }
+
+      // Excluir despesa vinculada antes de excluir a tora
+      const toraParaExcluir = toras.find(t => t.id === id);
+      if (toraParaExcluir && empresaId) {
+        const lote = toraParaExcluir.numeroLote || '';
+        if (lote) {
+          await supabase
+            .from('despesas')
+            .delete()
+            .eq('empresa_id', empresaId)
+            .eq('categoria', 'Toras')
+            .ilike('descricao', `Lote ${lote}%`);
+        } else {
+          await supabase
+            .from('despesas')
+            .delete()
+            .eq('empresa_id', empresaId)
+            .eq('categoria', 'Toras')
+            .ilike('descricao', `%${toraParaExcluir.descricao}%`);
+        }
       }
 
       const { error } = await supabase
