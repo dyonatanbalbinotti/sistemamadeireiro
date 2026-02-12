@@ -57,7 +57,7 @@ export default function ManageFuncionariosDialog({
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newNome, setNewNome] = useState("");
-  const [newCargo, setNewCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado'>('gerente');
+  const [newCargo, setNewCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral'>('gerente');
 
   // Form states - Reset password
   const [resetPasswordId, setResetPasswordId] = useState<string | null>(null);
@@ -67,7 +67,7 @@ export default function ManageFuncionariosDialog({
   // Form states - Edit employee
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingNome, setEditingNome] = useState("");
-  const [editingCargo, setEditingCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado'>('gerente');
+  const [editingCargo, setEditingCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral'>('gerente');
   const [updatingEmployee, setUpdatingEmployee] = useState(false);
   const [resettingPassword, setResettingPassword] = useState(false);
 
@@ -341,6 +341,7 @@ export default function ManageFuncionariosDialog({
       case 'gerente': return 'Gerente';
       case 'financeiro': return 'Financeiro';
       case 'almoxarifado': return 'Almoxarifado';
+      case 'supervisor_geral': return 'Supervisor Geral';
       default: return null;
     }
   };
@@ -350,6 +351,7 @@ export default function ManageFuncionariosDialog({
       case 'gerente': return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
       case 'financeiro': return "bg-green-500/10 text-green-600 dark:text-green-400";
       case 'almoxarifado': return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+      case 'supervisor_geral': return "bg-purple-500/10 text-purple-600 dark:text-purple-400";
       default: return "";
     }
   };
@@ -437,11 +439,17 @@ export default function ManageFuncionariosDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="editCargo">Cargo</Label>
-                <Select value={editingCargo} onValueChange={(value: 'gerente' | 'financeiro' | 'almoxarifado') => setEditingCargo(value)}>
+                <Select value={editingCargo} onValueChange={(value: 'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral') => setEditingCargo(value)}>
                   <SelectTrigger id="editCargo">
                     <SelectValue placeholder="Selecione o cargo" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="supervisor_geral">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Supervisor Geral
+                      </div>
+                    </SelectItem>
                     <SelectItem value="gerente">
                       <div className="flex items-center gap-2">
                         <Briefcase className="h-4 w-4" />
@@ -539,11 +547,17 @@ export default function ManageFuncionariosDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="newCargo">Cargo</Label>
-                <Select value={newCargo} onValueChange={(value: 'gerente' | 'financeiro' | 'almoxarifado') => setNewCargo(value)}>
+                <Select value={newCargo} onValueChange={(value: 'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral') => setNewCargo(value)}>
                   <SelectTrigger id="newCargo">
                     <SelectValue placeholder="Selecione o cargo" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="supervisor_geral">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4" />
+                        Supervisor Geral
+                      </div>
+                    </SelectItem>
                     <SelectItem value="gerente">
                       <div className="flex items-center gap-2">
                         <Briefcase className="h-4 w-4" />
@@ -565,6 +579,7 @@ export default function ManageFuncionariosDialog({
                   </SelectContent>
                 </Select>
                 <p className="text-xs text-muted-foreground">
+                  Supervisor Geral: acesso total a todas as áreas.
                   Gerente: acesso operacional (sem relatórios/almoxarifado).
                   Financeiro: acesso apenas a Relatórios.
                   Almoxarifado: acesso apenas ao módulo Almoxarifado.
@@ -661,7 +676,7 @@ export default function ManageFuncionariosDialog({
                           onClick={() => {
                             setEditingId(func.id);
                             setEditingNome(func.nome);
-                            setEditingCargo((func.cargo as 'gerente' | 'financeiro' | 'almoxarifado') || 'gerente');
+                            setEditingCargo((func.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral') || 'gerente');
                             setShowForm(false);
                             setResetPasswordId(null);
                           }}

@@ -8,13 +8,14 @@ interface AuthContextType {
   session: Session | null;
   userRole: 'admin' | 'user' | 'funcionario' | null;
   userName: string | null;
-  userCargo: 'gerente' | 'financeiro' | 'almoxarifado' | null;
+  userCargo: 'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral' | null;
   loading: boolean;
   isAdmin: boolean;
   isFuncionario: boolean;
   isGerente: boolean;
   isFinanceiro: boolean;
   isAlmoxarifado: boolean;
+  isSupervisorGeral: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, nome: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -27,7 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<'admin' | 'user' | 'funcionario' | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
-  const [userCargo, setUserCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado' | null>(null);
+  const [userCargo, setUserCargo] = useState<'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral' | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -36,6 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isGerente = isFuncionario && userCargo === 'gerente';
   const isFinanceiro = isFuncionario && userCargo === 'financeiro';
   const isAlmoxarifado = isFuncionario && userCargo === 'almoxarifado';
+  const isSupervisorGeral = isFuncionario && userCargo === 'supervisor_geral';
 
   useEffect(() => {
     // Check for recovery tokens in URL hash IMMEDIATELY on mount
@@ -94,7 +96,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               .maybeSingle();
             
             setUserName(profileData?.nome || null);
-            setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | null);
+            setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral' | null);
           }, 0);
         } else {
           setUserRole(null);
@@ -133,7 +135,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUserRole('user');
           }
           setUserName(profileData?.nome || null);
-          setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | null);
+          setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral' | null);
           setLoading(false);
         });
       } else {
@@ -216,6 +218,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isGerente,
       isFinanceiro,
       isAlmoxarifado,
+      isSupervisorGeral,
       signIn, 
       signUp, 
       signOut 

@@ -25,11 +25,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 
 export default function AppSidebar() {
   const location = useLocation();
-  const { isAdmin, isFuncionario, isGerente, isFinanceiro, isAlmoxarifado } = useAuth();
+  const { isAdmin, isFuncionario, isGerente, isFinanceiro, isAlmoxarifado, isSupervisorGeral } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Se é almoxarifado, mostra apenas a aba de almoxarifado
-  if (isAlmoxarifado) {
+  // Se é almoxarifado (e NÃO supervisor geral), mostra apenas a aba de almoxarifado
+  if (isAlmoxarifado && !isSupervisorGeral) {
     const almoxarifadoItems = [
       { to: "/almoxarifado", icon: Warehouse, label: "Almoxarifado" },
       { to: "/alterar-senha", icon: KeyRound, label: "Alterar Senha" },
@@ -46,14 +46,14 @@ export default function AppSidebar() {
   }
 
   const navItems = [
-    // Dashboard visível para todos exceto financeiro e almoxarifado
-    ...(!isFinanceiro && !isAlmoxarifado ? [{ to: "/", icon: LayoutDashboard, label: "Dashboard" }] : []),
+    // Dashboard visível para todos exceto financeiro e almoxarifado (supervisor geral vê tudo)
+    ...(!isFinanceiro && !isAlmoxarifado || isSupervisorGeral ? [{ to: "/", icon: LayoutDashboard, label: "Dashboard" }] : []),
     ...(isAdmin ? [
       { to: "/admin", icon: Settings, label: "Admin" },
       { to: "/auditoria", icon: Shield, label: "Auditoria" },
     ] : []),
-    // Abas operacionais - visíveis para admin, user e gerente (não para financeiro/almoxarifado)
-    ...(!isFinanceiro && !isAlmoxarifado ? [
+    // Abas operacionais - supervisor geral vê tudo
+    ...(!isFinanceiro && !isAlmoxarifado || isSupervisorGeral ? [
       { to: "/toras", icon: TreeDeciduous, label: "Toras" },
       { to: "/pedidos", icon: ClipboardList, label: "Pedidos" },
       { to: "/producao", icon: Factory, label: "Produção" },
@@ -61,12 +61,12 @@ export default function AppSidebar() {
       { to: "/estoque", icon: Package, label: "Estoque" },
       { to: "/residuos", icon: Layers, label: "Resíduos" },
     ] : []),
-    // Almoxarifado - visível para admin, user e financeiro (não para gerente ou almoxarifado)
-    ...(!isGerente && !isAlmoxarifado ? [{ to: "/almoxarifado", icon: Warehouse, label: "Almoxarifado" }] : []),
-    // Fluxo Financeiro - visível para admin, user (dono) e financeiro (não para gerente ou almoxarifado)
-    ...(!isGerente && !isAlmoxarifado ? [{ to: "/fluxo-financeiro", icon: Wallet, label: "Fluxo Financeiro" }] : []),
-    // Relatórios - visível para admin, user e financeiro (não para gerente ou almoxarifado)
-    ...(!isGerente && !isAlmoxarifado ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
+    // Almoxarifado - supervisor geral vê tudo
+    ...(!isGerente && !isAlmoxarifado || isSupervisorGeral ? [{ to: "/almoxarifado", icon: Warehouse, label: "Almoxarifado" }] : []),
+    // Fluxo Financeiro - supervisor geral vê tudo
+    ...(!isGerente && !isAlmoxarifado || isSupervisorGeral ? [{ to: "/fluxo-financeiro", icon: Wallet, label: "Fluxo Financeiro" }] : []),
+    // Relatórios - supervisor geral vê tudo
+    ...(!isGerente && !isAlmoxarifado || isSupervisorGeral ? [{ to: "/relatorios-financeiros", icon: FileText, label: "Relatórios" }] : []),
     // Alterar Senha - visível para todos
     { to: "/alterar-senha", icon: KeyRound, label: "Alterar Senha" },
   ];
