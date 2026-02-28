@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search, FileSpreadsheet } from "lucide-react";
+import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search, FileSpreadsheet, CalendarDays, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import pdfIcon from '@/assets/pdf-icon.png';
 import excelIcon from '@/assets/excel-icon.png';
@@ -1081,6 +1081,106 @@ export default function Producao() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
+
+          {/* Cards: Dias trabalhados no mês + Média m³/dia */}
+          <div className="grid gap-6 md:grid-cols-2">
+            {/* Card - Média m³ por dia trabalhado no mês atual */}
+            <Card className="glass-effect neon-border shadow-elegant">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-primary" />
+                  Produtividade do Mês Atual
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
+                  const mesAtual = nowBR.getMonth() + 1;
+                  const anoAtual = nowBR.getFullYear();
+                  
+                  const producaoMesAtual = producao.filter(p => {
+                    const d = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+                    const dt = new Date(d + 'T12:00:00');
+                    return dt.getFullYear() === anoAtual && (dt.getMonth() + 1) === mesAtual;
+                  });
+                  
+                  const diasTrabalhados = new Set(producaoMesAtual.map(p => {
+                    return p.data.includes('T') ? p.data.split('T')[0] : p.data;
+                  })).size;
+                  
+                  const totalM3Mes = producaoMesAtual.reduce((sum, p) => sum + p.m3, 0);
+                  const mediaM3Dia = diasTrabalhados > 0 ? totalM3Mes / diasTrabalhados : 0;
+                  
+                  return (
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Dias Trabalhados</p>
+                        <p className="text-3xl font-bold text-primary">{diasTrabalhados}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Total m³</p>
+                        <p className="text-3xl font-bold text-foreground">{totalM3Mes.toFixed(2)}</p>
+                      </div>
+                      <div className="text-center p-4 bg-muted/30 rounded-lg">
+                        <p className="text-sm text-muted-foreground">Média m³/dia</p>
+                        <p className="text-3xl font-bold text-primary">{mediaM3Dia.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            {/* Gráfico - Dias trabalhados por mês */}
+            <Card className="glass-effect neon-border shadow-elegant">
+              <CardHeader>
+                <CardTitle className="text-foreground flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5 text-primary" />
+                  Dias Trabalhados por Mês
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={(() => {
+                    const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
+                    return Array.from({ length: 6 }, (_, i) => {
+                      const date = new Date(nowBR.getFullYear(), nowBR.getMonth() - (5 - i), 1);
+                      const year = date.getFullYear();
+                      const month = date.getMonth() + 1;
+                      
+                      const producaoMes = producao.filter(p => {
+                        const d = p.data.includes('T') ? p.data.split('T')[0] : p.data;
+                        const dt = new Date(d + 'T12:00:00');
+                        return dt.getFullYear() === year && (dt.getMonth() + 1) === month;
+                      });
+                      
+                      const diasTrabalhados = new Set(producaoMes.map(p => {
+                        return p.data.includes('T') ? p.data.split('T')[0] : p.data;
+                      })).size;
+                      
+                      return {
+                        mes: format(date, 'MMM/yy'),
+                        dias: diasTrabalhados
+                      };
+                    });
+                  })()}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="mes" className="text-xs" />
+                    <YAxis className="text-xs" allowDecimals={false} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'hsl(var(--background))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number) => [`${value} dias`, 'Dias Trabalhados']}
+                    />
+                    <Bar dataKey="dias" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
 
           <Card className="shadow-card border-border/50">
             <CardHeader>
