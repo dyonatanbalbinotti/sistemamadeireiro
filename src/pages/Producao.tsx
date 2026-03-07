@@ -716,10 +716,9 @@ export default function Producao() {
       </div>
 
       <Tabs defaultValue="produtos" className="w-full">
-        <TabsList className="grid w-full max-w-3xl grid-cols-3">
+        <TabsList className="grid w-full max-w-3xl grid-cols-2">
           <TabsTrigger value="produtos">Cadastrar Produtos</TabsTrigger>
           <TabsTrigger value="producao">Lançar Produção</TabsTrigger>
-          <TabsTrigger value="romaneio">Romaneio</TabsTrigger>
         </TabsList>
 
         <TabsContent value="produtos" className="space-y-6">
