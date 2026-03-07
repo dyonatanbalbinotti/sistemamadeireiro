@@ -59,6 +59,24 @@ export default function Pedidos() {
   const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined);
   const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("pedidos");
+
+  // Romaneio states
+  const [romaneioItens, setRomaneioItens] = useState<Array<{
+    id: string;
+    produtoId: string;
+    produtoNome: string;
+    largura: number;
+    espessura: number;
+    comprimento: number;
+    quantidade: number;
+    m3: number;
+    valorM3: number;
+    valorTotal: number;
+  }>>([]);
+  const [romaneioProdutoSelecionado, setRomaneioProdutoSelecionado] = useState("");
+  const [romaneioQuantidade, setRomaneioQuantidade] = useState("");
+  const [romaneioValorM3, setRomaneioValorM3] = useState("");
 
   // Form states
   const [numeroPedido, setNumeroPedido] = useState("");
