@@ -73,22 +73,6 @@ export default function Producao() {
   const [paginaConversao, setPaginaConversao] = useState(0);
   const [mesProdutividade, setMesProdutividade] = useState(0);
 
-  // Romaneio states
-  const [romaneioItens, setRomaneioItens] = useState<Array<{
-    id: string;
-    produtoId: string;
-    produtoNome: string;
-    largura: number;
-    espessura: number;
-    comprimento: number;
-    quantidade: number;
-    m3: number;
-    valorM3: number;
-    valorTotal: number;
-  }>>([]);
-  const [romaneioProdutoSelecionado, setRomaneioProdutoSelecionado] = useState("");
-  const [romaneioQuantidade, setRomaneioQuantidade] = useState("");
-  const [romaneioValorM3, setRomaneioValorM3] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
