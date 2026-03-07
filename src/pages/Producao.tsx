@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search, FileSpreadsheet, CalendarDays, TrendingUp } from "lucide-react";
+import { Plus, Edit, Trash2, Factory, BarChart3, Pencil, Search, FileSpreadsheet, CalendarDays, TrendingUp, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import pdfIcon from '@/assets/pdf-icon.png';
 import excelIcon from '@/assets/excel-icon.png';
