@@ -71,6 +71,7 @@ export default function Producao() {
   
   // Estado para paginação da tabela de conversão por mês
   const [paginaConversao, setPaginaConversao] = useState(0);
+  const [mesProdutividade, setMesProdutividade] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
