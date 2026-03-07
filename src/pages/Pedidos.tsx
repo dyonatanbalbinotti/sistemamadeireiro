@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, ClipboardList, CheckCircle2, Circle, Pencil, FileText, Search, Filter, CalendarIcon } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -12,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEmpresaData } from '@/hooks/useEmpresaData';
 import { addPDFHeader, addPDFFooter } from '@/lib/pdfUtils';
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -20,6 +23,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import pdfIcon from '@/assets/pdf-icon.png';
+import { calcularCubagem } from "@/lib/storage";
 
 interface ItemPedido {
   id: string;
@@ -55,6 +59,24 @@ export default function Pedidos() {
   const [dataInicio, setDataInicio] = useState<Date | undefined>(undefined);
   const [dataFim, setDataFim] = useState<Date | undefined>(undefined);
   const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState("pedidos");
+
+  // Romaneio states
+  const [romaneioItens, setRomaneioItens] = useState<Array<{
+    id: string;
+    produtoId: string;
+    produtoNome: string;
+    largura: number;
+    espessura: number;
+    comprimento: number;
+    quantidade: number;
+    m3: number;
+    valorM3: number;
+    valorTotal: number;
+  }>>([]);
+  const [romaneioProdutoSelecionado, setRomaneioProdutoSelecionado] = useState("");
+  const [romaneioQuantidade, setRomaneioQuantidade] = useState("");
+  const [romaneioValorM3, setRomaneioValorM3] = useState("");
 
   // Form states
   const [numeroPedido, setNumeroPedido] = useState("");
@@ -712,8 +734,18 @@ export default function Pedidos() {
           <h1 className="text-3xl font-tech font-bold text-foreground">
             Pedidos
           </h1>
-          <p className="text-sm text-muted-foreground">Gerencie os pedidos de produção</p>
+          <p className="text-sm text-muted-foreground">Gerencie os pedidos de produção e romaneios</p>
         </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
+          <TabsTrigger value="romaneio">Romaneio</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pedidos" className="space-y-4">
+          <div className="flex justify-end">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -1081,6 +1113,243 @@ export default function Pedidos() {
           ))}
         </div>
       )}
+        </TabsContent>
+
+        <TabsContent value="romaneio" className="space-y-6">
+          <Card className="shadow-card border-border/50">
+            <CardHeader>
+              <CardTitle className="text-foreground flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-primary" />
+                Romaneio de Madeiras Brutas Serradas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-6 items-end">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label>Produto</Label>
+                    <Select value={romaneioProdutoSelecionado} onValueChange={(val) => {
+                      setRomaneioProdutoSelecionado(val);
+                    }}>
+                      <SelectTrigger className="border-input">
+                        <SelectValue placeholder="Selecione um produto" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {produtos.map((produto) => (
+                          <SelectItem key={produto.id} value={produto.id}>
+                            {produto.nome} - {produto.largura}x{produto.espessura}x{produto.comprimento}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {(() => {
+                    const prod = produtos.find((p: any) => p.id === romaneioProdutoSelecionado);
+                    return (
+                      <>
+                        <div className="space-y-2">
+                          <Label>Largura (cm)</Label>
+                          <Input value={prod ? Number(prod.largura).toFixed(3) : ""} readOnly className="border-input bg-muted/50" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Espessura (cm)</Label>
+                          <Input value={prod ? Number(prod.espessura).toFixed(3) : ""} readOnly className="border-input bg-muted/50" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Comprimento (m)</Label>
+                          <Input value={prod ? prod.comprimento.toString() : ""} readOnly className="border-input bg-muted/50" />
+                        </div>
+                      </>
+                    );
+                  })()}
+                  <div className="space-y-2">
+                    <Label>Qtd. Peças</Label>
+                    <Input
+                      type="number"
+                      value={romaneioQuantidade}
+                      onChange={(e) => setRomaneioQuantidade(e.target.value)}
+                      placeholder="0"
+                      className="border-input"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-4 items-end">
+                  <div className="space-y-2">
+                    <Label>Valor do m³ (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={romaneioValorM3}
+                      onChange={(e) => setRomaneioValorM3(e.target.value)}
+                      placeholder="0,00"
+                      className="border-input"
+                    />
+                  </div>
+                  {(() => {
+                    const prod = produtos.find((p: any) => p.id === romaneioProdutoSelecionado);
+                    const qtd = parseInt(romaneioQuantidade) || 0;
+                    const m3 = prod ? calcularCubagem(Number(prod.largura), Number(prod.espessura), Number(prod.comprimento), qtd) : 0;
+                    const valor = parseFloat(romaneioValorM3) || 0;
+                    const valorTotal = m3 * valor;
+                    return (
+                      <>
+                        <div className="space-y-2">
+                          <Label>m³ Calculado</Label>
+                          <Input value={m3.toFixed(4)} readOnly className="border-input bg-muted/50 font-bold text-primary" />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Valor Total (R$)</Label>
+                          <Input value={valorTotal.toFixed(2)} readOnly className="border-input bg-muted/50 font-bold text-primary" />
+                        </div>
+                      </>
+                    );
+                  })()}
+                  <Button
+                    onClick={() => {
+                      const prod = produtos.find((p: any) => p.id === romaneioProdutoSelecionado);
+                      const qtd = parseInt(romaneioQuantidade) || 0;
+                      if (!prod || qtd <= 0) {
+                        sonnerToast.error("Selecione um produto e informe a quantidade");
+                        return;
+                      }
+                      const m3 = calcularCubagem(Number(prod.largura), Number(prod.espessura), Number(prod.comprimento), qtd);
+                      const valor = parseFloat(romaneioValorM3) || 0;
+                      const valorTotal = m3 * valor;
+                      setRomaneioItens(prev => [...prev, {
+                        id: crypto.randomUUID(),
+                        produtoId: prod.id,
+                        produtoNome: prod.nome,
+                        largura: Number(prod.largura),
+                        espessura: Number(prod.espessura),
+                        comprimento: Number(prod.comprimento),
+                        quantidade: qtd,
+                        m3,
+                        valorM3: valor,
+                        valorTotal,
+                      }]);
+                      setRomaneioQuantidade("");
+                      sonnerToast.success("Item adicionado ao romaneio");
+                    }}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Adicionar
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {romaneioItens.length > 0 && (
+            <Card className="shadow-card border-border/50">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-foreground">Itens do Romaneio</CardTitle>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const doc = new jsPDF();
+                      const startY = 20;
+                      doc.setFontSize(16);
+                      doc.setFont("helvetica", "bold");
+                      doc.text('Romaneio de Madeiras Brutas Serradas', 14, startY);
+                      
+                      const tableData = romaneioItens.map(item => [
+                        item.largura.toFixed(3),
+                        item.espessura.toFixed(3),
+                        item.comprimento.toString(),
+                        item.quantidade.toString(),
+                        item.m3.toFixed(4),
+                        `R$ ${item.valorM3.toFixed(2)}`,
+                        `R$ ${item.valorTotal.toFixed(2)}`,
+                      ]);
+                      
+                      autoTable(doc, {
+                        head: [['Largura', 'Espessura', 'Compri.', 'Qtd. Pçs', 'M³', 'Valor/m³', 'Valor Total']],
+                        body: tableData,
+                        startY: startY + 10,
+                        styles: { fontSize: 9 },
+                        headStyles: { fillColor: [79, 70, 229] },
+                        foot: [[
+                          'Total', '', '',
+                          romaneioItens.reduce((s, i) => s + i.quantidade, 0).toString(),
+                          romaneioItens.reduce((s, i) => s + i.m3, 0).toFixed(4),
+                          '',
+                          `R$ ${romaneioItens.reduce((s, i) => s + i.valorTotal, 0).toFixed(2)}`
+                        ]],
+                        footStyles: { fillColor: [240, 240, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
+                      });
+                      
+                      doc.save('romaneio.pdf');
+                      sonnerToast.success('PDF do romaneio exportado!');
+                    }}
+                    className="gap-2"
+                  >
+                    <img src={pdfIcon} alt="PDF" className="h-4 w-4" />
+                    Exportar PDF
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="rounded-lg border border-border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/50">
+                        <TableHead>Produto</TableHead>
+                        <TableHead>Largura</TableHead>
+                        <TableHead>Espessura</TableHead>
+                        <TableHead>Compri.</TableHead>
+                        <TableHead>Qtd. Pçs</TableHead>
+                        <TableHead>M³</TableHead>
+                        <TableHead>Valor/m³</TableHead>
+                        <TableHead>Valor Total</TableHead>
+                        <TableHead className="text-center">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {romaneioItens.map((item) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="font-medium">{item.produtoNome}</TableCell>
+                          <TableCell>{item.largura.toFixed(3)}</TableCell>
+                          <TableCell>{item.espessura.toFixed(3)}</TableCell>
+                          <TableCell>{item.comprimento}</TableCell>
+                          <TableCell>{item.quantidade}</TableCell>
+                          <TableCell className="font-mono">{item.m3.toFixed(4)}</TableCell>
+                          <TableCell>R$ {item.valorM3.toFixed(2)}</TableCell>
+                          <TableCell className="font-bold text-primary">R$ {item.valorTotal.toFixed(2)}</TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              onClick={() => setRomaneioItens(prev => prev.filter(i => i.id !== item.id))}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      <TableRow className="bg-primary/10 border-t-2 border-primary/30">
+                        <TableCell className="font-bold text-foreground">Total</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="font-bold">{romaneioItens.reduce((s, i) => s + i.quantidade, 0)}</TableCell>
+                        <TableCell className="font-bold font-mono">{romaneioItens.reduce((s, i) => s + i.m3, 0).toFixed(4)}</TableCell>
+                        <TableCell></TableCell>
+                        <TableCell className="font-bold text-primary text-lg">R$ {romaneioItens.reduce((s, i) => s + i.valorTotal, 0).toFixed(2)}</TableCell>
+                        <TableCell></TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Dialog de Edição de Pedido */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
