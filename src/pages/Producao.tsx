@@ -1084,31 +1084,49 @@ export default function Producao() {
 
           {/* Cards: Dias trabalhados no mês + Média m³/dia */}
           <div className="grid gap-6 md:grid-cols-2">
-            {/* Card - Média m³ por dia trabalhado no mês atual */}
+           {/* Card - Média m³ por dia trabalhado com navegação por mês */}
             <Card className="glass-effect neon-border shadow-elegant">
               <CardHeader>
-                <CardTitle className="text-foreground flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                  Produtividade do Mês Atual
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-foreground flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Produtividade Mensal
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMesProdutividade(prev => prev - 1)}>
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm font-medium text-muted-foreground min-w-[100px] text-center">
+                      {(() => {
+                        const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
+                        const date = new Date(nowBR.getFullYear(), nowBR.getMonth() + mesProdutividade, 1);
+                        return format(date, 'MMM/yyyy');
+                      })()}
+                    </span>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setMesProdutividade(prev => Math.min(prev + 1, 0))} disabled={mesProdutividade >= 0}>
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 {(() => {
                   const nowBR = toZonedTime(new Date(), 'America/Sao_Paulo');
-                  const mesAtual = nowBR.getMonth() + 1;
-                  const anoAtual = nowBR.getFullYear();
+                  const targetDate = new Date(nowBR.getFullYear(), nowBR.getMonth() + mesProdutividade, 1);
+                  const mesSelecionado = targetDate.getMonth() + 1;
+                  const anoSelecionado = targetDate.getFullYear();
                   
-                  const producaoMesAtual = producao.filter(p => {
+                  const producaoMes = producao.filter(p => {
                     const d = p.data.includes('T') ? p.data.split('T')[0] : p.data;
                     const dt = new Date(d + 'T12:00:00');
-                    return dt.getFullYear() === anoAtual && (dt.getMonth() + 1) === mesAtual;
+                    return dt.getFullYear() === anoSelecionado && (dt.getMonth() + 1) === mesSelecionado;
                   });
                   
-                  const diasTrabalhados = new Set(producaoMesAtual.map(p => {
+                  const diasTrabalhados = new Set(producaoMes.map(p => {
                     return p.data.includes('T') ? p.data.split('T')[0] : p.data;
                   })).size;
                   
-                  const totalM3Mes = producaoMesAtual.reduce((sum, p) => sum + p.m3, 0);
+                  const totalM3Mes = producaoMes.reduce((sum, p) => sum + p.m3, 0);
                   const mediaM3Dia = diasTrabalhados > 0 ? totalM3Mes / diasTrabalhados : 0;
                   
                   return (
