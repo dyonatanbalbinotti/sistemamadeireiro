@@ -1752,15 +1752,17 @@ export default function Producao() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-foreground">Itens do Romaneio</CardTitle>
-                  <Button
+                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
+                    onClick={async () => {
                       const doc = new jsPDF();
-                      const startY = 20;
-                      doc.setFontSize(16);
+                      const startY = await addPDFHeader({ empresa, doc });
+                      
+                      doc.setFontSize(14);
                       doc.setFont("helvetica", "bold");
-                      doc.text('Romaneio de Madeiras Brutas Serradas', 14, startY);
+                      doc.setTextColor(0, 0, 0);
+                      doc.text('Romaneio de Madeiras Brutas Serradas', 14, startY + 2);
                       
                       const tableData = romaneioItens.map(item => [
                         item.largura.toFixed(3),
@@ -1788,6 +1790,7 @@ export default function Producao() {
                         footStyles: { fillColor: [240, 240, 255], textColor: [0, 0, 0], fontStyle: 'bold' },
                       });
                       
+                      await addPDFFooter({ empresa, doc });
                       doc.save('romaneio.pdf');
                       toast.success('PDF do romaneio exportado!');
                     }}
