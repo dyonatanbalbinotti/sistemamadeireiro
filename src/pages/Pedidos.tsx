@@ -734,8 +734,18 @@ export default function Pedidos() {
           <h1 className="text-3xl font-tech font-bold text-foreground">
             Pedidos
           </h1>
-          <p className="text-sm text-muted-foreground">Gerencie os pedidos de produção</p>
+          <p className="text-sm text-muted-foreground">Gerencie os pedidos de produção e romaneios</p>
         </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsTrigger value="pedidos">Pedidos</TabsTrigger>
+          <TabsTrigger value="romaneio">Romaneio</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="pedidos" className="space-y-4">
+          <div className="flex justify-end">
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
