@@ -73,8 +73,8 @@ export default function Producao() {
   const [paginaConversao, setPaginaConversao] = useState(0);
   const [mesProdutividade, setMesProdutividade] = useState(0);
 
-  // Romaneio states
-  const [romaneioItens, setRomaneioItens] = useState<Array<{
+  // Romaneio types
+  type RomaneioItem = {
     id: string;
     produtoId: string;
     produtoNome: string;
@@ -85,10 +85,40 @@ export default function Producao() {
     m3: number;
     valorM3: number;
     valorTotal: number;
-  }>>([]);
+  };
+  type RomaneioData = {
+    id: string;
+    nome: string;
+    itens: RomaneioItem[];
+    criadoEm: string;
+  };
+
+  // Romaneio states
+  const [romaneios, setRomaneios] = useState<RomaneioData[]>([{
+    id: crypto.randomUUID(),
+    nome: 'Romaneio 1',
+    itens: [],
+    criadoEm: new Date().toISOString(),
+  }]);
+  const [romaneioAtualId, setRomaneioAtualId] = useState(() => '');
   const [romaneioProdutoSelecionado, setRomaneioProdutoSelecionado] = useState("");
   const [romaneioQuantidade, setRomaneioQuantidade] = useState("");
   const [romaneioValorM3, setRomaneioValorM3] = useState("");
+  const [romaneioEditandoItemId, setRomaneioEditandoItemId] = useState<string | null>(null);
+
+  // Initialize romaneioAtualId
+  useEffect(() => {
+    if (!romaneioAtualId && romaneios.length > 0) {
+      setRomaneioAtualId(romaneios[0].id);
+    }
+  }, [romaneios, romaneioAtualId]);
+
+  const romaneioAtual = romaneios.find(r => r.id === romaneioAtualId) || romaneios[0];
+  const romaneioItens = romaneioAtual?.itens || [];
+
+  const setRomaneioItens = (updater: (prev: RomaneioItem[]) => RomaneioItem[]) => {
+    setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, itens: updater(r.itens) } : r));
+  };
 
   useEffect(() => {
     const loadData = async () => {
