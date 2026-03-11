@@ -73,8 +73,8 @@ export default function Producao() {
   const [paginaConversao, setPaginaConversao] = useState(0);
   const [mesProdutividade, setMesProdutividade] = useState(0);
 
-  // Romaneio states
-  const [romaneioItens, setRomaneioItens] = useState<Array<{
+  // Romaneio types
+  type RomaneioItem = {
     id: string;
     produtoId: string;
     produtoNome: string;
@@ -85,10 +85,40 @@ export default function Producao() {
     m3: number;
     valorM3: number;
     valorTotal: number;
-  }>>([]);
+  };
+  type RomaneioData = {
+    id: string;
+    nome: string;
+    itens: RomaneioItem[];
+    criadoEm: string;
+  };
+
+  // Romaneio states
+  const [romaneios, setRomaneios] = useState<RomaneioData[]>([{
+    id: crypto.randomUUID(),
+    nome: 'Romaneio 1',
+    itens: [],
+    criadoEm: new Date().toISOString(),
+  }]);
+  const [romaneioAtualId, setRomaneioAtualId] = useState(() => '');
   const [romaneioProdutoSelecionado, setRomaneioProdutoSelecionado] = useState("");
   const [romaneioQuantidade, setRomaneioQuantidade] = useState("");
   const [romaneioValorM3, setRomaneioValorM3] = useState("");
+  const [romaneioEditandoItemId, setRomaneioEditandoItemId] = useState<string | null>(null);
+
+  // Initialize romaneioAtualId
+  useEffect(() => {
+    if (!romaneioAtualId && romaneios.length > 0) {
+      setRomaneioAtualId(romaneios[0].id);
+    }
+  }, [romaneios, romaneioAtualId]);
+
+  const romaneioAtual = romaneios.find(r => r.id === romaneioAtualId) || romaneios[0];
+  const romaneioItens = romaneioAtual?.itens || [];
+
+  const setRomaneioItens = (updater: (prev: RomaneioItem[]) => RomaneioItem[]) => {
+    setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, itens: updater(r.itens) } : r));
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -1622,11 +1652,82 @@ export default function Producao() {
         </TabsContent>
 
         <TabsContent value="romaneio" className="space-y-6">
+          {/* Seletor de Romaneios */}
+          <Card className="shadow-card border-border/50">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <Label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Romaneios:</Label>
+                <div className="flex gap-2 flex-wrap flex-1">
+                  {romaneios.map((r) => (
+                    <Button
+                      key={r.id}
+                      variant={r.id === romaneioAtualId ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setRomaneioAtualId(r.id);
+                        setRomaneioEditandoItemId(null);
+                        setRomaneioProdutoSelecionado("");
+                        setRomaneioQuantidade("");
+                        setRomaneioValorM3("");
+                      }}
+                      className="gap-1"
+                    >
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      {r.nome} ({r.itens.length})
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const num = romaneios.length + 1;
+                      const novoId = crypto.randomUUID();
+                      setRomaneios(prev => [...prev, {
+                        id: novoId,
+                        nome: `Romaneio ${num}`,
+                        itens: [],
+                        criadoEm: new Date().toISOString(),
+                      }]);
+                      setRomaneioAtualId(novoId);
+                      setRomaneioEditandoItemId(null);
+                      setRomaneioProdutoSelecionado("");
+                      setRomaneioQuantidade("");
+                      setRomaneioValorM3("");
+                      toast.success(`Romaneio ${num} criado`);
+                    }}
+                    className="gap-1"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                    Novo Romaneio
+                  </Button>
+                  {romaneios.length > 1 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setRomaneios(prev => prev.filter(r => r.id !== romaneioAtualId));
+                        setRomaneioAtualId(romaneios.find(r => r.id !== romaneioAtualId)?.id || '');
+                        setRomaneioEditandoItemId(null);
+                        toast.success("Romaneio removido");
+                      }}
+                      className="gap-1 text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Excluir
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card className="shadow-card border-border/50">
             <CardHeader>
               <CardTitle className="text-foreground flex items-center gap-2">
                 <ClipboardList className="h-5 w-5 text-primary" />
-                Romaneio de Madeiras Brutas Serradas
+                {romaneioAtual?.nome || 'Romaneio'} - Madeiras Brutas Serradas
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -1711,37 +1812,73 @@ export default function Producao() {
                       </>
                     );
                   })()}
-                  <Button
-                    onClick={() => {
-                      const prod = produtos.find(p => p.id === romaneioProdutoSelecionado);
-                      const qtd = parseInt(romaneioQuantidade) || 0;
-                      if (!prod || qtd <= 0) {
-                        toast.error("Selecione um produto e informe a quantidade");
-                        return;
-                      }
-                      const m3 = calcularCubagem(prod.largura, prod.espessura, prod.comprimento, qtd);
-                      const valor = parseFloat(romaneioValorM3) || 0;
-                      const valorTotal = m3 * valor;
-                      setRomaneioItens(prev => [...prev, {
-                        id: crypto.randomUUID(),
-                        produtoId: prod.id,
-                        produtoNome: prod.nome,
-                        largura: prod.largura,
-                        espessura: prod.espessura,
-                        comprimento: prod.comprimento,
-                        quantidade: qtd,
-                        m3,
-                        valorM3: valor,
-                        valorTotal,
-                      }]);
-                      setRomaneioQuantidade("");
-                      toast.success("Item adicionado ao romaneio");
-                    }}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Adicionar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        const prod = produtos.find(p => p.id === romaneioProdutoSelecionado);
+                        const qtd = parseInt(romaneioQuantidade) || 0;
+                        if (!prod || qtd <= 0) {
+                          toast.error("Selecione um produto e informe a quantidade");
+                          return;
+                        }
+                        const m3 = calcularCubagem(prod.largura, prod.espessura, prod.comprimento, qtd);
+                        const valor = parseFloat(romaneioValorM3) || 0;
+                        const valorTotal = m3 * valor;
+
+                        if (romaneioEditandoItemId) {
+                          setRomaneioItens(prev => prev.map(i => i.id === romaneioEditandoItemId ? {
+                            ...i,
+                            produtoId: prod.id,
+                            produtoNome: prod.nome,
+                            largura: prod.largura,
+                            espessura: prod.espessura,
+                            comprimento: prod.comprimento,
+                            quantidade: qtd,
+                            m3,
+                            valorM3: valor,
+                            valorTotal,
+                          } : i));
+                          setRomaneioEditandoItemId(null);
+                          toast.success("Item atualizado");
+                        } else {
+                          setRomaneioItens(prev => [...prev, {
+                            id: crypto.randomUUID(),
+                            produtoId: prod.id,
+                            produtoNome: prod.nome,
+                            largura: prod.largura,
+                            espessura: prod.espessura,
+                            comprimento: prod.comprimento,
+                            quantidade: qtd,
+                            m3,
+                            valorM3: valor,
+                            valorTotal,
+                          }]);
+                          toast.success("Item adicionado ao romaneio");
+                        }
+                        setRomaneioQuantidade("");
+                      }}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
+                    >
+                      {romaneioEditandoItemId ? (
+                        <><Pencil className="h-4 w-4 mr-2" />Atualizar</>
+                      ) : (
+                        <><Plus className="h-4 w-4 mr-2" />Adicionar</>
+                      )}
+                    </Button>
+                    {romaneioEditandoItemId && (
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setRomaneioEditandoItemId(null);
+                          setRomaneioProdutoSelecionado("");
+                          setRomaneioQuantidade("");
+                          setRomaneioValorM3("");
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -1751,7 +1888,7 @@ export default function Producao() {
             <Card className="shadow-card border-border/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-foreground">Itens do Romaneio</CardTitle>
+                  <CardTitle className="text-foreground">Itens do {romaneioAtual?.nome || 'Romaneio'}</CardTitle>
                    <Button
                     variant="outline"
                     size="sm"
@@ -1762,9 +1899,10 @@ export default function Producao() {
                       doc.setFontSize(14);
                       doc.setFont("helvetica", "bold");
                       doc.setTextColor(0, 0, 0);
-                      doc.text('Romaneio de Madeiras Brutas Serradas', 14, startY + 2);
+                      doc.text(`${romaneioAtual?.nome || 'Romaneio'} - Madeiras Brutas Serradas`, 14, startY + 2);
                       
                       const tableData = romaneioItens.map(item => [
+                        item.produtoNome,
                         item.largura.toFixed(3),
                         item.espessura.toFixed(3),
                         item.comprimento.toString(),
@@ -1775,13 +1913,13 @@ export default function Producao() {
                       ]);
                       
                       autoTable(doc, {
-                        head: [['Largura', 'Espessura', 'Compri.', 'Qtd. Pçs', 'M³', 'Valor/m³', 'Valor Total']],
+                        head: [['Produto', 'Largura', 'Espessura', 'Compri.', 'Qtd. Pçs', 'M³', 'Valor/m³', 'Valor Total']],
                         body: tableData,
                         startY: startY + 10,
                         styles: { fontSize: 9 },
                         headStyles: { fillColor: [79, 70, 229] },
                         foot: [[
-                          'Total', '', '',
+                          'Total', '', '', '',
                           romaneioItens.reduce((s, i) => s + i.quantidade, 0).toString(),
                           romaneioItens.reduce((s, i) => s + i.m3, 0).toFixed(4),
                           '',
@@ -1791,7 +1929,7 @@ export default function Producao() {
                       });
                       
                       await addPDFFooter({ empresa, doc });
-                      doc.save('romaneio.pdf');
+                      doc.save(`${(romaneioAtual?.nome || 'romaneio').toLowerCase().replace(/\s+/g, '-')}.pdf`);
                       toast.success('PDF do romaneio exportado!');
                     }}
                     className="gap-2"
@@ -1819,7 +1957,7 @@ export default function Producao() {
                     </TableHeader>
                     <TableBody>
                       {romaneioItens.map((item) => (
-                        <TableRow key={item.id}>
+                        <TableRow key={item.id} className={romaneioEditandoItemId === item.id ? "bg-primary/5" : ""}>
                           <TableCell className="font-medium">{item.produtoNome}</TableCell>
                           <TableCell>{item.largura.toFixed(3)}</TableCell>
                           <TableCell>{item.espessura.toFixed(3)}</TableCell>
@@ -1829,18 +1967,41 @@ export default function Producao() {
                           <TableCell>R$ {item.valorM3.toFixed(2)}</TableCell>
                           <TableCell className="font-bold text-primary">R$ {item.valorTotal.toFixed(2)}</TableCell>
                           <TableCell className="text-center">
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              onClick={() => setRomaneioItens(prev => prev.filter(i => i.id !== item.id))}
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1 justify-center">
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => {
+                                  setRomaneioProdutoSelecionado(item.produtoId);
+                                  setRomaneioQuantidade(item.quantidade.toString());
+                                  setRomaneioValorM3(item.valorM3.toString());
+                                  setRomaneioEditandoItemId(item.id);
+                                  toast.info("Editando item - altere os campos e clique em Atualizar");
+                                }}
+                                className="h-8 w-8"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                onClick={() => {
+                                  setRomaneioItens(prev => prev.filter(i => i.id !== item.id));
+                                  if (romaneioEditandoItemId === item.id) {
+                                    setRomaneioEditandoItemId(null);
+                                    setRomaneioProdutoSelecionado("");
+                                    setRomaneioQuantidade("");
+                                    setRomaneioValorM3("");
+                                  }
+                                }}
+                                className="h-8 w-8 text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
-                      {/* Totais */}
                       <TableRow className="bg-primary/10 border-t-2 border-primary/30">
                         <TableCell className="font-bold text-foreground">Total</TableCell>
                         <TableCell></TableCell>
