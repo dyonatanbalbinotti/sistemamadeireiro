@@ -1651,245 +1651,231 @@ export default function Producao() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="romaneio" className="space-y-6">
-          {/* Seletor de Romaneios */}
-          <Card className="shadow-card border-border/50">
-            <CardContent className="pt-4 pb-3">
-              <div className="flex items-center gap-3 flex-wrap">
-                <Label className="text-sm font-medium text-muted-foreground whitespace-nowrap">Romaneios:</Label>
-                <div className="flex gap-2 flex-wrap flex-1">
-                  {romaneios.map((r) => (
-                    <Button
-                      key={r.id}
-                      variant={r.id === romaneioAtualId ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => {
-                        setRomaneioAtualId(r.id);
-                        setRomaneioEditandoItemId(null);
-                        setRomaneioProdutoSelecionado("");
-                        setRomaneioQuantidade("");
-                        setRomaneioValorM3("");
-                      }}
-                      className="gap-1"
-                    >
-                      <ClipboardList className="h-3.5 w-3.5" />
-                      {r.nome} ({r.itens.length})
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const num = romaneios.length + 1;
-                      const novoId = crypto.randomUUID();
-                      setRomaneios(prev => [...prev, {
-                        id: novoId,
-                        nome: `Romaneio ${num}`,
-                        itens: [],
-                        criadoEm: new Date().toISOString(),
-                      }]);
-                      setRomaneioAtualId(novoId);
-                      setRomaneioEditandoItemId(null);
-                      setRomaneioProdutoSelecionado("");
-                      setRomaneioQuantidade("");
-                      setRomaneioValorM3("");
-                      toast.success(`Romaneio ${num} criado`);
-                    }}
-                    className="gap-1"
-                  >
-                    <Plus className="h-3.5 w-3.5" />
-                    Novo Romaneio
-                  </Button>
-                  {romaneios.length > 1 && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setRomaneios(prev => prev.filter(r => r.id !== romaneioAtualId));
-                        setRomaneioAtualId(romaneios.find(r => r.id !== romaneioAtualId)?.id || '');
-                        setRomaneioEditandoItemId(null);
-                        toast.success("Romaneio removido");
-                      }}
-                      className="gap-1 text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Excluir
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="romaneio" className="space-y-4">
+          {/* Barra de Romaneios */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              {romaneios.map((r) => (
+                <Button
+                  key={r.id}
+                  variant={r.id === romaneioAtualId ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    setRomaneioAtualId(r.id);
+                    setRomaneioEditandoItemId(null);
+                    setRomaneioProdutoSelecionado("");
+                    setRomaneioQuantidade("");
+                    setRomaneioValorM3("");
+                  }}
+                  className="gap-1.5"
+                >
+                  <ClipboardList className="h-3.5 w-3.5" />
+                  {r.nome}
+                  <span className="ml-0.5 text-xs opacity-70">({r.itens.length})</span>
+                </Button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const num = romaneios.length + 1;
+                  const novoId = crypto.randomUUID();
+                  setRomaneios(prev => [...prev, {
+                    id: novoId,
+                    nome: `Romaneio ${num}`,
+                    itens: [],
+                    criadoEm: new Date().toISOString(),
+                  }]);
+                  setRomaneioAtualId(novoId);
+                  setRomaneioEditandoItemId(null);
+                  setRomaneioProdutoSelecionado("");
+                  setRomaneioQuantidade("");
+                  setRomaneioValorM3("");
+                  toast.success(`Romaneio ${num} criado`);
+                }}
+                className="gap-1.5"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Novo
+              </Button>
+              {romaneios.length > 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setRomaneios(prev => prev.filter(r => r.id !== romaneioAtualId));
+                    setRomaneioAtualId(romaneios.find(r => r.id !== romaneioAtualId)?.id || '');
+                    setRomaneioEditandoItemId(null);
+                    toast.success("Romaneio removido");
+                  }}
+                  className="gap-1.5 text-destructive hover:text-destructive"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          </div>
 
+          {/* Formulário */}
           <Card className="shadow-card border-border/50">
-            <CardHeader>
-              <CardTitle className="text-foreground flex items-center gap-2">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-foreground flex items-center gap-2 text-lg">
                 <ClipboardList className="h-5 w-5 text-primary" />
-                {romaneioAtual?.nome || 'Romaneio'} - Madeiras Brutas Serradas
+                {romaneioAtual?.nome || 'Romaneio'} — Madeiras Brutas Serradas
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-6 items-end">
-                  <div className="space-y-2 md:col-span-2">
-                    <Label>Produto</Label>
-                    <Select value={romaneioProdutoSelecionado} onValueChange={(val) => {
-                      setRomaneioProdutoSelecionado(val);
-                    }}>
-                      <SelectTrigger className="border-input">
-                        <SelectValue placeholder="Selecione um produto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {produtos.map((produto) => (
-                          <SelectItem key={produto.id} value={produto.id}>
-                            {produto.nome} - {produto.tipo}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {(() => {
-                    const prod = produtos.find(p => p.id === romaneioProdutoSelecionado);
-                    return (
-                      <>
-                        <div className="space-y-2">
-                          <Label>Largura (cm)</Label>
-                          <Input value={prod ? prod.largura.toFixed(3) : ""} readOnly className="border-input bg-muted/50" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Espessura (cm)</Label>
-                          <Input value={prod ? prod.espessura.toFixed(3) : ""} readOnly className="border-input bg-muted/50" />
-                        </div>
-                        <div className="space-y-2">
-                          <Label>Comprimento (m)</Label>
-                          <Input value={prod ? prod.comprimento.toString() : ""} readOnly className="border-input bg-muted/50" />
-                        </div>
-                      </>
-                    );
-                  })()}
-                  <div className="space-y-2">
-                    <Label>Qtd. Peças</Label>
-                    <Input
-                      type="number"
-                      value={romaneioQuantidade}
-                      onChange={(e) => setRomaneioQuantidade(e.target.value)}
-                      placeholder="0"
-                      className="border-input"
-                    />
-                  </div>
-                </div>
+            <CardContent className="space-y-5">
+              {/* Linha 1: Produto + Dimensões + Qtd */}
+              {(() => {
+                const prod = produtos.find(p => p.id === romaneioProdutoSelecionado);
+                const qtd = parseInt(romaneioQuantidade) || 0;
+                const m3 = prod ? calcularCubagem(prod.largura, prod.espessura, prod.comprimento, qtd) : 0;
+                const valor = parseFloat(romaneioValorM3) || 0;
+                const valorTotal = m3 * valor;
+                return (
+                  <>
+                    <div className="grid gap-3 grid-cols-2 md:grid-cols-5 items-end">
+                      <div className="space-y-1.5 col-span-2 md:col-span-1">
+                        <Label className="text-xs font-medium text-muted-foreground">Produto</Label>
+                        <Select value={romaneioProdutoSelecionado} onValueChange={setRomaneioProdutoSelecionado}>
+                          <SelectTrigger className="border-input h-9">
+                            <SelectValue placeholder="Selecione" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {produtos.map((produto) => (
+                              <SelectItem key={produto.id} value={produto.id}>
+                                {produto.nome} - {produto.tipo}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">Largura (cm)</Label>
+                        <Input value={prod ? prod.largura.toFixed(3) : "—"} readOnly className="border-input bg-muted/30 h-9 text-center" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">Espessura (cm)</Label>
+                        <Input value={prod ? prod.espessura.toFixed(3) : "—"} readOnly className="border-input bg-muted/30 h-9 text-center" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">Comprimento (m)</Label>
+                        <Input value={prod ? prod.comprimento.toString() : "—"} readOnly className="border-input bg-muted/30 h-9 text-center" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">Qtd. Peças</Label>
+                        <Input
+                          type="number"
+                          value={romaneioQuantidade}
+                          onChange={(e) => setRomaneioQuantidade(e.target.value)}
+                          placeholder="0"
+                          className="border-input h-9 text-center"
+                        />
+                      </div>
+                    </div>
 
-                <div className="grid gap-4 md:grid-cols-4 items-end">
-                  <div className="space-y-2">
-                    <Label>Valor do m³ (R$)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      value={romaneioValorM3}
-                      onChange={(e) => setRomaneioValorM3(e.target.value)}
-                      placeholder="0,00"
-                      className="border-input"
-                    />
-                  </div>
-                  {(() => {
-                    const prod = produtos.find(p => p.id === romaneioProdutoSelecionado);
-                    const qtd = parseInt(romaneioQuantidade) || 0;
-                    const m3 = prod ? calcularCubagem(prod.largura, prod.espessura, prod.comprimento, qtd) : 0;
-                    const valor = parseFloat(romaneioValorM3) || 0;
-                    const valorTotal = m3 * valor;
-                    return (
-                      <>
-                        <div className="space-y-2">
-                          <Label>m³ Calculado</Label>
-                          <Input value={m3.toFixed(4)} readOnly className="border-input bg-muted/50 font-bold text-primary" />
+                    {/* Linha 2: Valor m³ + Resultados + Botão */}
+                    <div className="grid gap-3 grid-cols-2 md:grid-cols-4 items-end">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">Valor do m³ (R$)</Label>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          value={romaneioValorM3}
+                          onChange={(e) => setRomaneioValorM3(e.target.value)}
+                          placeholder="0,00"
+                          className="border-input h-9"
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">m³ Calculado</Label>
+                        <div className="h-9 flex items-center px-3 rounded-md bg-primary/5 border border-primary/20">
+                          <span className="font-semibold text-primary text-sm">{m3.toFixed(4)}</span>
                         </div>
-                        <div className="space-y-2">
-                          <Label>Valor Total (R$)</Label>
-                          <Input value={valorTotal.toFixed(2)} readOnly className="border-input bg-muted/50 font-bold text-primary" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-medium text-muted-foreground">Valor Total (R$)</Label>
+                        <div className="h-9 flex items-center px-3 rounded-md bg-primary/5 border border-primary/20">
+                          <span className="font-semibold text-primary text-sm">R$ {valorTotal.toFixed(2)}</span>
                         </div>
-                      </>
-                    );
-                  })()}
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => {
-                        const prod = produtos.find(p => p.id === romaneioProdutoSelecionado);
-                        const qtd = parseInt(romaneioQuantidade) || 0;
-                        if (!prod || qtd <= 0) {
-                          toast.error("Selecione um produto e informe a quantidade");
-                          return;
-                        }
-                        const m3 = calcularCubagem(prod.largura, prod.espessura, prod.comprimento, qtd);
-                        const valor = parseFloat(romaneioValorM3) || 0;
-                        const valorTotal = m3 * valor;
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            const p = produtos.find(x => x.id === romaneioProdutoSelecionado);
+                            const q = parseInt(romaneioQuantidade) || 0;
+                            if (!p || q <= 0) {
+                              toast.error("Selecione um produto e informe a quantidade");
+                              return;
+                            }
+                            const cM3 = calcularCubagem(p.largura, p.espessura, p.comprimento, q);
+                            const v = parseFloat(romaneioValorM3) || 0;
+                            const vt = cM3 * v;
 
-                        if (romaneioEditandoItemId) {
-                          setRomaneioItens(prev => prev.map(i => i.id === romaneioEditandoItemId ? {
-                            ...i,
-                            produtoId: prod.id,
-                            produtoNome: prod.nome,
-                            largura: prod.largura,
-                            espessura: prod.espessura,
-                            comprimento: prod.comprimento,
-                            quantidade: qtd,
-                            m3,
-                            valorM3: valor,
-                            valorTotal,
-                          } : i));
-                          setRomaneioEditandoItemId(null);
-                          toast.success("Item atualizado");
-                        } else {
-                          setRomaneioItens(prev => [...prev, {
-                            id: crypto.randomUUID(),
-                            produtoId: prod.id,
-                            produtoNome: prod.nome,
-                            largura: prod.largura,
-                            espessura: prod.espessura,
-                            comprimento: prod.comprimento,
-                            quantidade: qtd,
-                            m3,
-                            valorM3: valor,
-                            valorTotal,
-                          }]);
-                          toast.success("Item adicionado ao romaneio");
-                        }
-                        setRomaneioQuantidade("");
-                      }}
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
-                    >
-                      {romaneioEditandoItemId ? (
-                        <><Pencil className="h-4 w-4 mr-2" />Atualizar</>
-                      ) : (
-                        <><Plus className="h-4 w-4 mr-2" />Adicionar</>
-                      )}
-                    </Button>
-                    {romaneioEditandoItemId && (
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setRomaneioEditandoItemId(null);
-                          setRomaneioProdutoSelecionado("");
-                          setRomaneioQuantidade("");
-                          setRomaneioValorM3("");
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </div>
+                            if (romaneioEditandoItemId) {
+                              setRomaneioItens(prev => prev.map(i => i.id === romaneioEditandoItemId ? {
+                                ...i, produtoId: p.id, produtoNome: p.nome,
+                                largura: p.largura, espessura: p.espessura, comprimento: p.comprimento,
+                                quantidade: q, m3: cM3, valorM3: v, valorTotal: vt,
+                              } : i));
+                              setRomaneioEditandoItemId(null);
+                              toast.success("Item atualizado");
+                            } else {
+                              setRomaneioItens(prev => [...prev, {
+                                id: crypto.randomUUID(), produtoId: p.id, produtoNome: p.nome,
+                                largura: p.largura, espessura: p.espessura, comprimento: p.comprimento,
+                                quantidade: q, m3: cM3, valorM3: v, valorTotal: vt,
+                              }]);
+                              toast.success("Item adicionado ao romaneio");
+                            }
+                            setRomaneioQuantidade("");
+                          }}
+                          size="sm"
+                          className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1 h-9"
+                        >
+                          {romaneioEditandoItemId ? (
+                            <><Pencil className="h-3.5 w-3.5 mr-1.5" />Atualizar</>
+                          ) : (
+                            <><Plus className="h-3.5 w-3.5 mr-1.5" />Adicionar</>
+                          )}
+                        </Button>
+                        {romaneioEditandoItemId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9"
+                            onClick={() => {
+                              setRomaneioEditandoItemId(null);
+                              setRomaneioProdutoSelecionado("");
+                              setRomaneioQuantidade("");
+                              setRomaneioValorM3("");
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()}
             </CardContent>
           </Card>
 
+          {/* Tabela de Itens */}
           {romaneioItens.length > 0 && (
             <Card className="shadow-card border-border/50">
-              <CardHeader>
+              <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-foreground">Itens do {romaneioAtual?.nome || 'Romaneio'}</CardTitle>
-                   <Button
+                  <CardTitle className="text-foreground text-base">
+                    Itens do {romaneioAtual?.nome || 'Romaneio'}
+                    <span className="ml-2 text-xs font-normal text-muted-foreground">
+                      ({romaneioItens.length} {romaneioItens.length === 1 ? 'item' : 'itens'})
+                    </span>
+                  </CardTitle>
+                  <Button
                     variant="outline"
                     size="sm"
                     onClick={async () => {
@@ -1932,45 +1918,45 @@ export default function Producao() {
                       doc.save(`${(romaneioAtual?.nome || 'romaneio').toLowerCase().replace(/\s+/g, '-')}.pdf`);
                       toast.success('PDF do romaneio exportado!');
                     }}
-                    className="gap-2"
+                    className="gap-1.5"
                   >
                     <img src={pdfIcon} alt="PDF" className="h-4 w-4" />
                     Exportar PDF
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="pt-0">
                 <div className="rounded-lg border border-border overflow-hidden">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-muted/50">
-                        <TableHead>Produto</TableHead>
-                        <TableHead>Largura</TableHead>
-                        <TableHead>Espessura</TableHead>
-                        <TableHead>Compri.</TableHead>
-                        <TableHead>Qtd. Pçs</TableHead>
-                        <TableHead>M³</TableHead>
-                        <TableHead>Valor/m³</TableHead>
-                        <TableHead>Valor Total</TableHead>
-                        <TableHead className="text-center">Ações</TableHead>
+                        <TableHead className="min-w-[140px]">Produto</TableHead>
+                        <TableHead className="text-center w-[80px]">Largura</TableHead>
+                        <TableHead className="text-center w-[80px]">Espessura</TableHead>
+                        <TableHead className="text-center w-[80px]">Compri.</TableHead>
+                        <TableHead className="text-center w-[70px]">Qtd.</TableHead>
+                        <TableHead className="text-center w-[90px]">M³</TableHead>
+                        <TableHead className="text-right w-[100px]">Valor/m³</TableHead>
+                        <TableHead className="text-right w-[110px]">Valor Total</TableHead>
+                        <TableHead className="text-center w-[80px]">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {romaneioItens.map((item) => (
                         <TableRow key={item.id} className={romaneioEditandoItemId === item.id ? "bg-primary/5" : ""}>
                           <TableCell className="font-medium">{item.produtoNome}</TableCell>
-                          <TableCell>{item.largura.toFixed(3)}</TableCell>
-                          <TableCell>{item.espessura.toFixed(3)}</TableCell>
-                          <TableCell>{item.comprimento}</TableCell>
-                          <TableCell>{item.quantidade}</TableCell>
-                          <TableCell className="font-mono">{item.m3.toFixed(4)}</TableCell>
-                          <TableCell>R$ {item.valorM3.toFixed(2)}</TableCell>
-                          <TableCell className="font-bold text-primary">R$ {item.valorTotal.toFixed(2)}</TableCell>
+                          <TableCell className="text-center tabular-nums">{item.largura.toFixed(3)}</TableCell>
+                          <TableCell className="text-center tabular-nums">{item.espessura.toFixed(3)}</TableCell>
+                          <TableCell className="text-center tabular-nums">{item.comprimento}</TableCell>
+                          <TableCell className="text-center font-medium">{item.quantidade}</TableCell>
+                          <TableCell className="text-center font-mono tabular-nums">{item.m3.toFixed(4)}</TableCell>
+                          <TableCell className="text-right tabular-nums">R$ {item.valorM3.toFixed(2)}</TableCell>
+                          <TableCell className="text-right font-semibold text-primary tabular-nums">R$ {item.valorTotal.toFixed(2)}</TableCell>
                           <TableCell className="text-center">
                             <div className="flex gap-1 justify-center">
                               <Button
                                 size="icon"
-                                variant="outline"
+                                variant="ghost"
                                 onClick={() => {
                                   setRomaneioProdutoSelecionado(item.produtoId);
                                   setRomaneioQuantidade(item.quantidade.toString());
@@ -1978,13 +1964,13 @@ export default function Producao() {
                                   setRomaneioEditandoItemId(item.id);
                                   toast.info("Editando item - altere os campos e clique em Atualizar");
                                 }}
-                                className="h-8 w-8"
+                                className="h-7 w-7"
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-3.5 w-3.5" />
                               </Button>
                               <Button
                                 size="icon"
-                                variant="outline"
+                                variant="ghost"
                                 onClick={() => {
                                   setRomaneioItens(prev => prev.filter(i => i.id !== item.id));
                                   if (romaneioEditandoItemId === item.id) {
@@ -1994,23 +1980,21 @@ export default function Producao() {
                                     setRomaneioValorM3("");
                                   }
                                 }}
-                                className="h-8 w-8 text-destructive hover:text-destructive"
+                                className="h-7 w-7 text-destructive hover:text-destructive"
                               >
-                                <Trash2 className="h-4 w-4" />
+                                <Trash2 className="h-3.5 w-3.5" />
                               </Button>
                             </div>
                           </TableCell>
                         </TableRow>
                       ))}
-                      <TableRow className="bg-primary/10 border-t-2 border-primary/30">
-                        <TableCell className="font-bold text-foreground">Total</TableCell>
+                      {/* Linha de totais */}
+                      <TableRow className="bg-muted/30 border-t-2 border-primary/20">
+                        <TableCell colSpan={4} className="font-bold text-foreground">Total</TableCell>
+                        <TableCell className="text-center font-bold">{romaneioItens.reduce((s, i) => s + i.quantidade, 0)}</TableCell>
+                        <TableCell className="text-center font-bold font-mono tabular-nums">{romaneioItens.reduce((s, i) => s + i.m3, 0).toFixed(4)}</TableCell>
                         <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                        <TableCell className="font-bold">{romaneioItens.reduce((s, i) => s + i.quantidade, 0)}</TableCell>
-                        <TableCell className="font-bold font-mono">{romaneioItens.reduce((s, i) => s + i.m3, 0).toFixed(4)}</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell className="font-bold text-primary text-lg">R$ {romaneioItens.reduce((s, i) => s + i.valorTotal, 0).toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-bold text-primary text-base tabular-nums">R$ {romaneioItens.reduce((s, i) => s + i.valorTotal, 0).toFixed(2)}</TableCell>
                         <TableCell></TableCell>
                       </TableRow>
                     </TableBody>
