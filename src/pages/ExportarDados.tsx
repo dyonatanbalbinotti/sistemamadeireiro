@@ -2,8 +2,9 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, Database, Users, Package, Factory, ShoppingCart, TreeDeciduous, ClipboardList, Wallet, Warehouse, Bell, Shield, FileDown } from "lucide-react";
+import { Download, Loader2, Database, Users, Package, Factory, ShoppingCart, TreeDeciduous, ClipboardList, Wallet, Warehouse, Bell, Shield, FileDown, Copy, Check, Code } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ExportItem {
   id: string;
