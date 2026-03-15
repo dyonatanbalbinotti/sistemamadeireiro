@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Warehouse,
   Wallet,
-  KeyRound
+  KeyRound,
+  Download
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import dwLogo from "@/assets/dw-logo-new.png";
@@ -51,6 +52,7 @@ export default function AppSidebar() {
     ...(isAdmin ? [
       { to: "/admin", icon: Settings, label: "Admin" },
       { to: "/auditoria", icon: Shield, label: "Auditoria" },
+      { to: "/exportar-dados", icon: Download, label: "Exportar Dados" },
     ] : []),
     // Abas operacionais - supervisor geral vê tudo
     ...(!isFinanceiro && !isAlmoxarifado || isSupervisorGeral ? [
