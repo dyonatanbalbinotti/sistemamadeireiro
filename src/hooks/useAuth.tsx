@@ -72,39 +72,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           // Fetch user role and name
           setTimeout(async () => {
-            const { data: roleData } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', session.user.id)
-              .maybeSingle();
-            
-            // Aceitar admin, funcionario ou user
-            const role = roleData?.role;
-            if (role === 'admin') {
-              setUserRole('admin');
-            } else if (role === 'funcionario') {
-              setUserRole('funcionario');
-            } else {
-              setUserRole('user');
-            }
+            try {
+              const [{ data: roleData }, { data: profileData }] = await Promise.all([
+                supabase
+                  .from('user_roles')
+                  .select('role')
+                  .eq('user_id', session.user.id)
+                  .maybeSingle(),
+                supabase
+                  .from('profiles')
+                  .select('nome, cargo')
+                  .eq('id', session.user.id)
+                  .maybeSingle()
+              ]);
+              
+              const role = roleData?.role;
+              if (role === 'admin') {
+                setUserRole('admin');
+              } else if (role === 'funcionario') {
+                setUserRole('funcionario');
+              } else {
+                setUserRole('user');
+              }
 
-            // Fetch user name and cargo from profiles
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('nome, cargo')
-              .eq('id', session.user.id)
-              .maybeSingle();
-            
-            setUserName(profileData?.nome || null);
-            setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral' | null);
+              setUserName(profileData?.nome || null);
+              setUserCargo(profileData?.cargo as 'gerente' | 'financeiro' | 'almoxarifado' | 'supervisor_geral' | null);
+            } catch (error) {
+              console.error('Error fetching user data:', error);
+            } finally {
+              setLoading(false);
+            }
           }, 0);
         } else {
           setUserRole(null);
           setUserName(null);
           setUserCargo(null);
+          setLoading(false);
         }
-        
-        setLoading(false);
       }
     );
 
