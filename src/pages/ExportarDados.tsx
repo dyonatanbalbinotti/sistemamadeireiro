@@ -80,7 +80,7 @@ export default function ExportarDados() {
         toast({ title: "Sem dados", description: `A tabela "${item.label}" está vazia.` });
         return;
       }
-      const csv = convertToCSV(data as Record<string, unknown>[]);
+      const csv = convertToCSV(data as unknown as Record<string, unknown>[]);
       const date = new Date().toISOString().slice(0, 10);
       downloadCSV(csv, `${item.table}_${date}.csv`);
       toast({ title: "Exportado!", description: `${item.label} exportado com ${data.length} registros.` });
