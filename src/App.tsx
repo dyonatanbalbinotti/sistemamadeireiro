@@ -25,6 +25,7 @@ import AuditLogs from "./pages/AuditLogs";
 import Almoxarifado from "./pages/Almoxarifado";
 import FluxoFinanceiro from "./pages/FluxoFinanceiro";
 import AlterarSenha from "./pages/AlterarSenha";
+import ExportarDados from "./pages/ExportarDados";
 import { SecurityHeaders } from "@/components/SecurityHeaders";
 
 const queryClient = new QueryClient();
