@@ -15,7 +15,8 @@ import {
   ChevronRight,
   Warehouse,
   Wallet,
-  KeyRound
+  KeyRound,
+  Download
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import dwLogo from "@/assets/dw-logo-new.png";
