@@ -98,7 +98,7 @@ export default function ExportarDados() {
       try {
         const { data, error } = await supabase.from(item.table as any).select("*");
         if (error || !data || data.length === 0) continue;
-        const csv = convertToCSV(data as Record<string, unknown>[]);
+        const csv = convertToCSV(data as unknown as Record<string, unknown>[]);
         const date = new Date().toISOString().slice(0, 10);
         downloadCSV(csv, `${item.table}_${date}.csv`);
         exported++;
