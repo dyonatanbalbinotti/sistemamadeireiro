@@ -1693,6 +1693,9 @@ export default function Producao() {
                     nome: `Romaneio ${num}`,
                     itens: [],
                     criadoEm: new Date().toISOString(),
+                    cliente: '',
+                    cidade: '',
+                    dataEntrega: '',
                   }]);
                   setRomaneioAtualId(novoId);
                   setRomaneioEditandoItemId(null);
