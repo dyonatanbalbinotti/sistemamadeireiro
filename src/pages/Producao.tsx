@@ -102,6 +102,9 @@ export default function Producao() {
     nome: 'Romaneio 1',
     itens: [],
     criadoEm: new Date().toISOString(),
+    cliente: '',
+    cidade: '',
+    dataEntrega: '',
   }]);
   const [romaneioAtualId, setRomaneioAtualId] = useState(() => '');
   const [romaneioProdutoSelecionado, setRomaneioProdutoSelecionado] = useState("");
