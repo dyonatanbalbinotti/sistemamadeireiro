@@ -1963,7 +1963,7 @@ export default function Producao() {
                       autoTable(doc, {
                         head: [['Produto', 'Largura', 'Espessura', 'Compri.', 'Qtd. Pçs', 'M³', 'Valor/m³', 'Valor Total']],
                         body: tableData,
-                        startY: startY + 10,
+                        startY: infoY + 4,
                         styles: { fontSize: 9 },
                         headStyles: { fillColor: [79, 70, 229] },
                         foot: [[
