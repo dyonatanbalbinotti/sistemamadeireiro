@@ -1736,6 +1736,34 @@ export default function Producao() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
+              {/* Campos: Cliente, Cidade, Data de Entrega */}
+              <div className="grid gap-3 grid-cols-1 md:grid-cols-3 items-end">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
+                  <Input
+                    placeholder="Nome do cliente"
+                    value={romaneioAtual?.cliente || ''}
+                    onChange={(e) => setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, cliente: e.target.value } : r))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Cidade</Label>
+                  <Input
+                    placeholder="Cidade - UF"
+                    value={romaneioAtual?.cidade || ''}
+                    onChange={(e) => setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, cidade: e.target.value } : r))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Data de Entrega</Label>
+                  <Input
+                    type="date"
+                    value={romaneioAtual?.dataEntrega || ''}
+                    onChange={(e) => setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, dataEntrega: e.target.value } : r))}
+                  />
+                </div>
+              </div>
+
               {/* Linha 1: Produto + Dimensões + Qtd */}
               {(() => {
                 const prod = produtos.find(p => p.id === romaneioProdutoSelecionado);
