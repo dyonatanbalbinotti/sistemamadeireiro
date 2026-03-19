@@ -91,6 +91,9 @@ export default function Producao() {
     nome: string;
     itens: RomaneioItem[];
     criadoEm: string;
+    cliente: string;
+    cidade: string;
+    dataEntrega: string;
   };
 
   // Romaneio states
