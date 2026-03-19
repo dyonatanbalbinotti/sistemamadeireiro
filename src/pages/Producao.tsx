@@ -91,6 +91,9 @@ export default function Producao() {
     nome: string;
     itens: RomaneioItem[];
     criadoEm: string;
+    cliente: string;
+    cidade: string;
+    dataEntrega: string;
   };
 
   // Romaneio states
@@ -99,6 +102,9 @@ export default function Producao() {
     nome: 'Romaneio 1',
     itens: [],
     criadoEm: new Date().toISOString(),
+    cliente: '',
+    cidade: '',
+    dataEntrega: '',
   }]);
   const [romaneioAtualId, setRomaneioAtualId] = useState(() => '');
   const [romaneioProdutoSelecionado, setRomaneioProdutoSelecionado] = useState("");
@@ -1687,6 +1693,9 @@ export default function Producao() {
                     nome: `Romaneio ${num}`,
                     itens: [],
                     criadoEm: new Date().toISOString(),
+                    cliente: '',
+                    cidade: '',
+                    dataEntrega: '',
                   }]);
                   setRomaneioAtualId(novoId);
                   setRomaneioEditandoItemId(null);
@@ -1727,6 +1736,34 @@ export default function Producao() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
+              {/* Campos: Cliente, Cidade, Data de Entrega */}
+              <div className="grid gap-3 grid-cols-1 md:grid-cols-3 items-end">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
+                  <Input
+                    placeholder="Nome do cliente"
+                    value={romaneioAtual?.cliente || ''}
+                    onChange={(e) => setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, cliente: e.target.value } : r))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Cidade</Label>
+                  <Input
+                    placeholder="Cidade - UF"
+                    value={romaneioAtual?.cidade || ''}
+                    onChange={(e) => setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, cidade: e.target.value } : r))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Data de Entrega</Label>
+                  <Input
+                    type="date"
+                    value={romaneioAtual?.dataEntrega || ''}
+                    onChange={(e) => setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, dataEntrega: e.target.value } : r))}
+                  />
+                </div>
+              </div>
+
               {/* Linha 1: Produto + Dimensões + Qtd */}
               {(() => {
                 const prod = produtos.find(p => p.id === romaneioProdutoSelecionado);
@@ -1887,6 +1924,31 @@ export default function Producao() {
                       doc.setTextColor(0, 0, 0);
                       doc.text(`${romaneioAtual?.nome || 'Romaneio'} - Madeiras Brutas Serradas`, 14, startY + 2);
                       
+                      let infoY = startY + 12;
+                      doc.setFontSize(10);
+                      if (romaneioAtual?.cliente) {
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Cliente: ", 14, infoY);
+                        doc.setFont("helvetica", "normal");
+                        doc.text(romaneioAtual.cliente, 14 + doc.getTextWidth("Cliente: "), infoY);
+                        infoY += 6;
+                      }
+                      if (romaneioAtual?.cidade) {
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Cidade: ", 14, infoY);
+                        doc.setFont("helvetica", "normal");
+                        doc.text(romaneioAtual.cidade, 14 + doc.getTextWidth("Cidade: "), infoY);
+                        infoY += 6;
+                      }
+                      if (romaneioAtual?.dataEntrega) {
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Data de Entrega: ", 14, infoY);
+                        doc.setFont("helvetica", "normal");
+                        const [y, m, d] = romaneioAtual.dataEntrega.split('-');
+                        doc.text(`${d}/${m}/${y}`, 14 + doc.getTextWidth("Data de Entrega: "), infoY);
+                        infoY += 6;
+                      }
+                      
                       const tableData = romaneioItens.map(item => [
                         item.produtoNome,
                         item.largura.toFixed(3),
@@ -1901,7 +1963,7 @@ export default function Producao() {
                       autoTable(doc, {
                         head: [['Produto', 'Largura', 'Espessura', 'Compri.', 'Qtd. Pçs', 'M³', 'Valor/m³', 'Valor Total']],
                         body: tableData,
-                        startY: startY + 10,
+                        startY: infoY + 4,
                         styles: { fontSize: 9 },
                         headStyles: { fillColor: [79, 70, 229] },
                         foot: [[
