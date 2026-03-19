@@ -1924,6 +1924,31 @@ export default function Producao() {
                       doc.setTextColor(0, 0, 0);
                       doc.text(`${romaneioAtual?.nome || 'Romaneio'} - Madeiras Brutas Serradas`, 14, startY + 2);
                       
+                      let infoY = startY + 12;
+                      doc.setFontSize(10);
+                      if (romaneioAtual?.cliente) {
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Cliente: ", 14, infoY);
+                        doc.setFont("helvetica", "normal");
+                        doc.text(romaneioAtual.cliente, 14 + doc.getTextWidth("Cliente: "), infoY);
+                        infoY += 6;
+                      }
+                      if (romaneioAtual?.cidade) {
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Cidade: ", 14, infoY);
+                        doc.setFont("helvetica", "normal");
+                        doc.text(romaneioAtual.cidade, 14 + doc.getTextWidth("Cidade: "), infoY);
+                        infoY += 6;
+                      }
+                      if (romaneioAtual?.dataEntrega) {
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Data de Entrega: ", 14, infoY);
+                        doc.setFont("helvetica", "normal");
+                        const [y, m, d] = romaneioAtual.dataEntrega.split('-');
+                        doc.text(`${d}/${m}/${y}`, 14 + doc.getTextWidth("Data de Entrega: "), infoY);
+                        infoY += 6;
+                      }
+                      
                       const tableData = romaneioItens.map(item => [
                         item.produtoNome,
                         item.largura.toFixed(3),
