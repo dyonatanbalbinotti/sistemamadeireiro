@@ -205,14 +205,11 @@ export default function Pedidos() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
-      // Buscar empresa_id correto
-      const { data: empresaData } = await supabase
-        .from('empresas')
-        .select('id')
-        .eq('user_id', user.user.id)
-        .maybeSingle();
-
-      const empresaId = empresaData?.id || user.user.id;
+      const empresaId = await getEmpresaId(user.user.id);
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não encontrada", variant: "destructive" });
+        return;
+      }
 
       const { data: pedido, error: pedidoError } = await supabase
         .from('pedidos')
