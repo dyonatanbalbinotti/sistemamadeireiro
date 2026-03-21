@@ -75,19 +75,33 @@ export default function Pedidos() {
     fetchProdutos();
   }, []);
 
+  const getEmpresaId = async (userId: string): Promise<string | null> => {
+    // Primeiro tenta como dono
+    const { data: empresaData } = await supabase
+      .from('empresas')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (empresaData?.id) return empresaData.id;
+
+    // Se não é dono, busca pelo perfil (funcionário)
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('empresa_id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    return profileData?.empresa_id || null;
+  };
+
   const fetchProdutos = async () => {
     try {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
-      // Primeiro buscar a empresa do usuário
-      const { data: empresaData } = await supabase
-        .from('empresas')
-        .select('id')
-        .eq('user_id', user.user.id)
-        .maybeSingle();
-
-      const empresaId = empresaData?.id || user.user.id;
+      const empresaId = await getEmpresaId(user.user.id);
+      if (!empresaId) return;
 
       const { data, error } = await supabase
         .from('produtos')
@@ -108,14 +122,8 @@ export default function Pedidos() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
-      // Buscar empresa_id correto
-      const { data: empresaData } = await supabase
-        .from('empresas')
-        .select('id')
-        .eq('user_id', user.user.id)
-        .maybeSingle();
-
-      const empresaId = empresaData?.id || user.user.id;
+      const empresaId = await getEmpresaId(user.user.id);
+      if (!empresaId) return;
 
       const { data: pedidosData, error: pedidosError } = await supabase
         .from('pedidos')
@@ -197,14 +205,11 @@ export default function Pedidos() {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
-      // Buscar empresa_id correto
-      const { data: empresaData } = await supabase
-        .from('empresas')
-        .select('id')
-        .eq('user_id', user.user.id)
-        .maybeSingle();
-
-      const empresaId = empresaData?.id || user.user.id;
+      const empresaId = await getEmpresaId(user.user.id);
+      if (!empresaId) {
+        toast({ title: "Erro", description: "Empresa não encontrada", variant: "destructive" });
+        return;
+      }
 
       const { data: pedido, error: pedidoError } = await supabase
         .from('pedidos')
