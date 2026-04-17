@@ -92,6 +92,7 @@ export default function Producao() {
     itens: RomaneioItem[];
     criadoEm: string;
     cliente: string;
+    formaPagamento: string;
     cidade: string;
     dataEntrega: string;
   };
@@ -103,6 +104,7 @@ export default function Producao() {
     itens: [],
     criadoEm: new Date().toISOString(),
     cliente: '',
+    formaPagamento: '',
     cidade: '',
     dataEntrega: '',
   }]);
@@ -1694,6 +1696,7 @@ export default function Producao() {
                     itens: [],
                     criadoEm: new Date().toISOString(),
                     cliente: '',
+                    formaPagamento: '',
                     cidade: '',
                     dataEntrega: '',
                   }]);
@@ -1736,14 +1739,22 @@ export default function Producao() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-5">
-              {/* Campos: Cliente, Cidade, Data de Entrega */}
-              <div className="grid gap-3 grid-cols-1 md:grid-cols-3 items-end">
+              {/* Campos: Cliente, Forma de Pagamento, Cidade, Data de Entrega */}
+              <div className="grid gap-3 grid-cols-1 md:grid-cols-2 items-end">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-muted-foreground">Cliente</Label>
                   <Input
                     placeholder="Nome do cliente"
                     value={romaneioAtual?.cliente || ''}
                     onChange={(e) => setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, cliente: e.target.value } : r))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium text-muted-foreground">Forma de Pagamento</Label>
+                  <Input
+                    placeholder="Ex: À vista, Boleto 30 dias, PIX..."
+                    value={romaneioAtual?.formaPagamento || ''}
+                    onChange={(e) => setRomaneios(prev => prev.map(r => r.id === romaneioAtualId ? { ...r, formaPagamento: e.target.value } : r))}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -1931,6 +1942,13 @@ export default function Producao() {
                         doc.text("Cliente: ", 14, infoY);
                         doc.setFont("helvetica", "normal");
                         doc.text(romaneioAtual.cliente, 14 + doc.getTextWidth("Cliente: "), infoY);
+                        infoY += 6;
+                      }
+                      if (romaneioAtual?.formaPagamento) {
+                        doc.setFont("helvetica", "bold");
+                        doc.text("Forma de Pagamento: ", 14, infoY);
+                        doc.setFont("helvetica", "normal");
+                        doc.text(romaneioAtual.formaPagamento, 14 + doc.getTextWidth("Forma de Pagamento: "), infoY);
                         infoY += 6;
                       }
                       if (romaneioAtual?.cidade) {
